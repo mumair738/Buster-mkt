@@ -14,10 +14,11 @@ import { Navbar } from "./navbar";
 
 type LeaderboardEntry = {
   username: string;
-  fid: number | string;
+  fid: string;
   pfp_url: string | null;
   winnings: number;
   address: string;
+  voteCount: number;
 };
 
 export function EnhancedPredictionMarketDashboard() {

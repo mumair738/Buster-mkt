@@ -76,7 +76,7 @@ export function Footer() {
                   key={href}
                   href={href}
                   className={cn(
-                    "flex flex-col items-center p-2",
+                    "flex flex-col items-center",
                     isActive
                       ? "text-primary"
                       : "text-muted-foreground hover:text-primary"
@@ -92,7 +92,7 @@ export function Footer() {
             <button
               onClick={() => setShowInfo(!showInfo)}
               className={cn(
-                "flex flex-col items-center p-2",
+                "flex flex-col items-center",
                 showInfo
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary"
