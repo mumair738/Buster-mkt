@@ -473,7 +473,7 @@ export function EnhancedPredictionMarketDashboard() {
                           </div>
                           <div className="col-span-2 text-right">
                             <div className="text-sm font-medium text-gray-900">
-                              {entry.winnings.toLocaleString()} $BSTR
+                              {entry.winnings.toLocaleString()} $Buster
                             </div>
                           </div>
                         </div>

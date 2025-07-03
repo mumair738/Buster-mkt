@@ -83,7 +83,7 @@ export async function generateMetadata(
         url: marketUrl,
         iconUrl: "https://buster-mkt.vercel.app/icon.png",
         splashImageUrl: "https://buster-mkt.vercel.app/icon.jpg",
-        splashBackgroundColor: "#ffffff",
+        splashBackgroundColor: "##131E2A",
       },
     },
   };

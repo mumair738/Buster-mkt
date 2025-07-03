@@ -51,7 +51,6 @@ export function Footer() {
               </p>
               <ol className="list-decimal pl-5 mb-3 space-y-1 text-gray-700">
                 <li>Sign in with your wallet</li>
-                <li>Claim 5,000 $buster shares</li>
                 <li>Browse available predictions</li>
                 <li>Place your bets!</li>
               </ol>
@@ -109,7 +108,7 @@ export function Footer() {
             <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
               Built by{" "}
               <Link
-                href="https://warpcast.com/~/channel/politics"
+                href="https://farcaster.xyz/~/channel/politics"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium underline underline-offset-4"

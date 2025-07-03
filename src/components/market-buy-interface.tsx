@@ -42,7 +42,7 @@ type BuyingStep =
   | "purchaseSuccess";
 type Option = "A" | "B" | null;
 
-const MAX_BET = 500;
+const MAX_BET = 50000000000000000000000000000000;
 
 // Convert amount to token units (handles custom decimals)
 function toUnits(amount: string, decimals: number): bigint {

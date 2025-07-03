@@ -61,7 +61,7 @@ export function Navbar() {
 
     if (!isClient) {
       return (
-        <div className="px-3 py-1 rounded-full text-sm font-medium text-green-900 animate-pulse">
+        <div className="px-3 py-1 rounded-full text-sm font-medium text-coolGray-900 animate-pulse">
           Connecting...
         </div>
       );
@@ -86,7 +86,8 @@ export function Navbar() {
           </span>
           <button
             onClick={() => wagmiDisconnect()}
-            className="blueGray-500 hover:bg-green-900 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200"
+            style={{ backgroundColor: "#7A42B9" }}
+            className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200"
           >
             Disconnect
           </button>
@@ -95,7 +96,8 @@ export function Navbar() {
           <div className="md:hidden">
             <button
               onClick={() => wagmiDisconnect()}
-              className="bg-green-800 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+              style={{ backgroundColor: "#7A42B9" }}
+              className="text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
             >
               {`${address.slice(0, 4)}...${address.slice(-3)}`}{" "}
             </button>
@@ -116,7 +118,8 @@ export function Navbar() {
             <button
               key={primaryConnector.id}
               onClick={() => wagmiConnect({ connector: primaryConnector })}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+              style={{ backgroundColor: "#7A42B9" }}
+              className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
             >
               Connect Wallet
             </button>
@@ -129,7 +132,7 @@ export function Navbar() {
   return (
     <>
       {/* Desktop View */}
-      <div className="hidden md:flex justify-between items-center mb-6 px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg shadow-sm">
+      <div className="hidden md:flex justify-between items-center mb-6 px-4 py-3 bg-gradient-to-r from-[#7A42B9] to-gray-100 rounded-lg shadow-sm">
         <div className="flex items-center gap-3">
           {pfpUrl && (
             <Image
@@ -148,7 +151,7 @@ export function Navbar() {
       </div>
 
       {/* Mobile View */}
-      <div className="md:hidden flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-green-50 to-green-100 rounded-lg shadow-sm">
+      <div className="md:hidden flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-[#7A42B9] to-gray-100 rounded-lg shadow-sm">
         <div className="flex items-center gap-2">
           {pfpUrl && (
             <Image

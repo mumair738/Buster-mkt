@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/frame-sdk";
-import { ClaimTokensButton } from "./ClaimTokensButton";
+// import { ClaimTokensButton } from "./ClaimTokensButton";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export function OnboardingModal() {
-  const [step, setStep] = useState<"add" | "claim" | "share" | "done">("add");
+  const [step, setStep] = useState<"add" | "buy" | "share" | "done">("add");
   const [isOpen, setIsOpen] = useState(false);
   // To track if the modal was opened by the onboarding logic in the current session
   const [onboardingTriggered, setOnboardingTriggered] = useState(false);
@@ -28,13 +28,13 @@ export function OnboardingModal() {
       const checkAdded = async () => {
         const client = await (await sdk.context).client;
         if (client.added) {
-          setStep("claim");
+          setStep("buy");
         }
       };
       checkAdded();
 
       const handleFrameAdded = () => {
-        setStep("claim");
+        setStep("buy");
       };
       sdk.on("frameAdded", handleFrameAdded);
       return () => {
@@ -51,14 +51,31 @@ export function OnboardingModal() {
     }
   };
 
-  const handleClaimComplete = () => {
-    setStep("share");
+  // Replace with your actual token addresses
+  const USDC_CAIP19 =
+    "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+  const CAIP_ETH = "eip155:8453/native";
+  const BUSTER_CAIP19 =
+    "eip155:8453/erc20:0x53Bd7F868764333de01643ca9102ee4297eFA3cb";
+
+  const handleBuyBuster = async (sellToken: string) => {
+    try {
+      await sdk.actions.swapToken({
+        sellToken,
+        buyToken: BUSTER_CAIP19,
+        // Optionally, set sellAmount: "1000000" // 1 USDC (if you want to pre-fill)
+      });
+      setStep("share");
+    } catch (error) {
+      console.error("Failed to open swap:", error);
+      setStep("share");
+    }
   };
 
   const handleShare = async () => {
     try {
       await sdk.actions.composeCast({
-        text: "Just joined Policast! Predict public sentiments and earn BSTR tokens!",
+        text: "Just joined Policast! Predict public sentiments and earn $Buster tokens!",
         embeds: ["https://buster-mkt.vercel.app"],
       });
       setStep("done");
@@ -97,15 +114,15 @@ export function OnboardingModal() {
         <DialogHeader>
           <DialogTitle>
             {step === "add" && "Welcome to Policast!"}
-            {step === "claim" && "Claim Your Tokens"}
+            {step === "buy" && "Buy $Buster"}
             {step === "share" && "Share Policast"}
           </DialogTitle>
         </DialogHeader>
         {step === "add" && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-gray-600">
-              Add Policast to your Farcaster client to claim 5000 BSTR tokens
-              and start predicting!
+              Add Policast to your Farcaster client to get notifications and
+              start predicting!
             </p>
             <div className="flex gap-2">
               <Button
@@ -120,12 +137,28 @@ export function OnboardingModal() {
             </div>
           </div>
         )}
-        {step === "claim" && (
+        {step === "buy" && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-gray-600">
-              Great! Now claim your 5000 BSTR tokens to start playing.
+              Great! Now buy your $Buster tokens to start playing.
             </p>
-            <ClaimTokensButton onClaimComplete={handleClaimComplete} />
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleBuyBuster(USDC_CAIP19)}
+                className="bg-gray-800 text-white hover:bg-gray-900"
+              >
+                Buy with USDC
+              </Button>
+              <Button
+                onClick={() => handleBuyBuster(CAIP_ETH)}
+                className="bg-gray-800 text-white hover:bg-gray-900"
+              >
+                Buy with ETH
+              </Button>
+              <Button variant="outline" onClick={handleClose}>
+                Skip
+              </Button>
+            </div>
           </div>
         )}
         {step === "share" && (
