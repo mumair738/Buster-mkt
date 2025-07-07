@@ -15,6 +15,9 @@ import MarketTime from "@/components/market-time";
 //eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { MarketSharesDisplay } from "@/components/market-shares-display";
 
+import { UrlPreview } from "./url-preview";
+import { MarketContext } from "./market-context";
+
 interface Market {
   question: string;
   optionA: string;
@@ -38,23 +41,15 @@ const LinkifiedText = ({ text }: { text: string }) => {
   const parts = text.split(urlRegex);
 
   return (
-    <>
+    <div className="space-y-2">
       {parts.map((part, index) =>
         urlRegex.test(part) ? (
-          <a
-            key={index}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
-          >
-            {part}
-          </a>
+          <UrlPreview key={index} url={part} className="block" />
         ) : (
-          part
+          <span key={index}>{part}</span>
         )
       )}
-    </>
+    </div>
   );
 };
 
@@ -140,6 +135,9 @@ export function MarketDetailsClient({
             </h1>
             {/* {statusBadge} */}
           </div>
+
+          {/* Market Context - show if there are URLs in the question */}
+          <MarketContext question={market.question} className="mb-4" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             <div className="flex items-center">
