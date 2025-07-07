@@ -23,9 +23,6 @@ import { format } from "date-fns";
 
 interface MarketChartProps {
   marketId: string;
-  optionAPercentage: number;
-  optionBPercentage: number;
-  totalShares: number;
 }
 
 const formatPrice = (value: number) => {

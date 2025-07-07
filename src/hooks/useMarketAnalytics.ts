@@ -45,7 +45,15 @@ export function useMarketAnalytics({
         throw new Error(`Failed to fetch analytics: ${response.statusText}`);
       }
 
-      const analytics: MarketAnalytics = await response.json();
+      const result = await response.json();
+      
+      // Handle both direct data and wrapped responses
+      const analytics: MarketAnalytics = result.data || result;
+
+      // Validate the response structure
+      if (!analytics || typeof analytics !== 'object') {
+        throw new Error('Invalid analytics data received');
+      }
 
       setData(analytics);
       setLastUpdated(new Date());
@@ -54,6 +62,17 @@ export function useMarketAnalytics({
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
       console.error("Error fetching market analytics:", err);
+      
+      // Set fallback data on error to prevent crashes
+      setData({
+        priceHistory: [],
+        volumeHistory: [],
+        totalVolume: 0,
+        totalTrades: 0,
+        priceChange24h: 0,
+        volumeChange24h: 0,
+        lastUpdated: new Date().toISOString(),
+      });
     } finally {
       setLoading(false);
     }
@@ -142,8 +161,12 @@ export function useRealTimeMarketUpdates(marketId: string) {
           `/api/market/current-price?marketId=${marketId}`
         );
         if (response.ok) {
-          const data = await response.json();
-          setRealtimeData(data);
+          const result = await response.json();
+          // Handle both direct data and wrapped responses
+          const data = result.data || result;
+          if (data && typeof data === 'object') {
+            setRealtimeData(data);
+          }
         }
       } catch (err) {
         console.error("Error fetching real-time data:", err);

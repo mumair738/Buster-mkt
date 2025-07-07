@@ -247,12 +247,7 @@ export function MarketDetailsClient({
 
           {/* Market Analytics Charts */}
           <div className="mt-8 border-t pt-6">
-            <MarketChart
-              marketId={marketId}
-              optionAPercentage={optionAPercentage}
-              optionBPercentage={optionBPercentage}
-              totalShares={totalSharesDisplay}
-            />
+            <MarketChart marketId={marketId} />
           </div>
 
           {/* Comment System */}

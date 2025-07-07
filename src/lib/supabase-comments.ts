@@ -92,10 +92,15 @@ export const getUser = async (address: string): Promise<User | null> => {
       .from("users")
       .select("*")
       .eq("address", address)
-      .single();
+      .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 or 1 rows
 
     if (error) {
       console.error("Error getting user:", error);
+      return null;
+    }
+
+    if (!data) {
+      // User doesn't exist, return null
       return null;
     }
 
