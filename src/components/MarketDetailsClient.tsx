@@ -17,6 +17,7 @@ import { MarketSharesDisplay } from "@/components/market-shares-display";
 
 import { UrlPreview } from "./url-preview";
 import { MarketContext } from "./market-context";
+import { CommentSystem } from "./CommentSystem";
 
 interface Market {
   question: string;
@@ -241,6 +242,11 @@ export function MarketDetailsClient({
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Comment System */}
+          <div className="mt-8">
+            <CommentSystem marketId={marketId} />
           </div>
         </div>
       </main>

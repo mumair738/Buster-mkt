@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -23,6 +24,7 @@ import {
   faShareFromSquare,
   faUpRightAndDownLeftFromCenter,
 } from "@fortawesome/free-solid-svg-icons";
+import { MessageCircle } from "lucide-react";
 
 // Add LinkifiedText component for URL preview support
 const LinkifiedText = ({ text }: { text: string }) => {
@@ -93,6 +95,7 @@ interface MarketCardProps {
 
 export function MarketCard({ index, market }: MarketCardProps) {
   const { address } = useAccount();
+  const [commentCount, setCommentCount] = useState<number>(0);
 
   const marketData = market;
 
@@ -110,6 +113,23 @@ export function MarketCard({ index, market }: MarketCardProps) {
         optionBShares: sharesBalanceData[1],
       }
     : undefined;
+
+  // Fetch comment count
+  useEffect(() => {
+    const fetchCommentCount = async () => {
+      try {
+        const response = await fetch(`/api/comments?marketId=${index}`);
+        if (response.ok) {
+          const data = await response.json();
+          setCommentCount(data.total || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching comment count:", error);
+      }
+    };
+
+    fetchCommentCount();
+  }, [index]);
 
   const isExpired = new Date(Number(marketData.endTime) * 1000) < new Date();
   const isResolved = marketData.resolved;
@@ -173,6 +193,14 @@ export function MarketCard({ index, market }: MarketCardProps) {
           <div />
         )}
         <div className="flex items-center space-x-2">
+          {/* Comment count indicator */}
+          {commentCount > 0 && (
+            <div className="flex items-center text-gray-500 text-xs mr-2">
+              <MessageCircle className="w-3 h-3 mr-1" />
+              <span>{commentCount}</span>
+            </div>
+          )}
+
           <Button
             variant="outline"
             size="sm"
