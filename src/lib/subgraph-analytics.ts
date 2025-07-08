@@ -29,7 +29,15 @@ export class SubgraphAnalyticsService {
         { marketId }
       );
 
-      if (!data.marketCreateds || data.marketCreateds.length === 0) {
+      // Handle case where subgraph returns no data
+      if (
+        !data ||
+        !data.sharesPurchaseds ||
+        data.sharesPurchaseds.length === 0
+      ) {
+        console.log(
+          `No subgraph data found for market ${marketId}, using fallback analytics`
+        );
         return this.generateFallbackAnalytics();
       }
 
@@ -49,12 +57,17 @@ export class SubgraphAnalyticsService {
   }
 
   private processMarketData(data: MarketAnalyticsData): MarketAnalytics {
-    const events = data.sharesPurchaseds.map((event) => ({
-      ...event,
-      amount: parseFloat(event.amount),
-      timestamp: parseInt(event.blockTimestamp) * 1000,
-      blockNumber: BigInt(event.blockNumber),
-    }));
+    const events = data.sharesPurchaseds
+      .filter(
+        (event) =>
+          event && event.blockNumber && event.blockTimestamp && event.amount
+      )
+      .map((event) => ({
+        ...event,
+        amount: parseFloat(event.amount || "0"),
+        timestamp: parseInt(event.blockTimestamp || "0") * 1000,
+        blockNumber: BigInt(event.blockNumber || "0"),
+      }));
 
     if (events.length === 0) {
       return this.generateFallbackAnalytics();
