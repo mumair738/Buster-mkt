@@ -46,13 +46,13 @@ export function useMarketAnalytics({
       }
 
       const result = await response.json();
-      
+
       // Handle both direct data and wrapped responses
       const analytics: MarketAnalytics = result.data || result;
 
       // Validate the response structure
-      if (!analytics || typeof analytics !== 'object') {
-        throw new Error('Invalid analytics data received');
+      if (!analytics || typeof analytics !== "object") {
+        throw new Error("Invalid analytics data received");
       }
 
       setData(analytics);
@@ -62,7 +62,7 @@ export function useMarketAnalytics({
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
       console.error("Error fetching market analytics:", err);
-      
+
       // Set fallback data on error to prevent crashes
       setData({
         priceHistory: [],
@@ -100,6 +100,7 @@ export function useMarketAnalytics({
     if (data) {
       fetchAnalytics();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeRange]); // Only depend on timeRange, not fetchAnalytics to avoid infinite loop
 
   return {
@@ -164,7 +165,7 @@ export function useRealTimeMarketUpdates(marketId: string) {
           const result = await response.json();
           // Handle both direct data and wrapped responses
           const data = result.data || result;
-          if (data && typeof data === 'object') {
+          if (data && typeof data === "object") {
             setRealtimeData(data);
           }
         }
