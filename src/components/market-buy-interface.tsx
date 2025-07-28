@@ -1,5 +1,5 @@
 "use client";
-//New eip
+//New EIP-5792 batch transactions
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -8,6 +8,7 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
+  useConnectorClient,
   type BaseError,
 } from "wagmi";
 import {
@@ -16,6 +17,7 @@ import {
   tokenAddress,
   tokenAbi,
 } from "@/constants/contract";
+import { encodeFunctionData } from "viem";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
@@ -59,6 +61,7 @@ export function MarketBuyInterface({
   market,
 }: MarketBuyInterfaceProps) {
   const { address: accountAddress, isConnected } = useAccount();
+  const { data: connectorClient } = useConnectorClient();
   const {
     data: hash,
     writeContractAsync,
@@ -83,10 +86,12 @@ export function MarketBuyInterface({
   const [selectedOption, setSelectedOption] = useState<Option>(null);
   const [amount, setAmount] = useState<string>("");
   const [buyingStep, setBuyingStep] = useState<BuyingStep>("initial");
-  const [isApproving, setIsApproving] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastProcessedHash, setLastProcessedHash] = useState<string | null>(
+    null
+  );
+  const [supportsBatching, setSupportsBatching] = useState<boolean | null>(
     null
   );
   // Wagmi hooks for reading token data
@@ -137,6 +142,108 @@ export function MarketBuyInterface({
     },
   });
   const userAllowance = (allowanceData as bigint | undefined) ?? 0n;
+
+  // Check EIP-5792 wallet capabilities
+  const checkWalletCapabilities = useCallback(async () => {
+    if (!connectorClient) return false;
+
+    try {
+      // Check if wallet supports EIP-5792 batch calls
+      const capabilities = await connectorClient.request({
+        method: "wallet_getCapabilities" as any,
+      });
+
+      console.log("Wallet capabilities:", capabilities);
+
+      // Check if atomic batching is supported
+      // EIP-5792 capabilities are typically returned as an object with chain ID keys
+      const chainId = connectorClient.chain?.id;
+      if (capabilities && typeof capabilities === "object" && chainId) {
+        const chainCapabilities = (capabilities as any)[
+          `0x${chainId.toString(16)}`
+        ];
+        const supportsAtomic =
+          chainCapabilities?.atomicBatch?.supported === true;
+        setSupportsBatching(supportsAtomic);
+        return supportsAtomic;
+      }
+
+      setSupportsBatching(false);
+      return false;
+    } catch (error) {
+      console.log(
+        "EIP-5792 not supported, falling back to sequential transactions"
+      );
+      setSupportsBatching(false);
+      return false;
+    }
+  }, [connectorClient]);
+
+  // Check capabilities when connector changes
+  useEffect(() => {
+    if (connectorClient && supportsBatching === null) {
+      checkWalletCapabilities();
+    }
+  }, [connectorClient, supportsBatching, checkWalletCapabilities]);
+
+  // EIP-5792 batch transaction function
+  const sendBatchTransaction = async (amountInUnits: bigint) => {
+    if (!connectorClient || !accountAddress) {
+      throw new Error("Wallet not connected");
+    }
+
+    // Prepare approve call data
+    const approveCallData = encodeFunctionData({
+      abi: tokenAbi,
+      functionName: "approve",
+      args: [contractAddress, amountInUnits], // Only approve exact amount needed
+    });
+
+    // Prepare buy shares call data
+    const buySharesCallData = encodeFunctionData({
+      abi: contractAbi,
+      functionName: "buyShares",
+      args: [BigInt(marketId), selectedOption === "A", amountInUnits],
+    });
+
+    // Send batch transaction using EIP-5792
+    const calls = [
+      {
+        to: tokenAddress,
+        data: approveCallData,
+        value: "0x0",
+      },
+      {
+        to: contractAddress,
+        data: buySharesCallData,
+        value: "0x0",
+      },
+    ];
+
+    try {
+      const batchId = await connectorClient.request({
+        method: "wallet_sendCalls" as any,
+        params: [
+          {
+            version: "1.0",
+            chainId: `0x${connectorClient.chain?.id.toString(16)}`,
+            from: accountAddress,
+            calls,
+            capabilities: {
+              atomicBatch: {
+                supported: true,
+              },
+            },
+          },
+        ],
+      });
+
+      return batchId;
+    } catch (error) {
+      console.error("Batch transaction failed:", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (
@@ -260,15 +367,22 @@ export function MarketBuyInterface({
         return;
       }
 
-      // Proceed based on allowance with a small buffer for precision
-      const needsApproval = amountInUnits > userAllowance;
-      setBuyingStep(needsApproval ? "allowance" : "confirm");
+      // Check if we can use batch transactions (EIP-5792)
+      if (supportsBatching === true) {
+        // Skip approval step, go directly to batch execution
+        setBuyingStep("confirm");
+      } else {
+        // Traditional flow: check if approval is needed
+        const needsApproval = amountInUnits > userAllowance;
+        setBuyingStep(needsApproval ? "allowance" : "confirm");
+      }
+
       setError(null);
     } catch (error) {
-      console.error("Allowance check error:", error);
+      console.error("Amount validation error:", error);
       toast({
         title: "Error",
-        description: "Failed to check token allowance",
+        description: "Failed to validate transaction",
         variant: "destructive",
       });
     }
@@ -284,26 +398,21 @@ export function MarketBuyInterface({
       return;
     }
 
-    setIsApproving(true);
+    setIsProcessing(true);
     try {
-      // Using prepareContractCall instead of the approve function
-      // This is the ERC20 approval method
+      const amountInUnits = toUnits(amount, tokenDecimals);
+
+      // Only approve the exact amount needed (no more unlimited approvals)
       await writeContractAsync({
         address: tokenAddress,
         abi: tokenAbi,
         functionName: "approve",
-        args: [
-          contractAddress,
-          BigInt(
-            "115792089237316195423570985008687907853269984665640564039457584007913129639935"
-          ), // Max uint256
-        ],
+        args: [contractAddress, amountInUnits], // Exact amount only
       });
 
       // Don't show toast here - let the useEffect handle it after confirmation
     } catch (error: unknown) {
       console.error("Approval error:", error);
-      // More descriptive error message
       let errorMessage =
         "Failed to approve token spending. Please check your wallet.";
 
@@ -322,7 +431,7 @@ export function MarketBuyInterface({
         variant: "destructive",
       });
     } finally {
-      setIsApproving(false);
+      setIsProcessing(false);
     }
   };
 
@@ -351,20 +460,45 @@ export function MarketBuyInterface({
       return;
     }
 
-    setIsConfirming(true);
+    setIsProcessing(true);
     try {
-      await writeContractAsync({
-        address: contractAddress,
-        abi: contractAbi,
-        functionName: "buyShares",
-        args: [
-          BigInt(marketId),
-          selectedOption === "A",
-          toUnits(amount, tokenDecimals),
-        ],
-      });
+      const amountInUnits = toUnits(amount, tokenDecimals);
 
-      // Don't show toast here - let the useEffect handle it after confirmation
+      // Use EIP-5792 batch transaction if supported
+      if (supportsBatching === true) {
+        try {
+          const batchId = await sendBatchTransaction(amountInUnits);
+          console.log("Batch transaction submitted:", batchId);
+
+          toast({
+            title: "Batch Transaction Submitted",
+            description: "Approve + Buy submitted in single transaction",
+            duration: 3000,
+          });
+
+          // Note: With EIP-5792, we don't get a standard hash immediately
+          // The wallet handles the batch atomically
+          setBuyingStep("purchaseSuccess");
+        } catch (batchError) {
+          console.error(
+            "Batch transaction failed, falling back to sequential:",
+            batchError
+          );
+          // Fallback to traditional flow
+          setSupportsBatching(false);
+          throw batchError;
+        }
+      } else {
+        // Traditional single transaction (approval already done or not needed)
+        await writeContractAsync({
+          address: contractAddress,
+          abi: contractAbi,
+          functionName: "buyShares",
+          args: [BigInt(marketId), selectedOption === "A", amountInUnits],
+        });
+      }
+
+      // Don't show toast here for traditional flow - let the useEffect handle it after confirmation
     } catch (error: unknown) {
       console.error("Purchase error:", error);
       let errorMessage = "Failed to process purchase. Check your wallet.";
@@ -384,7 +518,7 @@ export function MarketBuyInterface({
         variant: "destructive",
       });
     } finally {
-      setIsConfirming(false);
+      setIsProcessing(false);
     }
   };
 
@@ -418,13 +552,13 @@ export function MarketBuyInterface({
       if (buyingStep === "allowance") {
         toast({
           title: "Approval Confirmed!",
-          description: "Token spending approved successfully.",
+          description: `Approved ${amount} ${tokenSymbol} for spending.`,
           duration: 3000,
         });
         // Refetch allowance and proceed to confirm step
         refetchAllowance().then(() => {
           setBuyingStep("confirm");
-          setIsApproving(false);
+          setIsProcessing(false);
         });
       } else if (buyingStep === "confirm") {
         toast({
@@ -435,7 +569,7 @@ export function MarketBuyInterface({
         // Refetch balance and proceed to success step
         refetchBalance().then(() => {
           setBuyingStep("purchaseSuccess");
-          setIsConfirming(false);
+          setIsProcessing(false);
         });
       }
     }
@@ -448,8 +582,7 @@ export function MarketBuyInterface({
           "An unknown error occurred.",
         variant: "destructive",
       });
-      setIsApproving(false);
-      setIsConfirming(false);
+      setIsProcessing(false);
     }
   }, [
     isTxConfirmed,
@@ -461,6 +594,8 @@ export function MarketBuyInterface({
     toast,
     refetchAllowance,
     refetchBalance,
+    amount,
+    tokenSymbol,
   ]);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -531,11 +666,18 @@ export function MarketBuyInterface({
               </Button>
             </div>
             {accountAddress && (
-              <p className="text-xs text-gray-500 text-center">
-                Available:{" "}
-                {(Number(balance) / Math.pow(10, tokenDecimals)).toFixed(2)}{" "}
-                {tokenSymbol}
-              </p>
+              <div className="text-xs text-gray-500 text-center space-y-1">
+                <p>
+                  Available:{" "}
+                  {(Number(balance) / Math.pow(10, tokenDecimals)).toFixed(2)}{" "}
+                  {tokenSymbol}
+                </p>
+                {supportsBatching === true && (
+                  <p className="text-green-600 font-medium">
+                    ⚡ Batch transactions supported
+                  </p>
+                )}
+              </div>
             )}
           </div>
         ) : (
@@ -615,29 +757,33 @@ export function MarketBuyInterface({
               <div className="flex flex-col border-2 border-gray-200 rounded-lg p-4">
                 <h3 className="text-lg font-bold mb-2">Approve Tokens</h3>
                 <p className="mb-4 text-sm">
-                  Approve unlimited {tokenSymbol} spending to buy shares without
-                  future approvals.
+                  Approve {amount} {tokenSymbol} for this purchase only.
+                  {supportsBatching === false && (
+                    <span className="block text-xs text-gray-500 mt-1">
+                      Your wallet doesn't support batch transactions.
+                    </span>
+                  )}
                 </p>
                 <div className="flex justify-end gap-2">
                   <Button
                     onClick={handleSetApproval}
                     className="min-w-[120px]"
-                    disabled={isApproving || isWritePending || isConfirmingTx}
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
-                    {isApproving || isWritePending || isConfirmingTx ? (
+                    {isProcessing || isWritePending || isConfirmingTx ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Approving...
                       </>
                     ) : (
-                      "Approve"
+                      `Approve ${amount} ${tokenSymbol}`
                     )}
                   </Button>
                   <Button
                     onClick={handleCancel}
                     variant="outline"
                     className="min-w-[120px]"
-                    disabled={isApproving || isWritePending || isConfirmingTx}
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
                     Cancel
                   </Button>
@@ -645,26 +791,55 @@ export function MarketBuyInterface({
               </div>
             ) : buyingStep === "confirm" ? (
               <div className="flex flex-col border-2 border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-bold mb-2">Confirm Purchase</h3>
+                <h3 className="text-lg font-bold mb-2">
+                  {supportsBatching === true
+                    ? "Confirm Batch Purchase"
+                    : "Confirm Purchase"}
+                </h3>
                 <p className="mb-4 text-sm">
-                  Buy{" "}
-                  <span className="font-bold">
-                    {amount}{" "}
-                    {selectedOption === "A" ? market.optionA : market.optionB}
-                  </span>{" "}
-                  shares for {amount} {tokenSymbol}.
+                  {supportsBatching === true ? (
+                    <>
+                      <span className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium mb-2">
+                        🚀 EIP-5792 Batch Transaction
+                      </span>
+                      <br />
+                      Approve {amount} {tokenSymbol} + Buy{" "}
+                      <span className="font-bold">
+                        {amount}{" "}
+                        {selectedOption === "A"
+                          ? market.optionA
+                          : market.optionB}
+                      </span>{" "}
+                      shares in one atomic transaction.
+                    </>
+                  ) : (
+                    <>
+                      Buy{" "}
+                      <span className="font-bold">
+                        {amount}{" "}
+                        {selectedOption === "A"
+                          ? market.optionA
+                          : market.optionB}
+                      </span>{" "}
+                      shares for {amount} {tokenSymbol}.
+                    </>
+                  )}
                 </p>
                 <div className="flex justify-end gap-2">
                   <Button
                     onClick={handleConfirm}
                     className="min-w-[120px]"
-                    disabled={isConfirming || isWritePending || isConfirmingTx}
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
-                    {isConfirming || isWritePending || isConfirmingTx ? (
+                    {isProcessing || isWritePending || isConfirmingTx ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Confirming...
+                        {supportsBatching === true
+                          ? "Processing Batch..."
+                          : "Confirming..."}
                       </>
+                    ) : supportsBatching === true ? (
+                      "Execute Batch"
                     ) : (
                       "Confirm"
                     )}
@@ -673,7 +848,7 @@ export function MarketBuyInterface({
                     onClick={handleCancel}
                     variant="outline"
                     className="min-w-[120px]"
-                    disabled={isConfirming || isWritePending || isConfirmingTx}
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
                     Cancel
                   </Button>
