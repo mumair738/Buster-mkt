@@ -13,6 +13,10 @@ import {
 } from "@/constants/contract";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useFarcasterUser } from "@/hooks/useFarcasterUser";
+import { Share2, Copy, ExternalLink } from "lucide-react";
 
 interface Vote {
   marketId: number;
@@ -44,6 +48,7 @@ const CACHE_TTL_STATS = 60 * 60; // 1 hour in seconds
 export function UserStats() {
   const { address: accountAddress, isConnected } = useAccount();
   const { toast } = useToast();
+  const farcasterUser = useFarcasterUser();
   const [stats, setStats] = useState<UserStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [tokenSymbol, setTokenSymbol] = useState<string>("BSTR");
@@ -256,8 +261,128 @@ export function UserStats() {
     });
   };
 
+  const handleShare = async () => {
+    const baseUrl = window.location.origin;
+    const params = new URLSearchParams({
+      address: accountAddress!,
+      ...(farcasterUser?.username && { username: farcasterUser.username }),
+      ...(farcasterUser?.pfpUrl && { pfpUrl: farcasterUser.pfpUrl }),
+      ...(farcasterUser?.fid && { fid: farcasterUser.fid.toString() }),
+    });
+
+    const shareUrl = `${baseUrl}/profile/${accountAddress}?${params.toString()}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `${
+            farcasterUser?.username ? `@${farcasterUser.username}` : "My"
+          }'s Stats - Buster Markets`,
+          text: `Check out my prediction market performance on Buster Markets!`,
+          url: shareUrl,
+        });
+      } catch (error) {
+        console.log("Error sharing:", error);
+        // Fallback to copy to clipboard
+        copyToClipboard(shareUrl);
+      }
+    } else {
+      copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Link Copied!",
+        description: "Share link has been copied to your clipboard.",
+      });
+    } catch (error) {
+      console.error("Failed to copy to clipboard:", error);
+      toast({
+        title: "Error",
+        description: "Failed to copy link to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Profile Header */}
+      <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Avatar className="w-16 h-16 ring-4 ring-blue-100">
+              <AvatarImage src={farcasterUser?.pfpUrl} alt="Profile" />
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xl font-bold">
+                {farcasterUser?.username
+                  ? farcasterUser.username.charAt(0).toUpperCase()
+                  : accountAddress
+                  ? `${accountAddress.slice(0, 2)}${accountAddress.slice(-2)}`
+                  : "?"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {farcasterUser?.username
+                  ? `@${farcasterUser.username}`
+                  : "Anonymous Trader"}
+              </h2>
+              <p className="text-sm text-gray-500 font-mono">
+                {accountAddress
+                  ? `${accountAddress.slice(0, 6)}...${accountAddress.slice(
+                      -4
+                    )}`
+                  : "Not connected"}
+              </p>
+              {farcasterUser?.fid && (
+                <p className="text-xs text-blue-600 font-medium">
+                  Farcaster ID: {farcasterUser.fid}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={handleShare}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Stats
+              </Button>
+              <Button
+                onClick={() => {
+                  const baseUrl = window.location.origin;
+                  const params = new URLSearchParams({
+                    address: accountAddress!,
+                    ...(farcasterUser?.username && {
+                      username: farcasterUser.username,
+                    }),
+                    ...(farcasterUser?.pfpUrl && {
+                      pfpUrl: farcasterUser.pfpUrl,
+                    }),
+                    ...(farcasterUser?.fid && {
+                      fid: farcasterUser.fid.toString(),
+                    }),
+                  });
+                  const imageUrl = `${baseUrl}/api/user-stats-image?${params.toString()}`;
+                  window.open(imageUrl, "_blank");
+                }}
+                variant="ghost"
+                size="sm"
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
+              >
+                <ExternalLink className="w-4 h-4" />
+                View Image
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
         <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
           <CardTitle className="text-xl font-bold">
@@ -427,6 +552,24 @@ function StatCard({
 function StatsSkeleton() {
   return (
     <div className="space-y-4">
+      {/* Profile Header Skeleton */}
+      <Card className="overflow-hidden border-0 shadow-lg">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-4 mb-6">
+            <Skeleton className="w-16 h-16 rounded-full" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="overflow-hidden border-0 shadow-lg">
         <CardHeader className="bg-gradient-to-r from-gray-200 to-gray-300">
           <Skeleton className="h-6 w-1/2 bg-white/20" />
