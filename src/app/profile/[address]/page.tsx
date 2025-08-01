@@ -32,7 +32,7 @@ export async function generateMetadata(
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL || "https://buster-mkt.vercel.app";
 
-    // Build image URL with user data
+    // Build image with user data
     const imageParams = new URLSearchParams({
       address,
       ...(username && { username }),
