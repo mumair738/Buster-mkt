@@ -8,7 +8,6 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useConnectorClient,
   useSendCalls,
   type BaseError,
 } from "wagmi";
@@ -94,14 +93,10 @@ export function MarketBuyInterface({
     null
   );
   // const [batchingFailed, setBatchingFailed] = useState(false);
-  const {
-    sendCalls,
-    isPending: isSendingCalls,
-    error: sendCallsError,
-  } = useSendCalls();
+  const { sendCalls, isPending: isSendingCalls } = useSendCalls();
 
   // Add a state to track if we're waiting for the second transaction in a batch
-  const [batchApprovalCompleted, setBatchApprovalCompleted] = useState(false);
+  const [, setBatchApprovalCompleted] = useState(false);
 
   // Wagmi hooks for reading token data
   const { data: tokenSymbolData, error: tokenSymbolError } = useReadContract({
@@ -406,7 +401,7 @@ export function MarketBuyInterface({
                 await refetchBalance();
 
                 // Check if balance actually decreased (indicating successful purchase)
-                const newBalanceData = await refetchBalance();
+                await refetchBalance();
 
                 // If balance didn't decrease significantly, likely only approval went through
                 if (balance === initialBalance) {
@@ -812,8 +807,8 @@ export function MarketBuyInterface({
                   <br />
                   <br />
                   The Farcaster wallet batch transaction only completed the
-                  approval step. Click "Complete Purchase" below to buy your{" "}
-                  {amount}{" "}
+                  approval step. Click &quot;Complete Purchase&quot; below to
+                  buy your {amount}{" "}
                   {selectedOption === "A" ? market.optionA : market.optionB}{" "}
                   shares.
                 </p>
