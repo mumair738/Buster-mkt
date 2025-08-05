@@ -42,6 +42,7 @@ type BuyingStep =
   | "amount"
   | "allowance"
   | "confirm"
+  | "batchPartialSuccess"
   | "purchaseSuccess";
 type Option = "A" | "B" | null;
 
@@ -98,6 +99,9 @@ export function MarketBuyInterface({
     isPending: isSendingCalls,
     error: sendCallsError,
   } = useSendCalls();
+
+  // Add a state to track if we're waiting for the second transaction in a batch
+  const [batchApprovalCompleted, setBatchApprovalCompleted] = useState(false);
 
   // Wagmi hooks for reading token data
   const { data: tokenSymbolData, error: tokenSymbolError } = useReadContract({
@@ -387,9 +391,44 @@ export function MarketBuyInterface({
               title: "Batch Transaction Submitted",
               description: "Approve + Buy submitted in a single transaction.",
             });
-            refetchBalance();
-            setBuyingStep("purchaseSuccess");
-            setIsProcessing(false);
+
+            // Set a flag to wait and verify if the purchase actually went through
+            setBatchApprovalCompleted(true);
+
+            // Wait a bit and then check if the purchase actually worked
+            setTimeout(async () => {
+              const initialBalance = balance;
+              await refetchBalance();
+              await refetchAllowance();
+
+              // Wait a bit more for the transaction to process
+              setTimeout(async () => {
+                await refetchBalance();
+
+                // Check if balance actually decreased (indicating successful purchase)
+                const newBalanceData = await refetchBalance();
+
+                // If balance didn't decrease significantly, likely only approval went through
+                if (balance === initialBalance) {
+                  console.log(
+                    "Batch transaction likely only completed approval, not purchase"
+                  );
+                  toast({
+                    title: "⚠️ Batch Partially Completed",
+                    description:
+                      "Approval succeeded, but purchase may need to be completed manually. Please click 'Complete Purchase' below.",
+                    variant: "destructive",
+                    duration: 8000,
+                  });
+                  setBuyingStep("batchPartialSuccess");
+                } else {
+                  setBuyingStep("purchaseSuccess");
+                }
+
+                setIsProcessing(false);
+                setBatchApprovalCompleted(false);
+              }, 2000);
+            }, 3000);
           },
           onError: (err) => {
             console.error("Batch transaction failed, falling back:", err);
@@ -477,7 +516,10 @@ export function MarketBuyInterface({
           setBuyingStep("confirm");
           setIsProcessing(false);
         });
-      } else if (buyingStep === "confirm") {
+      } else if (
+        buyingStep === "confirm" ||
+        buyingStep === "batchPartialSuccess"
+      ) {
         toast({
           title: "Purchase Confirmed!",
           description: "Your shares have been purchased successfully.",
@@ -752,6 +794,73 @@ export function MarketBuyInterface({
                       isConfirmingTx ||
                       isSendingCalls
                     }
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : buyingStep === "batchPartialSuccess" ? (
+              <div className="flex flex-col border-2 border-orange-500 rounded-lg p-4 bg-orange-50">
+                <h3 className="text-lg font-bold mb-2 text-orange-700">
+                  ⚠️ Complete Your Purchase
+                </h3>
+                <p className="mb-4 text-sm">
+                  <span className="font-semibold text-orange-800">
+                    Your approval was successful, but the purchase needs to be
+                    completed!
+                  </span>
+                  <br />
+                  <br />
+                  The Farcaster wallet batch transaction only completed the
+                  approval step. Click "Complete Purchase" below to buy your{" "}
+                  {amount}{" "}
+                  {selectedOption === "A" ? market.optionA : market.optionB}{" "}
+                  shares.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    onClick={async () => {
+                      setIsProcessing(true);
+                      try {
+                        const amountInUnits = toUnits(amount, tokenDecimals);
+                        await writeContractAsync({
+                          address: contractAddress,
+                          abi: contractAbi,
+                          functionName: "buyShares",
+                          args: [
+                            BigInt(marketId),
+                            selectedOption === "A",
+                            amountInUnits,
+                          ],
+                        });
+                      } catch (error) {
+                        console.error("Manual purchase error:", error);
+                        toast({
+                          title: "Purchase Failed",
+                          description:
+                            "Failed to complete purchase. Please try again.",
+                          variant: "destructive",
+                        });
+                        setIsProcessing(false);
+                      }
+                    }}
+                    className="min-w-[120px] bg-orange-600 hover:bg-orange-700"
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
+                  >
+                    {isProcessing || isWritePending || isConfirmingTx ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Purchasing...
+                      </>
+                    ) : (
+                      "Complete Purchase"
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleCancel}
+                    variant="outline"
+                    className="min-w-[120px]"
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
                     Cancel
                   </Button>
