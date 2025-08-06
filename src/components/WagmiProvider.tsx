@@ -3,7 +3,7 @@
 import { createConfig, http, WagmiProvider } from "wagmi";
 import { base } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { farcasterFrame } from "@farcaster/miniapp-wagmi-connector";
+import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
 import { coinbaseWallet, metaMask } from "wagmi/connectors";
 // import { APP_NAME, APP_ICON_URL, APP_URL } from "@lib/constants";
 import { useEffect, useState } from "react";
@@ -56,7 +56,7 @@ export const config = createConfig({
     [base.id]: http(),
   },
   connectors: [
-    farcasterFrame(),
+    farcasterMiniApp(),
     coinbaseWallet({
       appName: APP_NAME,
       appLogoUrl: APP_ICON_URL,

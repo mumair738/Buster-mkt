@@ -1,5 +1,5 @@
 "use client";
-//New EIP-5792 batch transactions// the txn is still two step, even tho we're using the batch txn, and shoiwng as if both works at the same time, only approval works, we lost lots of trades due to this bug, many users left thinking they bought shares but only approval works then another txn to buy which is now two txn, many eft after first txn thinking they're done
+
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -8,7 +8,6 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useConnectorClient,
   useSendCalls,
   type BaseError,
 } from "wagmi";
@@ -42,6 +41,7 @@ type BuyingStep =
   | "amount"
   | "allowance"
   | "confirm"
+  | "batchPartialSuccess"
   | "purchaseSuccess";
 type Option = "A" | "B" | null;
 
@@ -93,11 +93,68 @@ export function MarketBuyInterface({
     null
   );
   // const [batchingFailed, setBatchingFailed] = useState(false);
-  const {
-    sendCalls,
-    isPending: isSendingCalls,
-    error: sendCallsError,
-  } = useSendCalls();
+  const { sendCalls, isPending: isSendingCalls } = useSendCalls({
+    mutation: {
+      onSuccess: (data) => {
+        console.log("Batch transaction submitted with id:", data.id);
+        toast({
+          title: "Batch Transaction Submitted",
+          description:
+            "Processing your Approve + Buy transaction. Verifying completion...",
+        });
+
+        // Verification workaround for Farcaster wallet
+        // The onSuccess fires when the batch is submitted, not necessarily when both calls succeed
+        const balanceBefore = balance;
+        setTimeout(() => {
+          refetchBalance().then((newBalanceQuery) => {
+            const newBalance =
+              (newBalanceQuery.data as bigint | undefined) ?? balanceBefore;
+            if (newBalance < balanceBefore) {
+              // Success: Balance decreased, purchase went through
+              console.log("Batch transaction fully successful.");
+              toast({
+                title: "Purchase Successful!",
+                description: "Your shares have been purchased successfully.",
+              });
+              setBuyingStep("purchaseSuccess");
+            } else {
+              // Partial success: Only approval worked
+              console.warn(
+                "Batch transaction partially successful. Approval granted, but purchase failed."
+              );
+              setBuyingStep("batchPartialSuccess");
+            }
+            setIsProcessing(false);
+          });
+        }, 3000); // 3-second delay for block confirmation
+      },
+      onError: (err) => {
+        console.error("Batch transaction failed, falling back:", err);
+        toast({
+          title: "Batch Transaction Failed",
+          description:
+            "Your wallet may not support batch transactions. Falling back to separate approval and purchase steps.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        // Fallback to sequential transactions
+        const amountInUnits = toUnits(amount, tokenDecimals);
+        const needsApproval = amountInUnits > userAllowance;
+        if (needsApproval) {
+          setBuyingStep("allowance");
+        } else {
+          writeContractAsync({
+            address: contractAddress,
+            abi: contractAbi,
+            functionName: "buyShares",
+            args: [BigInt(marketId), selectedOption === "A", amountInUnits],
+          });
+        }
+        setIsProcessing(false);
+      },
+    },
+  });
 
   // Wagmi hooks for reading token data
   const { data: tokenSymbolData, error: tokenSymbolError } = useReadContract({
@@ -359,63 +416,26 @@ export function MarketBuyInterface({
     try {
       const amountInUnits = toUnits(amount, tokenDecimals);
 
-      sendCalls(
-        {
-          calls: [
-            {
-              to: tokenAddress,
-              data: encodeFunctionData({
-                abi: tokenAbi,
-                functionName: "approve",
-                args: [contractAddress, amountInUnits],
-              }),
-            },
-            {
-              to: contractAddress,
-              data: encodeFunctionData({
-                abi: contractAbi,
-                functionName: "buyShares",
-                args: [BigInt(marketId), selectedOption === "A", amountInUnits],
-              }),
-            },
-          ],
-        },
-        {
-          onSuccess: (id) => {
-            console.log("Batch transaction successful with id:", id);
-            toast({
-              title: "Batch Transaction Submitted",
-              description: "Approve + Buy submitted in a single transaction.",
-            });
-            refetchBalance();
-            setBuyingStep("purchaseSuccess");
-            setIsProcessing(false);
+      sendCalls({
+        calls: [
+          {
+            to: tokenAddress,
+            data: encodeFunctionData({
+              abi: tokenAbi,
+              functionName: "approve",
+              args: [contractAddress, amountInUnits],
+            }),
           },
-          onError: (err) => {
-            console.error("Batch transaction failed, falling back:", err);
-            toast({
-              title: "Batch Transaction Failed",
-              description:
-                "Your wallet doesn't support batch transactions. Falling back to separate approval and purchase steps.",
-              variant: "destructive",
-              duration: 5000,
-            });
-            // Fallback to sequential transactions
-            const needsApproval = amountInUnits > userAllowance;
-            if (needsApproval) {
-              setBuyingStep("allowance");
-            } else {
-              writeContractAsync({
-                address: contractAddress,
-                abi: contractAbi,
-                functionName: "buyShares",
-                args: [BigInt(marketId), selectedOption === "A", amountInUnits],
-              });
-            }
-            setIsProcessing(false);
+          {
+            to: contractAddress,
+            data: encodeFunctionData({
+              abi: contractAbi,
+              functionName: "buyShares",
+              args: [BigInt(marketId), selectedOption === "A", amountInUnits],
+            }),
           },
-        }
-      );
+        ],
+      });
     } catch (error: unknown) {
       console.error("Purchase error:", error);
       let errorMessage = "Failed to process purchase. Check your wallet.";
@@ -434,7 +454,6 @@ export function MarketBuyInterface({
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -752,6 +771,67 @@ export function MarketBuyInterface({
                       isConfirmingTx ||
                       isSendingCalls
                     }
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : buyingStep === "batchPartialSuccess" ? (
+              <div className="flex flex-col items-center gap-4 p-4 border-2 border-yellow-500 rounded-lg bg-yellow-50">
+                <h3 className="text-lg font-bold text-yellow-700">
+                  Action Required
+                </h3>
+                <p className="text-sm text-center text-gray-600">
+                  Your approval for {amount} {tokenSymbol} was successful, but
+                  the purchase didn&apos;t complete in the same transaction.
+                  Please click below to finalize your purchase.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    onClick={() => {
+                      setIsProcessing(true);
+                      const amountInUnits = toUnits(amount, tokenDecimals);
+                      writeContractAsync({
+                        address: contractAddress,
+                        abi: contractAbi,
+                        functionName: "buyShares",
+                        args: [
+                          BigInt(marketId),
+                          selectedOption === "A",
+                          amountInUnits,
+                        ],
+                      })
+                        .then(() => {
+                          // The useEffect for isTxConfirmed will handle the success step
+                          setBuyingStep("confirm");
+                        })
+                        .catch((error) => {
+                          console.error("Manual purchase failed:", error);
+                          toast({
+                            title: "Purchase Failed",
+                            description:
+                              (error as BaseError)?.shortMessage ||
+                              "Failed to complete purchase",
+                            variant: "destructive",
+                          });
+                          setIsProcessing(false);
+                        });
+                    }}
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
+                  >
+                    {isProcessing || isWritePending || isConfirmingTx ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Completing...
+                      </>
+                    ) : (
+                      "Complete Purchase"
+                    )}
+                  </Button>
+                  <Button
+                    onClick={handleCancel}
+                    variant="outline"
+                    disabled={isProcessing || isWritePending || isConfirmingTx}
                   >
                     Cancel
                   </Button>
