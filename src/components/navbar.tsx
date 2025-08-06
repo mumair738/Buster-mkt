@@ -33,7 +33,7 @@ export function Navbar() {
         const inMiniApp = await sdk.isInMiniApp();
         if (inMiniApp && !isAccountConnected) {
           const farcasterConnector = connectors.find(
-            (c) => c.id === "farcasterMiniApp"
+            (c) => c.id === "miniAppConnector"
           );
           if (farcasterConnector) {
             connect({ connector: farcasterConnector });
@@ -75,7 +75,7 @@ export function Navbar() {
     const validConnectors = wagmiConnectors.filter(isValidConnector);
 
     const primaryConnector =
-      validConnectors.find((c) => c.id === "farcasterMiniApp") ||
+      validConnectors.find((c) => c.id === "miniAppConnector") ||
       validConnectors.find((c) => c.id === "metaMask") ||
       (validConnectors.length > 0 ? validConnectors[0] : undefined);
 

@@ -81,7 +81,7 @@ export function MarketBuyInterface({
 
   // Check if we're using Farcaster connector
   const isFarcasterConnector =
-    connector?.id === "farcasterMiniApp" ||
+    connector?.id === "miniAppConnector" ||
     connector?.name?.includes("Farcaster");
 
   console.log("=== CONNECTOR DEBUG ===");
