@@ -305,7 +305,7 @@ export function MarketV2SwapInterface({
 
             {optionsWithShares.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
-                You don't own any shares in this market to swap.
+                You don&apos;t own any shares in this market to swap.
               </div>
             ) : (
               <Button

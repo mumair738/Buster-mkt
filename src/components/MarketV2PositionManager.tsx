@@ -197,7 +197,7 @@ export function MarketV2PositionManager({
           </div>
         ) : !hasPositions ? (
           <div className="text-center py-8 text-gray-500">
-            You don't have any positions in this market
+            You don&apos;t have any positions in this market
           </div>
         ) : (
           <Tabs

@@ -250,7 +250,7 @@ export function UserStats() {
         try {
           if (v2Portfolio) {
             const tradeCount = Number((v2Portfolio as any).tradeCount || 0);
-            
+
             // Fetch all trades by index
             for (let i = 0; i < tradeCount; i++) {
               try {
@@ -343,9 +343,6 @@ export function UserStats() {
             };
           });
         }
-
-        // V2 market info fetching
-        const uniqueV2MarketIds = [...new Set(v2Trades.map((t) => t.marketId))];
 
         let wins = 0;
         let losses = 0;

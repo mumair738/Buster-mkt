@@ -41,7 +41,7 @@ interface V2Trade {
 }
 
 // Unified transaction interface
-type TransactionType = 'vote' | 'buy' | 'sell' | 'swap';
+type TransactionType = "vote" | "buy" | "sell" | "swap";
 
 interface DisplayVote {
   marketId: number;
@@ -50,7 +50,7 @@ interface DisplayVote {
   marketName: string;
   timestamp: bigint;
   type: TransactionType;
-  version: 'v1' | 'v2';
+  version: "v1" | "v2";
 }
 
 // Enhanced market info for V1/V2 compatibility
@@ -60,7 +60,7 @@ interface MarketInfo {
   optionA?: string; // V1
   optionB?: string; // V1
   options?: string[]; // V2
-  version: 'v1' | 'v2';
+  version: "v1" | "v2";
 }
 
 interface CacheData {
@@ -172,12 +172,12 @@ export function VoteHistory() {
         abi: V2contractAbi,
         functionName: "getUserPortfolio",
         args: [address],
-      })) as { 
-        totalInvested: bigint; 
-        totalWinnings: bigint; 
-        unrealizedPnL: bigint; 
-        realizedPnL: bigint; 
-        tradeCount: bigint; 
+      })) as {
+        totalInvested: bigint;
+        totalWinnings: bigint;
+        unrealizedPnL: bigint;
+        realizedPnL: bigint;
+        tradeCount: bigint;
       };
 
       const tradeCount = Number(portfolio.tradeCount);
@@ -217,18 +217,33 @@ export function VoteHistory() {
   };
 
   // Fetch market info for V1 and V2
-  const fetchMarketInfo = async (v1MarketIds: number[], v2MarketIds: number[], cache: any) => {
+  const fetchMarketInfo = async (
+    v1MarketIds: number[],
+    v2MarketIds: number[],
+    cache: any
+  ) => {
     const marketInfoCache = { ...cache.marketInfo };
-    
+
     // V1 markets
-    const uncachedV1Ids = v1MarketIds.filter(id => !marketInfoCache[`v1_${id}`]);
+    const uncachedV1Ids = v1MarketIds.filter(
+      (id) => !marketInfoCache[`v1_${id}`]
+    );
     if (uncachedV1Ids.length > 0) {
       const marketInfos = (await publicClient.readContract({
         address: contractAddress,
         abi: contractAbi,
         functionName: "getMarketInfoBatch",
         args: [uncachedV1Ids.map(BigInt)],
-      })) as [string[], string[], string[], bigint[], number[], bigint[], bigint[], boolean[]];
+      })) as [
+        string[],
+        string[],
+        string[],
+        bigint[],
+        number[],
+        bigint[],
+        bigint[],
+        boolean[]
+      ];
 
       const [questions, optionAs, optionBs] = marketInfos;
       uncachedV1Ids.forEach((id, i) => {
@@ -237,13 +252,15 @@ export function VoteHistory() {
           question: questions[i],
           optionA: optionAs[i],
           optionB: optionBs[i],
-          version: 'v1' as const,
+          version: "v1" as const,
         };
       });
     }
 
     // V2 markets
-    const uncachedV2Ids = v2MarketIds.filter(id => !marketInfoCache[`v2_${id}`]);
+    const uncachedV2Ids = v2MarketIds.filter(
+      (id) => !marketInfoCache[`v2_${id}`]
+    );
     if (uncachedV2Ids.length > 0) {
       for (const marketId of uncachedV2Ids) {
         try {
@@ -252,15 +269,25 @@ export function VoteHistory() {
             abi: V2contractAbi,
             functionName: "getMarketInfo",
             args: [BigInt(marketId)],
-          })) as unknown as [string, string, bigint, number, bigint, boolean, boolean, bigint, string];
+          })) as unknown as [
+            string,
+            string,
+            bigint,
+            number,
+            bigint,
+            boolean,
+            boolean,
+            bigint,
+            string
+          ];
 
-          const [question, description] = marketInfo;
-          
+          const [question] = marketInfo;
+
           // We need to get the options separately since getMarketInfo doesn't return them
           // Let's get the option count first, then fetch each option
           const optionCount = Number(marketInfo[4]); // optionCount is the 5th element
           const options: string[] = [];
-          
+
           for (let optionId = 0; optionId < optionCount; optionId++) {
             try {
               const optionInfo = (await publicClient.readContract({
@@ -269,7 +296,7 @@ export function VoteHistory() {
                 functionName: "getMarketOption",
                 args: [BigInt(marketId), BigInt(optionId)],
               })) as [string, string, bigint, bigint, bigint, boolean];
-              
+
               options.push(optionInfo[0]); // option name
             } catch (error) {
               console.error(`Failed to fetch option ${optionId}:`, error);
@@ -281,7 +308,7 @@ export function VoteHistory() {
             marketId,
             question,
             options,
-            version: 'v2' as const,
+            version: "v2" as const,
           };
         } catch (error) {
           console.error(`Failed to fetch V2 market ${marketId}:`, error);
@@ -320,11 +347,19 @@ export function VoteHistory() {
         ]);
 
         // Extract market IDs
-        const v1MarketIds = [...new Set(v1Votes.map(v => Number(v.marketId)))];
-        const v2MarketIds = [...new Set(v2Trades.map(t => Number(t.marketId)))];
+        const v1MarketIds = [
+          ...new Set(v1Votes.map((v) => Number(v.marketId))),
+        ];
+        const v2MarketIds = [
+          ...new Set(v2Trades.map((t) => Number(t.marketId))),
+        ];
 
         // Fetch market info
-        const marketInfoCache = await fetchMarketInfo(v1MarketIds, v2MarketIds, cache);
+        const marketInfoCache = await fetchMarketInfo(
+          v1MarketIds,
+          v2MarketIds,
+          cache
+        );
 
         // Convert V1 votes to display format
         const displayV1Votes: DisplayVote[] = v1Votes.map((vote) => {
@@ -335,8 +370,8 @@ export function VoteHistory() {
             amount: vote.amount,
             marketName: marketInfo.question,
             timestamp: vote.timestamp,
-            type: 'vote' as const,
-            version: 'v1' as const,
+            type: "vote" as const,
+            version: "v1" as const,
           };
         });
 
@@ -350,14 +385,15 @@ export function VoteHistory() {
             amount: trade.quantity, // Use quantity instead of amount
             marketName: marketInfo.question,
             timestamp: trade.timestamp,
-            type: isBuy ? 'buy' : 'sell',
-            version: 'v2' as const,
+            type: isBuy ? "buy" : "sell",
+            version: "v2" as const,
           };
         });
 
         // Combine and sort by timestamp
-        const allTransactions = [...displayV1Votes, ...displayV2Trades]
-          .sort((a, b) => Number(b.timestamp - a.timestamp));
+        const allTransactions = [...displayV1Votes, ...displayV2Trades].sort(
+          (a, b) => Number(b.timestamp - a.timestamp)
+        );
 
         // Update cache
         const newCache = {
@@ -394,11 +430,6 @@ export function VoteHistory() {
       setSortKey(key);
       setSortDirection("asc");
     }
-  };
-
-  const getAriaSort = (key: SortKey): "none" | "ascending" | "descending" => {
-    if (key !== sortKey) return "none";
-    return sortDirection === "asc" ? "ascending" : "descending";
   };
 
   // Sort and filter votes
@@ -473,14 +504,12 @@ export function VoteHistory() {
             <button
               onClick={() => handleSort("timestamp")}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
-              aria-sort={getAriaSort("timestamp")}
             >
               Date <ArrowUpDown className="h-3 w-3" />
             </button>
             <button
               onClick={() => handleSort("amount")}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
-              aria-sort={getAriaSort("amount")}
             >
               Amount <ArrowUpDown className="h-3 w-3" />
             </button>
@@ -504,20 +533,28 @@ export function VoteHistory() {
                     >
                       #{vote.marketId}
                     </Link>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      vote.type === 'vote' 
-                        ? 'bg-green-100 text-green-800 border border-green-200'
-                        : vote.type === 'buy'
-                        ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                        : 'bg-red-100 text-red-800 border border-red-200'
-                    }`}>
-                      {vote.type === 'vote' ? '🗳️ Vote' : vote.type === 'buy' ? '📈 Buy' : '📉 Sell'}
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        vote.type === "vote"
+                          ? "bg-green-100 text-green-800 border border-green-200"
+                          : vote.type === "buy"
+                          ? "bg-blue-100 text-blue-800 border border-blue-200"
+                          : "bg-red-100 text-red-800 border border-red-200"
+                      }`}
+                    >
+                      {vote.type === "vote"
+                        ? "🗳️ Vote"
+                        : vote.type === "buy"
+                        ? "📈 Buy"
+                        : "📉 Sell"}
                     </span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${
-                      vote.version === 'v1' 
-                        ? 'bg-gray-100 text-gray-600'
-                        : 'bg-purple-100 text-purple-600'
-                    }`}>
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded font-medium ${
+                        vote.version === "v1"
+                          ? "bg-gray-100 text-gray-600"
+                          : "bg-purple-100 text-purple-600"
+                      }`}
+                    >
                       {vote.version.toUpperCase()}
                     </span>
                     <span className="text-xs text-gray-500">
@@ -542,7 +579,7 @@ export function VoteHistory() {
 
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">
-                      {vote.type === 'vote' ? 'Voted for:' : 'Option:'}
+                      {vote.type === "vote" ? "Voted for:" : "Option:"}
                     </span>
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
                       {vote.option}
@@ -596,7 +633,9 @@ export function VoteHistory() {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {search ? "No matching transactions found" : "No transactions yet"}
+              {search
+                ? "No matching transactions found"
+                : "No transactions yet"}
             </h3>
             <p className="text-sm text-gray-500 max-w-sm">
               {search

@@ -275,7 +275,7 @@ export function MarketV2SellInterface({
 
             {optionsWithShares.length === 0 ? (
               <div className="text-center py-4 text-gray-500">
-                You don't own any shares in this market.
+                You don&apos;t own any shares in this market.
               </div>
             ) : (
               <div className="space-y-2">

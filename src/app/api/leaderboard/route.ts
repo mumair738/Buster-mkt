@@ -170,51 +170,16 @@ export async function GET() {
       entriesV1.push(...batch);
     }
 
-    // Fetch V2 leaderboard - V2 contract uses different structure
-    // We'll fetch in batches and stop when we get empty results
+    // V2 leaderboard is currently disabled since V2 contract doesn't have getLeaderboard function
+    // V2 uses different analytics approach with getUserPortfolio for individual user data
     const entriesV2: {
       user: Address;
       totalWinnings: bigint;
       voteCount: number;
     }[] = [];
 
-    let v2Start = 0;
-    let hasMoreV2 = true;
-
-    while (hasMoreV2) {
-      try {
-        const batch = (await withRetry(() =>
-          publicClient.readContract({
-            address: V2contractAddress,
-            abi: V2contractAbi,
-            functionName: "getLeaderboard",
-            args: [BigInt(v2Start), BigInt(PAGE_SIZE)],
-          })
-        )) as unknown as {
-          user: Address;
-          totalWinnings: bigint;
-          totalVolume: bigint;
-          winRate: bigint;
-          tradeCount: bigint;
-        }[];
-
-        if (batch.length === 0) {
-          hasMoreV2 = false;
-        } else {
-          // Convert V2 structure to match V1 structure
-          const convertedBatch = batch.map((entry) => ({
-            user: entry.user,
-            totalWinnings: entry.totalWinnings,
-            voteCount: Number(entry.tradeCount), // Use tradeCount as voteCount equivalent
-          }));
-          entriesV2.push(...convertedBatch);
-          v2Start += PAGE_SIZE;
-        }
-      } catch (error) {
-        console.log("V2 leaderboard fetch complete or error:", error);
-        hasMoreV2 = false;
-      }
-    }
+    // TODO: Implement V2 leaderboard using getUserPortfolio + allParticipants when needed
+    // For now, we only use V1 leaderboard data
 
     // Combine V1 and V2 entries by address
     const combinedEntries = new Map<

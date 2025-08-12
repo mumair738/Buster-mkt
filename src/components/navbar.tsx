@@ -3,15 +3,27 @@
 import { useEffect, useState, Fragment } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useConnect, useAccount, useDisconnect, Connector } from "wagmi";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { Home, BarChart3, User, Trophy, Menu, X } from "lucide-react";
 
 export function Navbar() {
   const [username, setUsername] = useState<string | null>(null);
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
   const [pfpError, setPfpError] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { connect, connectors } = useConnect();
   const { isConnected: isAccountConnected } = useAccount();
+  const pathname = usePathname();
+
+  const navigationItems = [
+    { name: "Markets", href: "/", icon: Home },
+    { name: "Analytics", href: "/analytics", icon: BarChart3 },
+    { name: "Profile", href: "/profile", icon: User },
+  ];
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -126,25 +138,48 @@ export function Navbar() {
     <>
       {/* Desktop View */}
       <div className="hidden md:flex justify-between items-center mb-6 px-4 py-3 bg-gradient-to-r from-[#7A42B9] to-gray-100 dark:from-[#5A2C8A] dark:to-gray-800 rounded-lg shadow-sm">
-        <div className="flex items-center gap-3">
-          {pfpUrl && !pfpError ? (
-            <Image
-              src={pfpUrl}
-              alt="Profile Picture"
-              width={40}
-              height={40}
-              className="rounded-full"
-              onError={() => setPfpError(true)}
-            />
-          ) : (
-            <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-sm font-medium">
-              {username?.charAt(0)?.toUpperCase() || "P"}
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            {pfpUrl && !pfpError ? (
+              <Image
+                src={pfpUrl}
+                alt="Profile Picture"
+                width={40}
+                height={40}
+                className="rounded-full"
+                onError={() => setPfpError(true)}
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-sm font-medium">
+                {username?.charAt(0)?.toUpperCase() || "P"}
+              </div>
+            )}
+            <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              POLICAST
             </div>
-          )}
-          <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-            Welcome {username || "Player"}
           </div>
+
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-4">
+            {navigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.name} href={item.href}>
+                  <Button
+                    variant={isActive ? "default" : "ghost"}
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </Button>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
+
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <WalletButton />
@@ -152,30 +187,71 @@ export function Navbar() {
       </div>
 
       {/* Mobile View */}
-      <div className="md:hidden flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-[#7A42B9] to-gray-100 dark:from-[#5A2C8A] dark:to-gray-800 rounded-lg shadow-sm">
-        <div className="flex items-center gap-2">
-          {pfpUrl && !pfpError ? (
-            <Image
-              src={pfpUrl}
-              alt="Profile Picture"
-              width={32}
-              height={32}
-              className="rounded-full"
-              onError={() => setPfpError(true)}
-            />
-          ) : (
-            <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium">
-              {username?.charAt(0)?.toUpperCase() || "P"}
+      <div className="md:hidden">
+        <div className="flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-[#7A42B9] to-gray-100 dark:from-[#5A2C8A] dark:to-gray-800 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2">
+            {pfpUrl && !pfpError ? (
+              <Image
+                src={pfpUrl}
+                alt="Profile Picture"
+                width={32}
+                height={32}
+                className="rounded-full"
+                onError={() => setPfpError(true)}
+              />
+            ) : (
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium">
+                {username?.charAt(0)?.toUpperCase() || "P"}
+              </div>
+            )}
+            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              POLICAST
             </div>
-          )}
-          <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-            Welcome {username || "Player"}
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Menu className="h-4 w-4" />
+              )}
+            </Button>
+            <WalletButton />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <WalletButton />
-        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border">
+            <nav className="flex flex-col gap-2">
+              {navigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button
+                      variant={isActive ? "default" : "ghost"}
+                      size="sm"
+                      className="w-full justify-start gap-2"
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.name}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        )}
       </div>
     </>
   );
