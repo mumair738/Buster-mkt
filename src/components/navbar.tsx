@@ -8,7 +8,8 @@ import { usePathname } from "next/navigation";
 import { useConnect, useAccount, useDisconnect, Connector } from "wagmi";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Home, BarChart3, User, Trophy, Menu, X } from "lucide-react";
+import { Home, BarChart3, User, Trophy, Menu, X, Settings } from "lucide-react";
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export function Navbar() {
   const [username, setUsername] = useState<string | null>(null);
@@ -17,12 +18,21 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { connect, connectors } = useConnect();
   const { isConnected: isAccountConnected } = useAccount();
+  const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
   const pathname = usePathname();
 
   const navigationItems = [
     { name: "Markets", href: "/", icon: Home },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
     { name: "Profile", href: "/profile", icon: User },
+  ];
+
+  // Add admin link only for authorized users
+  const allNavigationItems = [
+    ...navigationItems,
+    ...(hasCreatorAccess || hasResolverAccess || isAdmin
+      ? [{ name: "Admin", href: "/admin", icon: Settings }]
+      : []),
   ];
 
   useEffect(() => {
@@ -161,7 +171,7 @@ export function Navbar() {
 
           {/* Navigation Links */}
           <nav className="flex items-center gap-4">
-            {navigationItems.map((item) => {
+            {allNavigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               return (
@@ -229,7 +239,7 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border">
             <nav className="flex flex-col gap-2">
-              {navigationItems.map((item) => {
+              {allNavigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (

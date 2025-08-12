@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useAccount, useReadContract } from "wagmi";
-import { type Address } from "viem";
 import { useToast } from "@/components/ui/use-toast";
 import {
   publicClient,
@@ -16,11 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
   BarChart3,
   Clock,
   Trophy,

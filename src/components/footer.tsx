@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Clock, Trophy, User, Info } from "lucide-react"; // Icons for tabs and About
+import { Home, Clock, Trophy, User, Info, Settings } from "lucide-react"; // Icons for tabs and About
 import { usePathname, useSearchParams } from "next/navigation"; // Import useSearchParams
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk"; // Add this import
+import { useUserRoles } from "@/hooks/useUserRoles";
 
 export function Footer() {
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -13,6 +14,7 @@ export function Footer() {
   const searchParams = useSearchParams(); // Use the hook
   const [showInfo, setShowInfo] = useState(false);
   const currentQueryTab = searchParams.get("tab");
+  const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
 
   const navItems = [
     { hrefBase: "/", tabValue: "active", icon: Home, label: "Active" },
@@ -24,6 +26,14 @@ export function Footer() {
       label: "Leaderboard",
     },
     { hrefBase: "/", tabValue: "myvotes", icon: User, label: "Profile" },
+  ];
+
+  // Add admin item only for authorized users
+  const allNavItems = [
+    ...navItems,
+    ...(hasCreatorAccess || hasResolverAccess || isAdmin
+      ? [{ hrefBase: "/admin", tabValue: "", icon: Settings, label: "Admin" }]
+      : []),
   ];
 
   // Close info panel when clicking on any navigation item
@@ -98,13 +108,17 @@ export function Footer() {
         <div className="container max-w-7xl mx-auto flex flex-col items-center justify-between gap-4 py-4 md:flex-row md:py-8">
           {/* Mobile Navigation with Icons */}
           <div className="flex w-full justify-around md:hidden">
-            {navItems.map((item) => {
-              const href = `${item.hrefBase}?tab=${item.tabValue}`;
+            {allNavItems.map((item) => {
+              const href =
+                item.hrefBase === "/"
+                  ? `${item.hrefBase}?tab=${item.tabValue}`
+                  : item.hrefBase;
               // An item is active if its tabValue matches the currentQueryTab.
               // If currentQueryTab is null (no tab in URL), 'active' is the default active tab.
               const isActive =
                 (currentQueryTab === null && item.tabValue === "active") ||
-                currentQueryTab === item.tabValue;
+                currentQueryTab === item.tabValue ||
+                (pathname === item.hrefBase && item.tabValue === "");
               return (
                 <Link
                   key={href}

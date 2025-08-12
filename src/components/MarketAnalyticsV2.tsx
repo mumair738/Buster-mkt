@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   TrendingUp,
-  TrendingDown,
   BarChart3,
   PieChart,
   Activity,
@@ -26,7 +25,6 @@ import {
   Clock,
   RefreshCw,
   ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 
 interface MarketAnalytics {
@@ -161,7 +159,7 @@ export function MarketAnalyticsV2() {
 
           // Calculate total volume by summing all option volumes
           let totalVolume = 0n;
-          let participantCount = 0;
+          const participantCount = 0;
 
           try {
             for (let j = 0; j < Number(optionCount); j++) {
@@ -259,8 +257,8 @@ export function MarketAnalyticsV2() {
 
       // Calculate stats from available market and option data
       let totalVolume = 0n;
-      let totalTrades = 0;
-      let participantCount = 0;
+      const totalTrades = 0;
+      const participantCount = 0;
 
       // Get all options data
       const options = [];

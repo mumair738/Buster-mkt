@@ -24,13 +24,10 @@ import {
 } from "@/components/ui/select";
 import {
   TrendingUp,
-  TrendingDown,
   BarChart3,
   DollarSign,
   Activity,
   Users,
-  Percent,
-  Clock,
   RefreshCw,
   ArrowUp,
   ArrowDown,
@@ -360,7 +357,7 @@ export function VolumeAnalyticsV2() {
 
       // Calculate market stats from options since getMarketStats doesn't exist
       let totalVolumeWei = 0n;
-      let totalTrades = 0;
+      const totalTrades = 0;
 
       // Get options volume data
       for (let optionId = 0; optionId < Number(optionCount); optionId++) {
