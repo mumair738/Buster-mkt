@@ -42,5 +42,8 @@
       ]
     },
     "author": "Oxdev.base.eth"
+  },
+  "baseBuilder": {
+    "allowedAddresses": ["0x02a9093dEB73E9E524657492429377117C70e097"]
   }
 }
