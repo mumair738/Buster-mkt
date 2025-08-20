@@ -46,14 +46,14 @@ function AnalyticsContentInner() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-              V2 Analytics Dashboard
+              Analytics Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              Advanced analytics for V2 prediction markets
+              Advanced analytics for Policast markets
             </p>
           </div>
           <Badge variant="secondary" className="text-lg px-4 py-2">
-            V2 Platform
+            Platform
           </Badge>
         </div>
       </div>
@@ -63,26 +63,41 @@ function AnalyticsContentInner() {
         onValueChange={handleTabChange}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 mb-8">
-          <TabsTrigger value="portfolio" className="flex items-center gap-2">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-5 bg-muted mb-8">
+          <TabsTrigger
+            value="portfolio"
+            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
+          >
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Portfolio</span>
+            <span>Portfolio</span>
           </TabsTrigger>
-          <TabsTrigger value="positions" className="flex items-center gap-2">
+          <TabsTrigger
+            value="positions"
+            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
+          >
             <Target className="h-4 w-4" />
-            <span className="hidden sm:inline">Positions</span>
+            <span>Positions</span>
           </TabsTrigger>
-          <TabsTrigger value="markets" className="flex items-center gap-2">
+          <TabsTrigger
+            value="markets"
+            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
+          >
             <BarChart3 className="h-4 w-4" />
-            <span className="hidden sm:inline">Markets</span>
+            <span>Markets</span>
           </TabsTrigger>
-          <TabsTrigger value="prices" className="flex items-center gap-2">
+          <TabsTrigger
+            value="prices"
+            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
+          >
             <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Prices</span>
+            <span>Prices</span>
           </TabsTrigger>
-          <TabsTrigger value="volume" className="flex items-center gap-2">
+          <TabsTrigger
+            value="volume"
+            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
+          >
             <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Volume</span>
+            <span>Volume</span>
           </TabsTrigger>
         </TabsList>
 
@@ -105,7 +120,7 @@ function AnalyticsContentInner() {
                     Connect Your Wallet
                   </h3>
                   <p className="text-muted-foreground">
-                    Connect your wallet to view your V2 portfolio analytics,
+                    Connect your wallet to view your portfolio analytics,
                     positions, and trading history.
                   </p>
                 </div>
