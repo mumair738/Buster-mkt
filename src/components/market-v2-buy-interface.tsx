@@ -11,6 +11,7 @@ import {
   useSendCalls,
   useWaitForCallsStatus,
   useConnectorClient,
+  type BaseError,
 } from "wagmi";
 import {
   V2contractAddress,
@@ -90,7 +91,14 @@ export function MarketV2BuyInterface({
   const [isVisible, setIsVisible] = useState(true);
 
   // EIP-5792 batch calls
-  const { sendCalls, data: callsData } = useSendCalls({
+  const {
+    sendCalls,
+    data: callsData,
+    isSuccess: callsSuccess,
+    isPending: callsPending,
+    isError: callsError,
+    error: callsErrorMsg,
+  } = useSendCalls({
     mutation: {
       onSuccess: (data) => {
         console.log("=== V2 BATCH TRANSACTION CALLBACK ===");
@@ -127,7 +135,14 @@ export function MarketV2BuyInterface({
         }
 
         // Fallback to sequential transactions
-        handleSequentialPurchase();
+        const amountInUnits = toUnits(amount, tokenDecimals || 18);
+        const needsApproval = amountInUnits > (userAllowance || 0n);
+        if (needsApproval) {
+          setBuyingStep("allowance");
+        } else {
+          handleDirectPurchase();
+        }
+        setIsProcessing(false);
       },
     },
   });
@@ -135,15 +150,15 @@ export function MarketV2BuyInterface({
   // Monitor batch calls status
   const {
     data: callsStatusData,
+    isLoading: callsStatusLoading,
     isSuccess: callsStatusSuccess,
     isError: callsStatusError,
     error: callsStatusErrorMsg,
   } = useWaitForCallsStatus({
-    id: callsData?.id,
+    id: callsData?.id as `0x${string}`,
     query: {
       enabled: !!callsData?.id,
-      refetchInterval: 2000, // Check every 2 seconds
-      refetchIntervalInBackground: false,
+      refetchInterval: 1000, // Check every second
     },
   });
 
@@ -190,6 +205,54 @@ export function MarketV2BuyInterface({
     return (currentPrice * 105n) / 100n; // 5% slippage
   }, []);
 
+  // Handle direct purchase (for cases where approval already exists)
+  const handleDirectPurchase = useCallback(async () => {
+    if (
+      !accountAddress ||
+      selectedOptionId === null ||
+      !amount ||
+      !tokenDecimals
+    )
+      return;
+
+    try {
+      const amountInUnits = toUnits(amount, tokenDecimals);
+      const currentPrice = optionData?.[4] || 0n; // currentPrice from getMarketOption
+      const maxPricePerShare = calculateMaxPrice(currentPrice);
+
+      console.log("=== V2 DIRECT PURCHASE ===");
+      console.log("Market ID:", marketId);
+      console.log("Option ID:", selectedOptionId);
+      console.log("Amount:", amountInUnits.toString());
+      console.log("Max Price:", maxPricePerShare.toString());
+
+      await writeContractAsync({
+        address: V2contractAddress,
+        abi: V2contractAbi,
+        functionName: "buyShares",
+        args: [
+          BigInt(marketId),
+          BigInt(selectedOptionId),
+          amountInUnits,
+          maxPricePerShare,
+        ],
+      });
+    } catch (err) {
+      console.error("Direct purchase failed:", err);
+      setError("Direct purchase failed. Please try again.");
+      setBuyingStep("initial");
+    }
+  }, [
+    accountAddress,
+    selectedOptionId,
+    amount,
+    tokenDecimals,
+    optionData,
+    calculateMaxPrice,
+    marketId,
+    writeContractAsync,
+  ]);
+
   // Handle sequential purchase (fallback)
   const handleSequentialPurchase = useCallback(async () => {
     if (
@@ -231,9 +294,24 @@ export function MarketV2BuyInterface({
           ],
         });
       }
-    } catch (err) {
-      console.error("Sequential purchase failed:", err);
-      setError("Transaction failed. Please try again.");
+    } catch (error: unknown) {
+      console.error("V2 Sequential purchase failed:", error);
+      let errorMessage = "Transaction failed. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = (error as BaseError)?.shortMessage || errorMessage;
+        if (error.message.includes("user rejected")) {
+          errorMessage = "Transaction was rejected in your wallet";
+        } else if (error.message.includes("Market trading period has ended")) {
+          errorMessage = "Market trading period has ended";
+        } else if (error.message.includes("insufficient funds")) {
+          errorMessage = "Insufficient funds for gas";
+        }
+      }
+      toast({
+        title: "Purchase Failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
       setBuyingStep("initial");
     } finally {
       setIsProcessing(false);
@@ -248,6 +326,7 @@ export function MarketV2BuyInterface({
     calculateMaxPrice,
     marketId,
     writeContractAsync,
+    toast,
   ]);
 
   // Handle batch purchase
@@ -266,6 +345,17 @@ export function MarketV2BuyInterface({
       const currentPrice = optionData?.[4] || 0n;
       const maxPricePerShare = calculateMaxPrice(currentPrice);
 
+      console.log("=== V2 BATCH TRANSACTION DEBUG ===");
+      console.log("Amount in units:", amountInUnits.toString());
+      console.log("Market ID:", marketId);
+      console.log("Selected option ID:", selectedOptionId);
+      console.log("Balance before batch:", userBalance?.toString());
+      console.log("Current allowance:", userAllowance?.toString());
+      console.log("Is Farcaster connector:", isFarcasterConnector);
+      console.log("Current price:", currentPrice.toString());
+      console.log("Max price per share:", maxPricePerShare.toString());
+
+      // Prepare batch calls without explicit value fields
       const batchCalls = [
         {
           to: tokenAddress,
@@ -291,21 +381,26 @@ export function MarketV2BuyInterface({
       ];
 
       console.log("V2 Batch calls prepared:", batchCalls);
+      console.log("Approve call data:", batchCalls[0].data);
+      console.log("BuyShares call data:", batchCalls[1].data);
 
+      // Check if we can use EIP-5792 batch transactions
       if (isFarcasterConnector) {
-        sendCalls({
-          calls: batchCalls,
-          capabilities: {
-            atomicity: false, // Farcaster doesn't support atomic transactions
-          },
-        });
+        console.log(
+          "🔗 V2 Using Farcaster wallet with EIP-5792 batch transactions"
+        );
       } else {
-        sendCalls({
-          calls: batchCalls,
-        });
+        console.log(
+          "🔗 V2 Using standard wallet with EIP-5792 batch transactions"
+        );
       }
+
+      // Try the batch transaction
+      sendCalls({
+        calls: batchCalls,
+      });
     } catch (err) {
-      console.error("Batch purchase preparation failed:", err);
+      console.error("V2 Batch purchase preparation failed:", err);
       handleSequentialPurchase();
     } finally {
       setIsProcessing(false);
@@ -318,6 +413,8 @@ export function MarketV2BuyInterface({
     optionData,
     calculateMaxPrice,
     marketId,
+    userBalance,
+    userAllowance,
     isFarcasterConnector,
     sendCalls,
     handleSequentialPurchase,
@@ -379,42 +476,123 @@ export function MarketV2BuyInterface({
       console.log("Receipts:", callsStatusData.receipts);
 
       if (callsStatusData.status === "success") {
-        setBuyingStep("purchaseSuccess");
-        toast({
-          title: "Purchase Successful!",
-          description: `Successfully bought shares in ${
-            market.options[selectedOptionId!]?.name
-          }`,
-        });
-        // Reset form
-        setAmount("");
-        setSelectedOptionId(null);
-        setIsBuying(false);
-        refetchOptionData();
-      } else if (callsStatusData.status === "failure") {
-        // Check for partial success (approval worked but purchase failed)
         const receipts = callsStatusData.receipts;
-        if (
-          receipts &&
-          receipts.length > 0 &&
-          receipts[0]?.status === "success"
-        ) {
-          setBuyingStep("batchPartialSuccess");
+
+        if (receipts && receipts.length === 2) {
+          const approvalReceipt = receipts[0];
+          const purchaseReceipt = receipts[1];
+
+          console.log("=== V2 TRANSACTION RECEIPTS ===");
+          console.log("Approval receipt:", approvalReceipt);
+          console.log("Purchase receipt:", purchaseReceipt);
+
+          if (
+            approvalReceipt?.status === "success" &&
+            purchaseReceipt?.status === "success"
+          ) {
+            console.log("✅ V2 Both transactions successful");
+            setBuyingStep("purchaseSuccess");
+            setAmount("");
+            setSelectedOptionId(null);
+
+            toast({
+              title: "Purchase Successful!",
+              description: `Successfully bought shares in ${
+                market.options[selectedOptionId || 0]?.name
+              }`,
+            });
+
+            // Refetch option data to update UI
+            refetchOptionData();
+          } else {
+            console.error("❌ V2 Transaction failed - checking receipts");
+            toast({
+              title: "Transaction Failed",
+              description: "Purchase transaction failed. Please try again.",
+              variant: "destructive",
+            });
+            setBuyingStep("initial");
+          }
+        } else {
+          console.error("❌ V2 Unexpected receipt count:", receipts?.length);
           toast({
-            title: "Partial Success",
-            description:
-              "Approval completed. Purchase failed. You can try purchasing again without re-approval.",
+            title: "Batch Transaction Failed",
+            description: "Batch transaction failed. Please try again.",
             variant: "destructive",
           });
-        } else {
-          setError("Transaction failed. Please try again.");
           setBuyingStep("initial");
         }
+        setIsProcessing(false);
+      } else if (callsStatusData.status === "failure") {
+        const receipts = callsStatusData.receipts;
+
+        if (receipts && receipts.length === 2) {
+          const approvalReceipt = receipts[0];
+          const purchaseReceipt = receipts[1];
+
+          console.log("=== V2 FAILURE WITH TWO RECEIPTS ===");
+          console.log("Approval receipt:", approvalReceipt);
+          console.log("Purchase receipt:", purchaseReceipt);
+
+          if (
+            approvalReceipt?.status === "success" &&
+            purchaseReceipt?.status !== "success"
+          ) {
+            console.warn("⚠️ V2 Approval succeeded but purchase failed");
+            toast({
+              title: "Purchase Failed",
+              description:
+                "Approval successful, but purchase failed. Please complete your purchase manually.",
+              variant: "destructive",
+            });
+            setBuyingStep("batchPartialSuccess");
+          } else {
+            console.error("❌ V2 Both transactions failed");
+            toast({
+              title: "Transaction Failed",
+              description:
+                "Both approval and purchase failed. Please try again.",
+              variant: "destructive",
+            });
+            setBuyingStep("initial");
+          }
+        } else {
+          console.error(
+            "❌ V2 Batch calls failed with no receipts or unexpected receipt count"
+          );
+          toast({
+            title: "Batch Transaction Failed",
+            description: "Batch transaction failed. Please try again.",
+            variant: "destructive",
+          });
+          setBuyingStep("initial");
+        }
+        setIsProcessing(false);
+      } else if (callsStatusData.status === "pending") {
+        console.log("⏳ V2 Batch calls still pending...");
+        // Keep waiting, the hook will refetch
       }
+    }
+
+    if (callsStatusError && callsStatusErrorMsg) {
+      console.error("=== V2 BATCH CALLS STATUS ERROR ===");
+      console.error("Status error:", callsStatusErrorMsg);
+
+      toast({
+        title: "Batch Transaction Failed",
+        description: `Transaction monitoring failed: ${
+          callsStatusErrorMsg.message || "Unknown error"
+        }`,
+        variant: "destructive",
+      });
+      setBuyingStep("initial");
+      setIsProcessing(false);
     }
   }, [
     callsStatusSuccess,
+    callsStatusError,
     callsStatusData,
+    callsStatusErrorMsg,
     market.options,
     selectedOptionId,
     toast,
