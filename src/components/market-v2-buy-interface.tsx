@@ -87,7 +87,7 @@ export function MarketV2BuyInterface({
   const [lastProcessedHash, setLastProcessedHash] = useState<string | null>(
     null
   );
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
 
   // EIP-5792 batch calls
   const { sendCalls, data: callsData } = useSendCalls({
