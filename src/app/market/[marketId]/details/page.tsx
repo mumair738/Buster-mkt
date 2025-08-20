@@ -175,22 +175,51 @@ export async function generateMetadata(
           : "0.0";
     } else {
       const marketData = marketResult.data as MarketInfoV2ContractReturn;
+
+      // Fetch all options for this V2 market for metadata
+      const optionCount = Number(marketData[4]);
+      const options: string[] = [];
+
+      for (let i = 0; i < optionCount; i++) {
+        try {
+          const optionData = await publicClient.readContract({
+            address: V2contractAddress,
+            abi: V2contractAbi,
+            functionName: "getMarketOption",
+            args: [BigInt(marketId), BigInt(i)],
+          });
+
+          const [name] = optionData as [
+            string,
+            string,
+            bigint,
+            bigint,
+            bigint,
+            boolean
+          ];
+          options.push(name);
+        } catch (error) {
+          console.error(`Error fetching option ${i} for metadata:`, error);
+          options.push(`Option ${i + 1}`);
+        }
+      }
+
       market = {
         question: marketData[0],
         description: marketData[1],
         endTime: marketData[2],
         category: marketData[3],
-        optionCount: Number(marketData[4]), // Convert bigint to number
+        optionCount: optionCount,
         resolved: marketData[5],
         disputed: marketData[6],
-        winningOptionId: Number(marketData[7]), // Convert bigint to number
+        winningOptionId: Number(marketData[7]),
         creator: marketData[8],
         version: "v2",
+        options,
       };
 
-      // For V2, we'll need to get market options and shares separately
-      // For now, use a generic description
-      yesPercent = "Multi-option";
+      // For V2, create a description with options
+      yesPercent = `Options: ${options.join(", ")}`;
     }
 
     const baseUrl =
@@ -261,6 +290,8 @@ export async function generateMetadata(
 export default async function MarketDetailsPage({ params }: Props) {
   const { marketId } = await params;
 
+  console.log(`=== MARKET DETAILS PAGE: Loading market ${marketId} ===`);
+
   if (!marketId || isNaN(Number(marketId))) {
     notFound();
   }
@@ -272,6 +303,10 @@ export default async function MarketDetailsPage({ params }: Props) {
     });
 
     const marketResult = await fetchMarketData(marketId, publicClient);
+    console.log(
+      `Market ${marketId} detected as version:`,
+      marketResult.version
+    );
 
     let market: any;
 
@@ -288,20 +323,56 @@ export default async function MarketDetailsPage({ params }: Props) {
         resolved: marketData[7],
         version: "v1",
       };
+      console.log(`Market ${marketId} V1 data:`, market);
     } else {
       const marketData = marketResult.data as MarketInfoV2ContractReturn;
+
+      // Fetch all options for this V2 market
+      const optionCount = Number(marketData[4]);
+      const options: string[] = [];
+      const optionShares: bigint[] = [];
+
+      for (let i = 0; i < optionCount; i++) {
+        try {
+          const optionData = await publicClient.readContract({
+            address: V2contractAddress,
+            abi: V2contractAbi,
+            functionName: "getMarketOption",
+            args: [BigInt(marketId), BigInt(i)],
+          });
+
+          const [name, , totalShares] = optionData as [
+            string,
+            string,
+            bigint,
+            bigint,
+            bigint,
+            boolean
+          ];
+          options.push(name);
+          optionShares.push(totalShares);
+        } catch (error) {
+          console.error(`Error fetching option ${i}:`, error);
+          options.push(`Option ${i + 1}`);
+          optionShares.push(0n);
+        }
+      }
+
       market = {
         question: marketData[0],
         description: marketData[1],
         endTime: marketData[2],
         category: marketData[3],
-        optionCount: Number(marketData[4]), // Convert bigint to number
+        optionCount: optionCount,
         resolved: marketData[5],
         disputed: marketData[6],
-        winningOptionId: Number(marketData[7]), // Convert bigint to number
+        winningOptionId: Number(marketData[7]),
         creator: marketData[8],
         version: "v2",
+        options,
+        optionShares,
       };
+      console.log(`Market ${marketId} V2 data:`, market);
     }
 
     return <MarketDetailsClient marketId={marketId} market={market} />;

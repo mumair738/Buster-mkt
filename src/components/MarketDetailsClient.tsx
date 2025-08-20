@@ -34,7 +34,12 @@ interface Market {
   // V2 Multi-options
   options?: string[];
   optionShares?: bigint[];
-  category?: string;
+  description?: string;
+  category?: number | MarketCategory;
+  disputed?: boolean;
+  creator?: string;
+  winningOptionId?: number;
+  optionCount?: number;
   // Common properties
   endTime: bigint;
   outcome: number;
@@ -48,6 +53,36 @@ interface MarketDetailsClientProps {
 }
 
 const TOKEN_DECIMALS = 18;
+
+// Helper function to convert numeric category to MarketCategory enum
+const convertToMarketCategory = (
+  category: number | MarketCategory | undefined
+): MarketCategory => {
+  if (typeof category === "number") {
+    // Convert numeric category to enum
+    switch (category) {
+      case 0:
+        return MarketCategory.POLITICS;
+      case 1:
+        return MarketCategory.SPORTS;
+      case 2:
+        return MarketCategory.ENTERTAINMENT;
+      case 3:
+        return MarketCategory.TECHNOLOGY;
+      case 4:
+        return MarketCategory.ECONOMICS;
+      case 5:
+        return MarketCategory.SCIENCE;
+      case 6:
+        return MarketCategory.WEATHER;
+      case 7:
+        return MarketCategory.OTHER;
+      default:
+        return MarketCategory.OTHER;
+    }
+  }
+  return category || MarketCategory.OTHER;
+};
 
 const LinkifiedText = ({ text }: { text: string }) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -235,15 +270,17 @@ export function MarketDetailsClient({
                 market={
                   {
                     question: market.question,
-                    description: market.question,
+                    description: market.description || market.question,
                     endTime: market.endTime,
                     optionCount: market.options?.length || 2,
-                    disputed: false,
+                    disputed: market.disputed || false,
                     validated: true,
                     resolved: market.resolved,
-                    category: MarketCategory.OTHER, // Default category
+                    category: convertToMarketCategory(market.category),
                     winningOptionId: market.resolved ? market.outcome : 0,
-                    creator: "0x0000000000000000000000000000000000000000", // Unknown creator
+                    creator:
+                      market.creator ||
+                      "0x0000000000000000000000000000000000000000",
                     totalLiquidity: totalSharesInUnits,
                     totalVolume: totalSharesInUnits,
                     options: (market.options || []).map((option, index) => ({
@@ -279,15 +316,17 @@ export function MarketDetailsClient({
                 market={
                   {
                     question: market.question,
-                    description: market.question,
+                    description: market.description || market.question,
                     endTime: market.endTime,
                     optionCount: market.options?.length || 2,
-                    disputed: false,
+                    disputed: market.disputed || false,
                     validated: true,
                     resolved: market.resolved,
-                    category: MarketCategory.OTHER, // Default category
+                    category: convertToMarketCategory(market.category),
                     winningOptionId: market.resolved ? market.outcome : 0,
-                    creator: "0x0000000000000000000000000000000000000000", // Unknown creator
+                    creator:
+                      market.creator ||
+                      "0x0000000000000000000000000000000000000000",
                     totalLiquidity: totalSharesInUnits,
                     totalVolume: totalSharesInUnits,
                     options: (market.options || []).map((option, index) => ({
