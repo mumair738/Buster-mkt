@@ -5,7 +5,7 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useConnect, useAccount, useDisconnect, Connector } from "wagmi";
+import { useWallet } from "@/components/WagmiProvider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { Home, BarChart3, User, Trophy, Menu, X, Settings } from "lucide-react";
@@ -16,8 +16,7 @@ export function Navbar() {
   const [pfpUrl, setPfpUrl] = useState<string | null>(null);
   const [pfpError, setPfpError] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { connect, connectors } = useConnect();
-  const { isConnected: isAccountConnected } = useAccount();
+  const wallet = useWallet();
   const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
   const pathname = usePathname();
 
@@ -53,31 +52,19 @@ export function Navbar() {
     const autoConnectInMiniApp = async () => {
       try {
         const inMiniApp = await sdk.isInMiniApp();
-        if (inMiniApp && !isAccountConnected) {
-          const farcasterConnector = connectors.find(
-            (c) => c.id === "miniAppConnector"
-          );
-          if (farcasterConnector) {
-            connect({ connector: farcasterConnector });
-          }
+        if (inMiniApp && !wallet.isConnected) {
+          wallet.connect("miniAppConnector");
         }
       } catch (error) {
         console.error("Error during auto-connect:", error);
       }
     };
     autoConnectInMiniApp();
-  }, [isAccountConnected, connect, connectors]);
+  }, [wallet.isConnected, wallet.connect]);
 
   const WalletButton = () => {
-    const {
-      address,
-      isConnected: wagmiIsConnected,
-      isConnecting: wagmiIsConnecting,
-    } = useAccount(); // Use isConnecting from useAccount
-    const { connect: wagmiConnect, connectors: wagmiConnectors } = useConnect();
-    const { disconnect: wagmiDisconnect } = useDisconnect();
-
     const [isClient, setIsClient] = useState(false);
+    const [showWalletOptions, setShowWalletOptions] = useState(false);
 
     useEffect(() => {
       setIsClient(true);
@@ -91,35 +78,42 @@ export function Navbar() {
       );
     }
 
-    const isValidConnector = (c: unknown): c is Connector =>
-      !!c && typeof c === "object" && "id" in c && "connect" in c;
+    const getConnectorName = (connectorId: string) => {
+      switch (connectorId) {
+        case "miniAppConnector":
+          return "Farcaster";
+        case "coinbaseWalletSDK":
+          return "Coinbase Wallet";
+        case "metaMask":
+          return "MetaMask";
+        default:
+          return connectorId;
+      }
+    };
 
-    const validConnectors = wagmiConnectors.filter(isValidConnector);
+    const availableConnectors = wallet.connectors.filter(
+      (c) => c.id !== "miniAppConnector" // Hide farcaster connector in normal browser
+    );
 
-    const primaryConnector =
-      validConnectors.find((c) => c.id === "miniAppConnector") ||
-      validConnectors.find((c) => c.id === "metaMask") ||
-      (validConnectors.length > 0 ? validConnectors[0] : undefined);
-
-    if (wagmiIsConnected && address) {
+    if (wallet.isConnected && wallet.address) {
       // Connected state - Single button for both desktop and mobile
       return (
         <button
-          onClick={() => wagmiDisconnect()}
+          onClick={() => wallet.disconnect()}
           style={{ backgroundColor: "#7A42B9" }}
           className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
         >
           {/* Desktop: Show more characters */}
           <span className="hidden md:inline">
-            {`${address.slice(0, 6)}...${address.slice(-4)}`}
+            {`${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
           </span>
           {/* Mobile: Show fewer characters */}
           <span className="md:hidden">
-            {`${address.slice(0, 4)}...${address.slice(-3)}`}
+            {`${wallet.address.slice(0, 4)}...${wallet.address.slice(-3)}`}
           </span>
         </button>
       );
-    } else if (wagmiIsConnecting) {
+    } else if (wallet.isConnecting) {
       // Connecting state
       return (
         <div className="px-3 py-1 rounded-full text-sm font-medium text-gray-400 animate-pulse">
@@ -128,16 +122,52 @@ export function Navbar() {
       );
     } else {
       return (
-        <div>
-          {primaryConnector && (
+        <div className="relative">
+          {availableConnectors.length === 1 ? (
+            // Single connector - direct connect
             <button
-              key={primaryConnector.id}
-              onClick={() => wagmiConnect({ connector: primaryConnector })}
+              onClick={() => wallet.connect(availableConnectors[0].id)}
               style={{ backgroundColor: "#7A42B9" }}
               className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
             >
               Connect Wallet
             </button>
+          ) : availableConnectors.length > 1 ? (
+            // Multiple connectors - show dropdown
+            <>
+              <button
+                onClick={() => setShowWalletOptions(!showWalletOptions)}
+                style={{ backgroundColor: "#7A42B9" }}
+                className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+              >
+                Connect Wallet
+              </button>
+
+              {showWalletOptions && (
+                <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[150px]">
+                  {availableConnectors.map((connector) => (
+                    <button
+                      key={connector.id}
+                      onClick={() => {
+                        wallet.connect(connector.id);
+                        setShowWalletOptions(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg text-sm"
+                    >
+                      {getConnectorName(connector.id)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : null}
+
+          {/* Click outside to close dropdown */}
+          {showWalletOptions && (
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setShowWalletOptions(false)}
+            />
           )}
         </div>
       );
