@@ -17,6 +17,7 @@ import {
   Activity,
 } from "lucide-react";
 import Link from "next/link";
+import { Navbar } from "@/components/navbar";
 
 export default function ProfilePage() {
   const { address, isConnected } = useAccount();
@@ -29,7 +30,8 @@ export default function ProfilePage() {
   const profileImage = farcasterUser?.pfpUrl;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen flex flex-col pb-20 md:pb-0 bg-gradient-to-br from-[#6A5ACD] via-[#E6E6FA] to-[#F0F8FF] dark:from-[#2D1B69] dark:via-[#1a1a2e] dark:to-[#16213e]">
+      <Navbar />
       <div className="container mx-auto p-4 md:p-6 max-w-6xl">
         {isConnected ? (
           <>
