@@ -12,7 +12,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { Navbar } from "./navbar";
 import { UnifiedMarketList } from "./unified-market-list";
 import { ValidatedMarketList } from "./ValidatedMarketList";
-import { MarketValidationBanner } from "./ValidationNotice";
+// import { MarketValidationBanner } from "./ValidationNotice";
 import { BarChart3, TrendingUp, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -223,7 +223,7 @@ export function EnhancedPredictionMarketDashboard() {
           </TabsList>
 
           {/* Market Validation Info Banner */}
-          <MarketValidationBanner />
+          {/* <MarketValidationBanner /> */}
 
           <TabsContent value="active" className="mt-6">
             <ValidatedMarketList filter="active" showOnlyValidated={true} />
