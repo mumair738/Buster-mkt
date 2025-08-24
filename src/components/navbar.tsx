@@ -17,7 +17,8 @@ export function Navbar() {
   const [pfpError, setPfpError] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const wallet = useWallet();
-  const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
+  const { hasCreatorAccess, hasResolverAccess, isAdmin, isOwner } =
+    useUserRoles();
   const pathname = usePathname();
 
   const navigationItems = [
@@ -31,6 +32,9 @@ export function Navbar() {
     ...navigationItems,
     ...(hasCreatorAccess || hasResolverAccess || isAdmin
       ? [{ name: "Admin", href: "/admin", icon: Settings }]
+      : []),
+    ...(isOwner || isAdmin
+      ? [{ name: "Platform", href: "/platform", icon: BarChart3 }]
       : []),
   ];
 

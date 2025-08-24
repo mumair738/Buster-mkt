@@ -81,8 +81,10 @@ export function MarketChart({ marketId, market }: MarketChartProps) {
       // V1 binary: convert optionA and optionB
       return {
         ...item,
-        optionA: Math.round(item.optionA * 100),
-        optionB: Math.round(item.optionB * 100),
+        optionA:
+          item.optionA !== undefined ? Math.round(item.optionA * 100) : 50,
+        optionB:
+          item.optionB !== undefined ? Math.round(item.optionB * 100) : 50,
       };
     }
   });

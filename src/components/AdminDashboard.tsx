@@ -10,6 +10,7 @@ import { MarketResolver } from "./MarketResolver";
 import { AdminLiquidityManager } from "./AdminLiquidityManager";
 import { AdminRoleManager } from "./AdminRoleManager";
 import { MarketValidationManager } from "./MarketValidationManager";
+import { V3AdminDashboard } from "./V3AdminDashboard";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
 import {
@@ -22,6 +23,7 @@ import {
   BarChart3,
   AlertTriangle,
   CheckCircle,
+  Wallet,
 } from "lucide-react";
 
 export function AdminDashboard() {
@@ -150,7 +152,7 @@ export function AdminDashboard() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-5 bg-muted">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-6 bg-muted">
           {hasCreatorAccess && (
             <TabsTrigger
               value="create"
@@ -185,6 +187,15 @@ export function AdminDashboard() {
             >
               <DollarSign className="h-4 w-4" />
               <span>Liquidity</span>
+            </TabsTrigger>
+          )}
+          {(isOwner || isAdmin) && (
+            <TabsTrigger
+              value="v3platform"
+              className="flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0"
+            >
+              <Wallet className="h-4 w-4" />
+              <span>V3 Platform</span>
             </TabsTrigger>
           )}
           {isOwner && (
@@ -223,6 +234,13 @@ export function AdminDashboard() {
         {isAdmin && (
           <TabsContent value="liquidity" className="space-y-6">
             <AdminLiquidityManager />
+          </TabsContent>
+        )}
+
+        {/* V3 Platform Management Tab */}
+        {(isOwner || isAdmin) && (
+          <TabsContent value="v3platform" className="space-y-6">
+            <V3AdminDashboard />
           </TabsContent>
         )}
 
