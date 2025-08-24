@@ -232,19 +232,24 @@ function AnalyticsContentInner() {
 // Component that needs Suspense for useSearchParams
 function AnalyticsContentWithSuspense() {
   return (
-    <Suspense fallback={
-      <div className="flex-grow container mx-auto p-4 md:p-6 max-w-7xl">
-        <div className="space-y-6">
-          <div className="h-24 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="h-48 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            ))}
+    <Suspense
+      fallback={
+        <div className="flex-grow container mx-auto p-4 md:p-6 max-w-7xl">
+          <div className="space-y-6">
+            <div className="h-24 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-48 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <AnalyticsContentInner />
     </Suspense>
   );

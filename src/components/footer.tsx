@@ -17,7 +17,7 @@ export function Footer() {
 
   // Safely get search params on client side only
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setCurrentQueryTab(params.get("tab"));
     }
