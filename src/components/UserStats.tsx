@@ -78,7 +78,7 @@ export function UserStats() {
   const farcasterUser = useFarcasterUser();
   const [stats, setStats] = useState<UserStatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [tokenSymbol, setTokenSymbol] = useState<string>("BSTR");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("buster");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
 
   const { data: bettingTokenAddr } = useReadContract({
@@ -140,32 +140,47 @@ export function UserStats() {
       try {
         const cached = localStorage.getItem(`${CACHE_KEY_STATS}_${address}`);
         if (cached) {
-          const data = JSON.parse(cached);
-          if (Date.now() - data.timestamp < CACHE_TTL_STATS * 1000) {
-            // Convert string values back to BigInt
-            const cachedStats = {
-              ...data.stats,
-              totalInvested: BigInt(data.stats.totalInvested),
-              netWinnings: BigInt(data.stats.netWinnings),
-              // Ensure all numeric fields exist with defaults
-              v1Wins: data.stats.v1Wins || 0,
-              v1Losses: data.stats.v1Losses || 0,
-              v2Wins: data.stats.v2Wins || 0,
-              v2Losses: data.stats.v2Losses || 0,
-              v2TradeCount: data.stats.v2TradeCount || 0,
-              v2Portfolio: data.stats.v2Portfolio
-                ? {
-                    ...data.stats.v2Portfolio,
-                    totalInvested: BigInt(data.stats.v2Portfolio.totalInvested),
-                    totalWinnings: BigInt(data.stats.v2Portfolio.totalWinnings),
-                    unrealizedPnL: BigInt(data.stats.v2Portfolio.unrealizedPnL),
-                    realizedPnL: BigInt(data.stats.v2Portfolio.realizedPnL),
-                  }
-                : undefined,
-            };
-            setStats(cachedStats);
-            setIsLoading(false);
-            return;
+          try {
+            const data = JSON.parse(cached);
+            if (Date.now() - data.timestamp < CACHE_TTL_STATS * 1000) {
+              // Convert string values back to BigInt
+              const cachedStats = {
+                ...data.stats,
+                totalInvested: BigInt(data.stats.totalInvested),
+                netWinnings: BigInt(data.stats.netWinnings),
+                // Ensure all numeric fields exist with defaults
+                v1Wins: data.stats.v1Wins || 0,
+                v1Losses: data.stats.v1Losses || 0,
+                v2Wins: data.stats.v2Wins || 0,
+                v2Losses: data.stats.v2Losses || 0,
+                v2TradeCount: data.stats.v2TradeCount || 0,
+                v2Portfolio: data.stats.v2Portfolio
+                  ? {
+                      ...data.stats.v2Portfolio,
+                      totalInvested: BigInt(
+                        data.stats.v2Portfolio.totalInvested
+                      ),
+                      totalWinnings: BigInt(
+                        data.stats.v2Portfolio.totalWinnings
+                      ),
+                      unrealizedPnL: BigInt(
+                        data.stats.v2Portfolio.unrealizedPnL
+                      ),
+                      realizedPnL: BigInt(data.stats.v2Portfolio.realizedPnL),
+                    }
+                  : undefined,
+              };
+              setStats(cachedStats);
+              setIsLoading(false);
+              return;
+            }
+          } catch (parseError) {
+            console.warn(
+              "Failed to parse cached stats, fetching fresh data:",
+              parseError
+            );
+            // Clear invalid cache
+            localStorage.removeItem(`${CACHE_KEY_STATS}_${address}`);
           }
         }
 
@@ -479,10 +494,15 @@ export function UserStats() {
               }
             : undefined,
         };
-        localStorage.setItem(
-          `${CACHE_KEY_STATS}_${address}`,
-          JSON.stringify({ stats: statsForCache, timestamp: Date.now() })
-        );
+
+        try {
+          localStorage.setItem(
+            `${CACHE_KEY_STATS}_${address}`,
+            JSON.stringify({ stats: statsForCache, timestamp: Date.now() })
+          );
+        } catch (error) {
+          console.warn("Failed to cache user stats:", error);
+        }
       } catch (error) {
         console.error("Failed to fetch user stats:", error);
         toast({

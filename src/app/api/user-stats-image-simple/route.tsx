@@ -246,7 +246,7 @@ export async function GET(request: NextRequest) {
                     color: "#2563eb",
                   }}
                 >
-                  1,234.56 BSTR
+                  1,234.56 buster
                 </div>
               </div>
             </div>
@@ -283,7 +283,7 @@ export async function GET(request: NextRequest) {
                     color: "#059669",
                   }}
                 >
-                  +456.78 BSTR
+                  +456.78 buster
                 </div>
               </div>
             </div>

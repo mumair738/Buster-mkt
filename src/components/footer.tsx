@@ -2,19 +2,26 @@
 
 import Link from "next/link";
 import { Home, Clock, Trophy, User, Info, Settings } from "lucide-react"; // Icons for tabs and About
-import { usePathname, useSearchParams } from "next/navigation"; // Import useSearchParams
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/miniapp-sdk"; // Add this import
 import { useUserRoles } from "@/hooks/useUserRoles";
 
 export function Footer() {
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pathname = usePathname();
-  const searchParams = useSearchParams(); // Use the hook
   const [showInfo, setShowInfo] = useState(false);
-  const currentQueryTab = searchParams.get("tab");
+  const [currentQueryTab, setCurrentQueryTab] = useState<string | null>(null);
   const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
+
+  // Safely get search params on client side only
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      setCurrentQueryTab(params.get("tab"));
+    }
+  }, []);
 
   const navItems = [
     { hrefBase: "/", tabValue: "active", icon: Home, label: "Active" },

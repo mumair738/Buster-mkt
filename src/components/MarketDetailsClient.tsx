@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Clock, Award, Users } from "lucide-react"; //AlertTriangle later for st
 import { MarketBuyInterface } from "@/components/market-buy-interface";
 import { MarketV2BuyInterface } from "@/components/market-v2-buy-interface";
 import { MarketV2PositionManager } from "@/components/MarketV2PositionManager";
+import { V3FinancialManager } from "@/components/V3FinancialManager";
 import { MarketResolved } from "@/components/market-resolved";
 import { MarketPending } from "@/components/market-pending";
 import MarketTime from "@/components/market-time";
@@ -23,6 +24,7 @@ import { MarketContext } from "@/components/market-context";
 import { MarketChart } from "@/components/market-chart";
 import { CommentSystem } from "@/components/CommentSystem";
 import { MarketV2, MarketOption, MarketCategory } from "@/types/types";
+import { useV3UserRoles } from "@/hooks/useV3UserRoles";
 
 interface Market {
   question: string;
@@ -107,6 +109,51 @@ export function MarketDetailsClient({
   marketId,
   market,
 }: MarketDetailsClientProps) {
+  const { isCreator, isLP, isFeeCollector, checkCreatorStatus, checkLPStatus } =
+    useV3UserRoles();
+  const [userRoles, setUserRoles] = useState({
+    isCreator: false,
+    isLP: false,
+    isFeeCollector: false,
+  });
+  const [rolesChecked, setRolesChecked] = useState(false);
+
+  // Reset roles check when marketId changes
+  useEffect(() => {
+    setRolesChecked(false);
+    setUserRoles({
+      isCreator: false,
+      isLP: false,
+      isFeeCollector: false,
+    });
+  }, [marketId]);
+
+  // Check user roles for this specific market
+  useEffect(() => {
+    const checkRoles = async () => {
+      if (market.version === "v2" && !rolesChecked) {
+        try {
+          const [creatorStatus, lpStatus] = await Promise.all([
+            checkCreatorStatus(Number(marketId)),
+            checkLPStatus(Number(marketId)),
+          ]);
+
+          setUserRoles({
+            isCreator: creatorStatus,
+            isLP: lpStatus,
+            isFeeCollector,
+          });
+          setRolesChecked(true);
+        } catch (error) {
+          console.error("Error checking user roles:", error);
+          setRolesChecked(true); // Still mark as checked to prevent infinite retries
+        }
+      }
+    };
+
+    checkRoles();
+  }, [marketId, market.version, rolesChecked]); // Removed function dependencies
+
   useEffect(() => {
     const signalReady = async () => {
       await sdk.actions.ready();
@@ -117,7 +164,6 @@ export function MarketDetailsClient({
     };
     signalReady();
   }, []);
-
   const totalSharesInUnits =
     market.version === "v2" && market.optionShares
       ? market.optionShares.reduce((sum, shares) => sum + shares, 0n)
@@ -339,6 +385,18 @@ export function MarketDetailsClient({
                     })) satisfies MarketOption[],
                   } satisfies MarketV2
                 }
+              />
+            </div>
+          )}
+
+          {/* V3 Financial Manager - only show for resolved V2 markets */}
+          {market.version === "v2" && market.resolved && (
+            <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <V3FinancialManager
+                marketId={Number(marketId)}
+                isCreator={userRoles.isCreator}
+                isLP={userRoles.isLP}
+                isFeeCollector={userRoles.isFeeCollector}
               />
             </div>
           )}

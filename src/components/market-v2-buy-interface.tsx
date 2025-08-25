@@ -25,6 +25,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/use-toast";
 import { MarketV2 } from "@/types/types";
+import { ValidationNotice } from "./ValidationNotice";
 
 interface MarketV2BuyInterfaceProps {
   marketId: number;
@@ -96,6 +97,7 @@ export function MarketV2BuyInterface({
     null
   );
   const [isVisible, setIsVisible] = useState(true);
+  const [isValidated, setIsValidated] = useState<boolean | null>(null); // null = checking, true = validated, false = not validated
 
   // EIP-5792 batch calls
   const {
@@ -220,6 +222,33 @@ export function MarketV2BuyInterface({
     return (currentPrice * 105n) / 100n; // 5% slippage
   }, []);
 
+  // Check if market is validated
+  const checkMarketValidation = useCallback(async () => {
+    try {
+      // We'll try to simulate a purchase to see if it throws MarketNotValidated
+      await publicClient.estimateContractGas({
+        address: V2contractAddress,
+        abi: V2contractAbi,
+        functionName: "buyShares",
+        args: [BigInt(marketId), BigInt(0), BigInt(1), BigInt(1000000)], // Try to buy 1 share of option 0 with max price 1000000
+        account: "0x0000000000000000000000000000000000000001", // Dummy account
+      });
+      setIsValidated(true); // If no error, market is validated
+    } catch (error: any) {
+      // Check if the error is specifically MarketNotValidated
+      if (
+        error?.message?.includes("MarketNotValidated") ||
+        error?.shortMessage?.includes("MarketNotValidated") ||
+        error?.details?.includes("MarketNotValidated")
+      ) {
+        setIsValidated(false);
+      } else {
+        // For other errors (like insufficient funds, invalid option, etc.), assume validated
+        setIsValidated(true);
+      }
+    }
+  }, [marketId]);
+
   // Handle direct purchase (for cases where approval already exists)
   const handleDirectPurchase = useCallback(async () => {
     if (
@@ -296,6 +325,29 @@ export function MarketV2BuyInterface({
           (err as BaseError)?.shortMessage ||
           (err as Error)?.message ||
           "Transaction failed";
+
+        // Check for specific contract errors
+        if (errorMessage.includes("MarketNotValidated")) {
+          errorMessage =
+            "This market has not been validated yet. Please wait for market validation.";
+        } else if (errorMessage.includes("MarketEnded")) {
+          errorMessage =
+            "This market has ended and is no longer accepting purchases.";
+        } else if (errorMessage.includes("MarketResolved")) {
+          errorMessage =
+            "This market has been resolved and is no longer accepting purchases.";
+        } else if (errorMessage.includes("OptionInactive")) {
+          errorMessage =
+            "The selected option is not active. Please choose a different option.";
+        } else if (errorMessage.includes("AmountMustBePositive")) {
+          errorMessage = "Purchase amount must be greater than zero.";
+        } else if (errorMessage.includes("PriceTooHigh")) {
+          errorMessage =
+            "Price has increased beyond your maximum. Please try again.";
+        } else if (errorMessage.includes("TransferFailed")) {
+          errorMessage =
+            "Token transfer failed. Please check your balance and allowance.";
+        }
       }
 
       console.error("Direct purchase failed:", err);
@@ -394,8 +446,28 @@ export function MarketV2BuyInterface({
         errorMessage = (error as BaseError)?.shortMessage || errorMessage;
         if (error.message.includes("user rejected")) {
           errorMessage = "Transaction was rejected in your wallet";
-        } else if (error.message.includes("Market trading period has ended")) {
+        } else if (error.message.includes("MarketNotValidated")) {
+          errorMessage =
+            "This market has not been validated yet. Please wait for market validation.";
+        } else if (
+          error.message.includes("MarketEnded") ||
+          error.message.includes("Market trading period has ended")
+        ) {
           errorMessage = "Market trading period has ended";
+        } else if (error.message.includes("MarketResolved")) {
+          errorMessage =
+            "This market has been resolved and is no longer accepting purchases.";
+        } else if (error.message.includes("OptionInactive")) {
+          errorMessage =
+            "The selected option is not active. Please choose a different option.";
+        } else if (error.message.includes("AmountMustBePositive")) {
+          errorMessage = "Purchase amount must be greater than zero.";
+        } else if (error.message.includes("PriceTooHigh")) {
+          errorMessage =
+            "Price has increased beyond your maximum. Please try again.";
+        } else if (error.message.includes("TransferFailed")) {
+          errorMessage =
+            "Token transfer failed. Please check your balance and allowance.";
         } else if (error.message.includes("insufficient funds")) {
           errorMessage = "Insufficient funds for gas";
         }
@@ -981,7 +1053,35 @@ export function MarketV2BuyInterface({
     }
   }, [buyingStep]);
 
+  // Check market validation on mount
+  useEffect(() => {
+    checkMarketValidation();
+  }, [checkMarketValidation]);
+
   if (!isVisible) return null;
+
+  // Show validation notice if market is not validated
+  if (isValidated === false) {
+    return (
+      <div className="w-full">
+        <ValidationNotice
+          marketId={marketId}
+          status="pending"
+          message="This market is waiting for admin validation before accepting predictions. Please check back later."
+        />
+      </div>
+    );
+  }
+
+  // Show loading state while checking validation
+  if (isValidated === null) {
+    return (
+      <div className="w-full p-4 text-center">
+        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+        <p className="text-sm text-gray-600">Checking market status...</p>
+      </div>
+    );
+  }
 
   return (
     <div

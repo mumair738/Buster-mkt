@@ -166,7 +166,11 @@ export class SubgraphAnalyticsService {
     const latest = priceHistory[priceHistory.length - 1];
     const previous = priceHistory[priceHistory.length - 2];
 
-    return latest.optionA - previous.optionA;
+    // Handle cases where optionA might be undefined
+    const latestPrice = latest.optionA ?? 0.5;
+    const previousPrice = previous.optionA ?? 0.5;
+
+    return latestPrice - previousPrice;
   }
 
   private calculateVolumeChange(volumeHistory: VolumeHistoryData[]): number {

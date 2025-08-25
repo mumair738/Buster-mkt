@@ -56,6 +56,12 @@ export interface MarketV2 {
   totalLiquidity?: bigint;
   totalVolume?: bigint;
   createdAt?: bigint;
+  // V3 Financial Tracking
+  adminInitialLiquidity?: bigint;
+  userLiquidity?: bigint;
+  platformFeesCollected?: bigint;
+  ammFeesCollected?: bigint;
+  adminLiquidityClaimed?: boolean;
   // Free Entry Configuration
   freeEntryConfig?: {
     maxFreeParticipants: bigint;
@@ -98,12 +104,37 @@ export interface MarketStatsV2 {
 }
 
 export interface PriceHistoryData {
-  date: string;
+  date?: string;
   timestamp: number;
-  optionA: number;
-  optionB: number;
   volume: number;
   trades?: number;
+  // V1 Binary options
+  optionA?: number;
+  optionB?: number;
+  // V2 Multi-options (dynamic properties)
+  [key: string]: any; // Allows option0, option1, etc.
+}
+
+// V3 Financial Data Types
+export interface MarketFinancials {
+  adminInitialLiquidity: bigint;
+  userLiquidity: bigint;
+  platformFeesCollected: bigint;
+  ammFeesCollected: bigint;
+  adminLiquidityClaimed: boolean;
+}
+
+export interface LPInfo {
+  contribution: bigint;
+  rewardsClaimed: boolean;
+  estimatedRewards: bigint;
+}
+
+export interface PlatformStats {
+  totalFeesCollected: bigint;
+  currentFeeCollector: string;
+  totalMarkets: bigint;
+  totalTrades: bigint;
 }
 
 export interface VolumeHistoryData {

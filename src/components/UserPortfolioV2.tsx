@@ -69,7 +69,7 @@ export function UserPortfolioV2() {
   const [positions, setPositions] = useState<MarketPosition[]>([]);
   const [recentTrades, setRecentTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [tokenSymbol, setTokenSymbol] = useState<string>("BSTR");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("buster");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
 
   // Get betting token info
@@ -120,7 +120,21 @@ export function UserPortfolioV2() {
       const cacheKey = `${CACHE_KEY}_${accountAddress}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
-        const data = JSON.parse(cached);
+        // Custom BigInt deserializer
+        const deserializeWithBigInt = (str: string) => {
+          return JSON.parse(str, (key, value) => {
+            if (
+              typeof value === "string" &&
+              value.endsWith("n") &&
+              /^\d+n$/.test(value)
+            ) {
+              return BigInt(value.slice(0, -1));
+            }
+            return value;
+          });
+        };
+
+        const data = deserializeWithBigInt(cached);
         if (Date.now() - data.timestamp < CACHE_TTL * 1000) {
           setPortfolio(data.portfolio);
           setPositions(data.positions);
@@ -283,14 +297,22 @@ export function UserPortfolioV2() {
       setPositions(positions);
       setRecentTrades(trades);
 
-      // Cache the data
+      // Cache the data with BigInt serialization
       const cacheData = {
         portfolio: portfolioInfo,
         positions,
         trades,
         timestamp: Date.now(),
       };
-      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+
+      // Custom BigInt serializer
+      const serializeWithBigInt = (obj: any): string => {
+        return JSON.stringify(obj, (key, value) =>
+          typeof value === "bigint" ? value.toString() + "n" : value
+        );
+      };
+
+      localStorage.setItem(cacheKey, serializeWithBigInt(cacheData));
     } catch (error) {
       console.error("Error fetching portfolio data:", error);
       toast({

@@ -87,7 +87,7 @@ export function MarketAnalyticsV2() {
   const [marketsList, setMarketsList] = useState<MarketListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
-  const [tokenSymbol, setTokenSymbol] = useState<string>("BSTR");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("buster");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
 
   // Get betting token info

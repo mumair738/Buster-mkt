@@ -116,11 +116,11 @@ export function MultiOptionProgress({
                     {percentage.toFixed(1)}%
                   </span>
                   <span className="text-xs text-gray-500">
-                    ${priceFormatted}
+                    {priceFormatted} Buster
                   </span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  Vol: ${volumeFormatted}
+                  Vol: {volumeFormatted} Buster
                 </div>
               </div>
             </div>
@@ -131,7 +131,7 @@ export function MultiOptionProgress({
       {/* Total Volume Display */}
       {totalVolume > 0n && (
         <div className="text-center text-sm text-gray-500 pt-2 border-t border-gray-200">
-          Total Volume: ${formatPrice(totalVolume)}
+          Total Volume: {formatPrice(totalVolume)} Buster
         </div>
       )}
     </div>

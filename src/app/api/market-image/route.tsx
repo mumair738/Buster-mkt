@@ -597,7 +597,7 @@ export async function GET(request: NextRequest) {
                         market.totalOptionAShares + market.totalOptionBShares
                       ) /
                       10 ** 18
-                    ).toLocaleString()} BSTR`
+                    ).toLocaleString()} buster`
                   : "Multi-Option Market"}
               </div>
             </div>

@@ -45,6 +45,8 @@ interface UserPosition {
 // Format price with proper decimals
 function formatPrice(price: bigint, decimals: number = 18): string {
   const formatted = Number(price) / Math.pow(10, decimals);
+  if (formatted === 0) return "0.0000";
+  if (formatted < 0.0001) return formatted.toFixed(6);
   if (formatted < 0.01) return formatted.toFixed(4);
   if (formatted < 1) return formatted.toFixed(3);
   return formatted.toFixed(2);
@@ -53,6 +55,10 @@ function formatPrice(price: bigint, decimals: number = 18): string {
 // Format shares amount
 function formatShares(shares: bigint): string {
   const formatted = Number(shares) / Math.pow(10, 18);
+  if (formatted === 0) return "0.00";
+  if (formatted < 0.001) return formatted.toFixed(6);
+  if (formatted < 0.01) return formatted.toFixed(4);
+  if (formatted < 1) return formatted.toFixed(3);
   return formatted.toFixed(2);
 }
 
@@ -98,18 +104,44 @@ export function MarketV2PositionManager({
     query: { enabled: !!accountAddress },
   });
 
-  // Convert user shares data to position objects
+  // Convert user shares data to position objects with real cost basis
   const positions: UserPosition[] = market.options.map((option, optionId) => {
     const shares = userShares ? userShares[optionId] || 0n : 0n;
-    const currentPrice = option.currentPrice;
+    const currentPrice = option.currentPrice || BigInt(5 * 10 ** 17); // Default to 0.5 if price not available
     const currentValue = (shares * currentPrice) / BigInt(10 ** 18);
 
-    // Simple P&L calculation (would need cost basis for accurate calculation)
-    // For now, assume average cost was equal to current price for demonstration
-    const costBasis = currentValue; // This should be actual purchase cost
-    const unrealizedPnL = currentValue - costBasis;
+    // Use real portfolio data from contract
+    const portfolioTotalInvested = userPortfolio
+      ? userPortfolio.totalInvested
+      : 0n; // totalInvested
+    const portfolioUnrealizedPnL = userPortfolio
+      ? userPortfolio.unrealizedPnL
+      : 0n; // unrealizedPnL
+
+    // Calculate share distribution across all markets for this user
+    const userTotalShares = userShares
+      ? userShares.reduce((sum: bigint, s: bigint) => sum + s, 0n)
+      : 0n;
+
+    // Estimate cost basis for this position based on portfolio data
+    let estimatedCostBasis = 0n;
+    let unrealizedPnL = 0n;
+
+    if (shares > 0n && userTotalShares > 0n) {
+      // Calculate the proportion of this position relative to total shares
+      const shareRatio = (shares * 10000n) / userTotalShares;
+
+      // Estimate cost basis as proportion of total invested
+      estimatedCostBasis = (portfolioTotalInvested * shareRatio) / 10000n;
+
+      // Calculate P&L: current value minus estimated cost basis
+      unrealizedPnL = currentValue - estimatedCostBasis;
+    }
+
     const unrealizedPnLPercent =
-      costBasis > 0n ? Number((unrealizedPnL * 100n) / costBasis) : 0;
+      estimatedCostBasis > 0n
+        ? Number((unrealizedPnL * 10000n) / estimatedCostBasis) / 100
+        : 0;
 
     return {
       optionId,
@@ -127,12 +159,11 @@ export function MarketV2PositionManager({
     ? positions
     : positions.filter((pos) => pos.shares > 0n);
 
-  // Calculate totals
+  // Calculate totals using real portfolio data when available
   const totalValue = positions.reduce((sum, pos) => sum + pos.currentValue, 0n);
-  const totalUnrealizedPnL = positions.reduce(
-    (sum, pos) => sum + pos.unrealizedPnL,
-    0n
-  );
+  const totalUnrealizedPnL = userPortfolio
+    ? userPortfolio.unrealizedPnL // Use real unrealized P&L from contract
+    : positions.reduce((sum, pos) => sum + pos.unrealizedPnL, 0n); // Fallback to calculated
   const hasPositions = positions.some((pos) => pos.shares > 0n);
 
   // Convert shares array to object for interfaces

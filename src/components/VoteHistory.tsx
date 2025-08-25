@@ -77,7 +77,7 @@ export function VoteHistory() {
   const { toast } = useToast();
   const [votes, setVotes] = useState<DisplayVote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [tokenSymbol, setTokenSymbol] = useState<string>("BSTR");
+  const [tokenSymbol, setTokenSymbol] = useState<string>("buster");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
   const [search, setSearch] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("timestamp");

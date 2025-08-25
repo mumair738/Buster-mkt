@@ -275,7 +275,7 @@ export function AdminLiquidityManager() {
                   Total Platform Liquidity
                 </p>
                 <p className="text-2xl font-bold">
-                  {(totalLiquidity / 10 ** 18).toLocaleString()} BSTR
+                  {(totalLiquidity / 10 ** 18).toLocaleString()} buster
                 </p>
               </div>
               <DollarSign className="h-8 w-8 text-blue-600" />
@@ -291,7 +291,7 @@ export function AdminLiquidityManager() {
                   Total Volume
                 </p>
                 <p className="text-2xl font-bold">
-                  {(totalVolume / 10 ** 18).toLocaleString()} BSTR
+                  {(totalVolume / 10 ** 18).toLocaleString()} buster
                 </p>
               </div>
               <BarChart3 className="h-8 w-8 text-green-600" />
@@ -380,19 +380,19 @@ export function AdminLiquidityManager() {
                             Total Liquidity:
                           </span>
                           <p className="font-medium">
-                            {formatAmount(market.totalLiquidity)} BSTR
+                            {formatAmount(market.totalLiquidity)} buster
                           </p>
                         </div>
                         <div>
                           <span className="text-gray-500">AMM Pool:</span>
                           <p className="font-medium">
-                            {formatAmount(market.ammLiquidityPool)} BSTR
+                            {formatAmount(market.ammLiquidityPool)} buster
                           </p>
                         </div>
                         <div>
                           <span className="text-gray-500">Volume:</span>
                           <p className="font-medium">
-                            {formatAmount(market.totalVolume)} BSTR
+                            {formatAmount(market.totalVolume)} buster
                           </p>
                         </div>
                       </div>
@@ -456,7 +456,7 @@ export function AdminLiquidityManager() {
                 <div>
                   <span className="text-gray-500">Current Liquidity:</span>
                   <p className="font-medium">
-                    {formatAmount(selectedMarket.totalLiquidity)} BSTR
+                    {formatAmount(selectedMarket.totalLiquidity)} buster
                   </p>
                 </div>
                 <div>
@@ -469,7 +469,7 @@ export function AdminLiquidityManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="liquidityAmount">Amount to Add (BSTR) *</Label>
+              <Label htmlFor="liquidityAmount">Amount to Add (buster) *</Label>
               <Input
                 id="liquidityAmount"
                 type="number"
@@ -485,7 +485,7 @@ export function AdminLiquidityManager() {
                   selectedMarket.totalLiquidity +
                     parseEther(liquidityAmount || "0")
                 )}{" "}
-                BSTR
+                buster
               </p>
             </div>
 

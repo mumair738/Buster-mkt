@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +40,7 @@ function AnalyticsContentInner() {
   };
 
   return (
-    <div className="flex-grow container mx-auto p-4 md:p-6 max-w-7xl">
+    <div className="flex-grow container mx-auto p-4 md:p-6 max-w-7xl mb-20">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
@@ -229,9 +229,35 @@ function AnalyticsContentInner() {
   );
 }
 
+// Component that needs Suspense for useSearchParams
+function AnalyticsContentWithSuspense() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex-grow container mx-auto p-4 md:p-6 max-w-7xl">
+          <div className="space-y-6">
+            <div className="h-24 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-12 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-48 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <AnalyticsContentInner />
+    </Suspense>
+  );
+}
+
 // Export with dynamic import and no SSR
 export const AnalyticsContent = dynamic(
-  () => Promise.resolve(AnalyticsContentInner),
+  () => Promise.resolve(AnalyticsContentWithSuspense),
   {
     ssr: false,
   }

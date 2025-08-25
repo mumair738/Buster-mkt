@@ -9,6 +9,8 @@ import { CreateMarketV2 } from "./CreateMarketV2";
 import { MarketResolver } from "./MarketResolver";
 import { AdminLiquidityManager } from "./AdminLiquidityManager";
 import { AdminRoleManager } from "./AdminRoleManager";
+import { MarketValidationManager } from "./MarketValidationManager";
+import { V3AdminDashboard } from "./V3AdminDashboard";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
 import {
@@ -20,12 +22,19 @@ import {
   Shield,
   BarChart3,
   AlertTriangle,
+  CheckCircle,
+  Wallet,
 } from "lucide-react";
 
 export function AdminDashboard() {
   const { isConnected } = useAccount();
-  const { hasCreatorAccess, hasResolverAccess, isAdmin, isOwner } =
-    useUserRoles();
+  const {
+    hasCreatorAccess,
+    hasResolverAccess,
+    hasValidatorAccess,
+    isAdmin,
+    isOwner,
+  } = useUserRoles();
   const [activeTab, setActiveTab] = useState("create");
 
   // Get some basic stats
@@ -36,7 +45,8 @@ export function AdminDashboard() {
     query: { enabled: isConnected },
   });
 
-  const hasAnyAccess = hasCreatorAccess || hasResolverAccess || isAdmin;
+  const hasAnyAccess =
+    hasCreatorAccess || hasResolverAccess || hasValidatorAccess || isAdmin;
 
   if (!isConnected) {
     return (
@@ -68,7 +78,7 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -142,7 +152,7 @@ export function AdminDashboard() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-4 bg-muted">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-6 bg-muted">
           {hasCreatorAccess && (
             <TabsTrigger
               value="create"
@@ -150,6 +160,15 @@ export function AdminDashboard() {
             >
               <Plus className="h-4 w-4" />
               <span>Create</span>
+            </TabsTrigger>
+          )}
+          {hasValidatorAccess && (
+            <TabsTrigger
+              value="validate"
+              className="flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0"
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span>Validate</span>
             </TabsTrigger>
           )}
           {hasResolverAccess && (
@@ -170,6 +189,15 @@ export function AdminDashboard() {
               <span>Liquidity</span>
             </TabsTrigger>
           )}
+          {(isOwner || isAdmin) && (
+            <TabsTrigger
+              value="v3platform"
+              className="flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0"
+            >
+              <Wallet className="h-4 w-4" />
+              <span>V3 Platform</span>
+            </TabsTrigger>
+          )}
           {isOwner && (
             <TabsTrigger
               value="roles"
@@ -188,6 +216,13 @@ export function AdminDashboard() {
           </TabsContent>
         )}
 
+        {/* Validate Markets Tab */}
+        {hasValidatorAccess && (
+          <TabsContent value="validate" className="space-y-6">
+            <MarketValidationManager />
+          </TabsContent>
+        )}
+
         {/* Resolve Markets Tab */}
         {hasResolverAccess && (
           <TabsContent value="resolve" className="space-y-6">
@@ -199,6 +234,13 @@ export function AdminDashboard() {
         {isAdmin && (
           <TabsContent value="liquidity" className="space-y-6">
             <AdminLiquidityManager />
+          </TabsContent>
+        )}
+
+        {/* V3 Platform Management Tab */}
+        {(isOwner || isAdmin) && (
+          <TabsContent value="v3platform" className="space-y-6">
+            <V3AdminDashboard />
           </TabsContent>
         )}
 

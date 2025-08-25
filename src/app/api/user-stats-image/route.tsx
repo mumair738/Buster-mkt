@@ -563,7 +563,7 @@ export async function GET(request: NextRequest) {
                     color: colors.primary,
                   }}
                 >
-                  {formatAmount(stats.totalInvested)} BSTR
+                  {formatAmount(stats.totalInvested)} buster
                 </div>
               </div>
             </div>
@@ -608,7 +608,7 @@ export async function GET(request: NextRequest) {
                         : colors.danger,
                   }}
                 >
-                  {formatAmount(stats.netWinnings)} BSTR
+                  {formatAmount(stats.netWinnings)} buster
                 </div>
               </div>
             </div>

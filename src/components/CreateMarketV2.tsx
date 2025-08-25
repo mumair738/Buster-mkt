@@ -542,7 +542,7 @@ export function CreateMarketV2() {
                   className="flex items-center gap-2"
                 >
                   <DollarSign className="h-4 w-4" />
-                  Initial Liquidity (BSTR) *
+                  Initial Liquidity (buster) *
                 </Label>
                 <Input
                   id="initialLiquidity"
