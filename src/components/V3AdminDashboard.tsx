@@ -327,8 +327,8 @@ export function V3AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-4">
+                <div className="flex-1">
                   <p className="font-medium">Available for Withdrawal</p>
                   <p className="text-2xl font-bold text-green-600">
                     {formatAmount(globalStats?.totalFeesCollected)} BSTR
@@ -345,7 +345,7 @@ export function V3AdminDashboard() {
                     !globalStats?.totalFeesCollected ||
                     globalStats.totalFeesCollected === 0n
                   }
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 w-full sm:w-auto"
                 >
                   {isPending || isConfirming ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
