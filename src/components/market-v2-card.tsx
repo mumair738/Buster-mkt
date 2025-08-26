@@ -11,7 +11,11 @@ import {
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { useAccount, useReadContract } from "wagmi";
-import { V2contractAddress, V2contractAbi } from "@/constants/contract";
+import {
+  V2contractAddress,
+  V2contractAbi,
+  publicClient,
+} from "@/constants/contract";
 import { MultiOptionProgress } from "./multi-option-progress";
 import MarketTime from "./market-time";
 import { MarketResolved } from "./market-resolved";
@@ -136,7 +140,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
     query: { enabled: !!address },
   });
 
-  // Fetch options data
+  // Fetch options data with real-time prices
   useEffect(() => {
     const fetchOptions = async () => {
       if (!marketInfo) return;
@@ -147,17 +151,37 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
 
       for (let i = 0; i < optionCount; i++) {
         try {
-          const optionData = await fetch(
-            `/api/market-option?marketId=${index}&optionId=${i}`
-          );
-          if (optionData.ok) {
-            const option = await optionData.json();
+          // Get both static option data and real-time calculated price
+          const [optionResponse, priceData] = await Promise.all([
+            fetch(`/api/market-option?marketId=${index}&optionId=${i}`),
+            publicClient
+              .readContract({
+                address: V2contractAddress,
+                abi: V2contractAbi,
+                functionName: "calculateCurrentPrice",
+                args: [BigInt(index), BigInt(i)],
+              })
+              .catch(() => null), // Fallback if calculateCurrentPrice fails
+          ]);
+
+          if (optionResponse.ok) {
+            const option = await optionResponse.json();
+            let realTimePrice: bigint;
+            if (priceData !== null && priceData !== undefined) {
+              realTimePrice =
+                typeof priceData === "bigint"
+                  ? priceData
+                  : BigInt(priceData as string);
+            } else {
+              realTimePrice = BigInt(option.currentPrice);
+            }
+
             optionsData.push({
               name: option.name,
               description: option.description,
               totalShares: BigInt(option.totalShares),
               totalVolume: BigInt(option.totalVolume),
-              currentPrice: BigInt(option.currentPrice),
+              currentPrice: realTimePrice, // Use real-time calculated price
               isActive: option.isActive,
             });
             totalVol += BigInt(option.totalVolume);
