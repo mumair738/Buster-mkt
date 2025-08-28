@@ -1124,7 +1124,7 @@ export function MarketV2BuyInterface({
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-bold text-gray-900">
-                          ${currentPrice}
+                          {currentPrice} {tokenSymbol}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatPrice(option.totalShares)} shares
@@ -1154,10 +1154,11 @@ export function MarketV2BuyInterface({
                     Buying: {market.options[selectedOptionId!]?.name}
                   </h4>
                   <p className="text-xs text-gray-500">
-                    Current price: $
+                    Current price:{" "}
                     {formatPrice(
                       market.options[selectedOptionId!]?.currentPrice
-                    )}
+                    )}{" "}
+                    {tokenSymbol}
                   </p>
                 </div>
                 <div>
