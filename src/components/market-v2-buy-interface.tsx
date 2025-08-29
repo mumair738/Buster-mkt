@@ -1120,8 +1120,8 @@ export function MarketV2BuyInterface({
 
   return (
     <div
-      className="w-full transition-all duration-300 ease-in-out overflow-hidden"
-      style={{ height: containerHeight }}
+      className="w-full transition-all duration-300 ease-in-out overflow-visible"
+      style={{ minHeight: containerHeight }}
     >
       <div ref={contentRef} className="space-y-4">
         {!isBuying ? (
@@ -1181,7 +1181,14 @@ export function MarketV2BuyInterface({
           </div>
         ) : (
           // Buying flow
-          <div className="space-y-4">
+          <div
+            className="space-y-4"
+            style={{
+              maxHeight: "70vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
             {buyingStep === "amount" && (
               <>
                 <div className="text-center">
@@ -1196,7 +1203,7 @@ export function MarketV2BuyInterface({
                     {tokenSymbol}
                   </p>
                 </div>
-                <div>
+                <div className="overflow-y-auto flex-grow">
                   <Input
                     ref={inputRef}
                     type="number"
@@ -1241,7 +1248,7 @@ export function MarketV2BuyInterface({
                   )}
                 </div>
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 sticky bottom-0 bg-white pt-2 mt-2">
                   <Button
                     onClick={() => {
                       setIsBuying(false);
