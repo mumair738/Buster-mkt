@@ -757,7 +757,8 @@ export function MarketV2BuyInterface({
 
     // Check if user already has too many shares for this option
     if (userShares && selectedOptionId !== null) {
-      const currentShares = Number(userShares[selectedOptionId] || 0n);
+      const currentShares =
+        Number(userShares[selectedOptionId] || 0n) / Math.pow(10, 18);
       const newTotalShares = currentShares + parseFloat(amount);
 
       if (newTotalShares > MAX_SHARES) {
@@ -1333,9 +1334,9 @@ export function MarketV2BuyInterface({
 
                       // Check combined shares limit (current + new)
                       if (userShares && selectedOptionId !== null) {
-                        const currentShares = Number(
-                          userShares[selectedOptionId] || 0n
-                        );
+                        const currentShares =
+                          Number(userShares[selectedOptionId] || 0n) /
+                          Math.pow(10, 18);
                         const newTotal = currentShares + numValue;
 
                         if (newTotal > MAX_SHARES) {
