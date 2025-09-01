@@ -10,6 +10,7 @@ import { MarketResolver } from "./MarketResolver";
 import { AdminLiquidityManager } from "./AdminLiquidityManager";
 import { AdminRoleManager } from "./AdminRoleManager";
 import { MarketValidationManager } from "./MarketValidationManager";
+import { MarketInvalidationManager } from "./MarketInvalidationManager";
 import { V3AdminDashboard } from "./V3AdminDashboard";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
@@ -152,7 +153,7 @@ export function AdminDashboard() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-6 bg-muted">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-7 bg-muted">
           {hasCreatorAccess && (
             <TabsTrigger
               value="create"
@@ -169,6 +170,15 @@ export function AdminDashboard() {
             >
               <CheckCircle className="h-4 w-4" />
               <span>Validate</span>
+            </TabsTrigger>
+          )}
+          {hasValidatorAccess && (
+            <TabsTrigger
+              value="invalidate"
+              className="flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span>Invalidate</span>
             </TabsTrigger>
           )}
           {hasResolverAccess && (
@@ -220,6 +230,13 @@ export function AdminDashboard() {
         {hasValidatorAccess && (
           <TabsContent value="validate" className="space-y-6">
             <MarketValidationManager />
+          </TabsContent>
+        )}
+
+        {/* Invalidate Markets Tab */}
+        {hasValidatorAccess && (
+          <TabsContent value="invalidate" className="space-y-6">
+            <MarketInvalidationManager />
           </TabsContent>
         )}
 

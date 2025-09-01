@@ -21,6 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useV3PlatformData } from "@/hooks/useV3PlatformData";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
+import { MarketInvalidationManager } from "./MarketInvalidationManager";
+import { LPRewardsManager } from "./LPRewardsManager";
 import {
   Loader2,
   DollarSign,
@@ -38,6 +40,8 @@ export function V3AdminDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [newFeeRate, setNewFeeRate] = useState("200"); // 2%
   const [newFeeCollector, setNewFeeCollector] = useState("");
+  const [adminLiquidityMarketId, setAdminLiquidityMarketId] = useState("");
+  const [prizePoolMarketId, setPrizePoolMarketId] = useState("");
 
   // Use the custom hook for platform data
   const {
@@ -177,6 +181,73 @@ export function V3AdminDashboard() {
     }
   };
 
+  // Withdraw admin liquidity
+  const handleWithdrawAdminLiquidity = async () => {
+    try {
+      if (!adminLiquidityMarketId) {
+        toast({
+          title: "Missing Market ID",
+          description: "Please enter a market ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Withdrawing admin liquidity...",
+      });
+
+      await writeContract({
+        address: V2contractAddress,
+        abi: V2contractAbi,
+        functionName: "withdrawAdminLiquidity",
+        args: [BigInt(adminLiquidityMarketId)],
+      });
+    } catch (error: any) {
+      console.error("Error withdrawing admin liquidity:", error);
+      toast({
+        title: "Transaction Failed",
+        description:
+          error?.shortMessage || "Failed to withdraw admin liquidity.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Withdraw unused prize pool
+  const handleWithdrawUnusedPrizePool = async () => {
+    try {
+      if (!prizePoolMarketId) {
+        toast({
+          title: "Missing Market ID",
+          description: "Please enter a free market ID.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Transaction Submitted",
+        description: "Withdrawing unused prize pool...",
+      });
+
+      await writeContract({
+        address: V2contractAddress,
+        abi: V2contractAbi,
+        functionName: "withdrawUnusedPrizePool",
+        args: [BigInt(prizePoolMarketId)],
+      });
+    } catch (error: any) {
+      console.error("Error withdrawing prize pool:", error);
+      toast({
+        title: "Transaction Failed",
+        description: error?.shortMessage || "Failed to withdraw prize pool.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Format amounts
   const formatAmount = (amount: bigint | undefined) => {
     if (!amount) return "0.00";
@@ -309,6 +380,9 @@ export function V3AdminDashboard() {
       <Tabs defaultValue="fees" className="space-y-4">
         <TabsList>
           <TabsTrigger value="fees">Fee Management</TabsTrigger>
+          <TabsTrigger value="invalidation">Market Invalidation</TabsTrigger>
+          <TabsTrigger value="liquidity">Liquidity Recovery</TabsTrigger>
+          <TabsTrigger value="lprewards">LP Rewards</TabsTrigger>
           {isOwner && (
             <TabsTrigger value="settings">Platform Settings</TabsTrigger>
           )}
@@ -357,6 +431,104 @@ export function V3AdminDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="invalidation" className="space-y-4">
+          {/* Market Invalidation */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+                Market Invalidation
+              </CardTitle>
+              <CardDescription>
+                Invalidate problematic markets and process automatic refunds
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <MarketInvalidationManager />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="liquidity" className="space-y-4">
+          {/* Admin Liquidity Recovery */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Withdraw Admin Liquidity
+                </CardTitle>
+                <CardDescription>
+                  Recover liquidity from resolved markets you created
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="adminLiquidityMarketId">Market ID</Label>
+                  <Input
+                    id="adminLiquidityMarketId"
+                    type="number"
+                    placeholder="Enter market ID..."
+                    value={adminLiquidityMarketId}
+                    onChange={(e) => setAdminLiquidityMarketId(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={handleWithdrawAdminLiquidity}
+                  disabled={
+                    isPending || isConfirming || !adminLiquidityMarketId
+                  }
+                  className="w-full"
+                >
+                  {(isPending || isConfirming) && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  Withdraw Admin Liquidity
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Withdraw Unused Prize Pool
+                </CardTitle>
+                <CardDescription>
+                  Recover unused prize pools from free markets
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="prizePoolMarketId">Free Market ID</Label>
+                  <Input
+                    id="prizePoolMarketId"
+                    type="number"
+                    placeholder="Enter free market ID..."
+                    value={prizePoolMarketId}
+                    onChange={(e) => setPrizePoolMarketId(e.target.value)}
+                  />
+                </div>
+                <Button
+                  onClick={handleWithdrawUnusedPrizePool}
+                  disabled={isPending || isConfirming || !prizePoolMarketId}
+                  className="w-full"
+                >
+                  {(isPending || isConfirming) && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  Withdraw Prize Pool
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="lprewards" className="space-y-4">
+          {/* LP Rewards Management */}
+          <LPRewardsManager />
         </TabsContent>
 
         {isOwner && (

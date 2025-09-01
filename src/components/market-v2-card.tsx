@@ -103,11 +103,18 @@ const CategoryBadge = ({ category }: { category: MarketCategory }) => {
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-        categoryColors[category] || categoryColors[MarketCategory.OTHER]
-      }`}
+      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${categoryColors[category]}`}
     >
-      {categoryNames[category] || "Other"}
+      {categoryNames[category]}
+    </span>
+  );
+};
+
+// Invalidation badge component
+const InvalidatedBadge = () => {
+  return (
+    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+      Invalidated
     </span>
   );
 };
@@ -218,6 +225,59 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   // Determine market status
   const isExpired = new Date(Number(market.endTime) * 1000) < new Date();
   const isResolved = market.resolved;
+  const isInvalidated = market.invalidated;
+
+  // If market is invalidated, show special message instead of normal UI
+  if (isInvalidated) {
+    return (
+      <Card key={index} className="flex flex-col border-red-200 bg-red-50">
+        <CardHeader>
+          <div className="flex items-center justify-between mb-2">
+            <MarketTime endTime={market.endTime} />
+            <div className="flex items-center gap-2">
+              <CategoryBadge category={market.category} />
+              <InvalidatedBadge />
+            </div>
+          </div>
+          <CardTitle className="text-base leading-relaxed">
+            <LinkifiedText text={market.question} />
+          </CardTitle>
+          {market.description && (
+            <p className="text-sm text-gray-600 mt-1">
+              <LinkifiedText text={market.description} />
+            </p>
+          )}
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="text-center py-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-3">
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L4.316 15.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-red-800 mb-2">
+              Market Invalidated
+            </h3>
+            <p className="text-sm text-red-700">
+              This market has been invalidated due to issues with the question
+              or resolution criteria. All participants have been automatically
+              refunded.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Share handling
   const appUrl =
@@ -244,7 +304,10 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
       <CardHeader>
         <div className="flex items-center justify-between mb-2">
           <MarketTime endTime={market.endTime} />
-          <CategoryBadge category={market.category} />
+          <div className="flex items-center gap-2">
+            <CategoryBadge category={market.category} />
+            {market.invalidated && <InvalidatedBadge />}
+          </div>
         </div>
         <CardTitle className="text-base leading-relaxed">
           <LinkifiedText text={market.question} />

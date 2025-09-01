@@ -52,6 +52,7 @@ export interface MarketV2 {
   resolved: boolean;
   disputed: boolean;
   validated: boolean;
+  invalidated?: boolean; // NEW: Track if market has been invalidated
   winningOptionId: number;
   creator: string;
   totalLiquidity?: bigint;

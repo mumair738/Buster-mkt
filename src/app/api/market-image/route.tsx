@@ -60,6 +60,7 @@ type MarketInfoV2ContractReturn = readonly [
   bigint, // optionCount
   boolean, // resolved
   boolean, // disputed
+  boolean, // invalidated
   bigint, // winningOptionId
   string // creator
 ];
@@ -97,8 +98,8 @@ async function fetchMarketData(marketId: string): Promise<MarketImageData> {
           optionCount: Number(v2MarketData[4]),
           resolved: v2MarketData[5],
           disputed: v2MarketData[6],
-          winningOptionId: Number(v2MarketData[7]),
-          creator: v2MarketData[8],
+          winningOptionId: Number(v2MarketData[8]), // Updated index: was [7], now [8] due to invalidated field
+          creator: v2MarketData[9], // Updated index: was [8], now [9] due to invalidated field
           version: "v2",
         };
       }

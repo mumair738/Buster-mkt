@@ -22,16 +22,17 @@ export async function GET(
       abi: V2contractAbi,
       functionName: "getMarketInfo",
       args: [BigInt(marketId)],
-    })) as [
-      string,
-      string,
-      bigint,
-      number,
-      bigint,
-      boolean,
-      boolean,
-      bigint,
-      string
+    })) as readonly [
+      string, // question
+      string, // description
+      bigint, // endTime
+      number, // category
+      bigint, // optionCount
+      boolean, // resolved
+      boolean, // disputed
+      boolean, // invalidated
+      bigint, // winningOptionId
+      string // creator
     ];
 
     const [
@@ -42,6 +43,7 @@ export async function GET(
       optionCount,
       resolved,
       disputed,
+      invalidated,
       winningOptionId,
       creator,
     ] = marketInfo;
@@ -55,6 +57,7 @@ export async function GET(
       optionCount: Number(optionCount),
       resolved,
       disputed,
+      invalidated,
       winningOptionId: Number(winningOptionId),
       creator,
     });
