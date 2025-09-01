@@ -11,6 +11,7 @@ export const contractAddress = "0xd24261cD87Ac11A8961a2d5df7036ad87ca7F02A";
 export const tokenAddress = "0x53Bd7F868764333de01643ca9102ee4297eFA3cb";
 export const V2contractAddress = "0x110Fa6D5f1Fb125E7f38ca9f1F14e8A71326DfB6"; //new ca
 
+
 // V1 Contract ABI for binary markets (legacy)
 export const contractAbi = [
   {
