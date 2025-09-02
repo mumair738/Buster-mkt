@@ -193,6 +193,7 @@ export function PriceHistoryV2() {
             bigint,
             boolean,
             boolean,
+            number,
             boolean,
             bigint,
             string
@@ -282,6 +283,7 @@ export function PriceHistoryV2() {
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string
@@ -294,6 +296,7 @@ export function PriceHistoryV2() {
         ,
         optionCount,
         resolved,
+        ,
         ,
         invalidated,
         winningOptionId,

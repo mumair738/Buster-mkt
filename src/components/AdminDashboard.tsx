@@ -11,6 +11,7 @@ import { AdminLiquidityManager } from "./AdminLiquidityManager";
 import { AdminRoleManager } from "./AdminRoleManager";
 import { MarketValidationManager } from "./MarketValidationManager";
 import { MarketInvalidationManager } from "./MarketInvalidationManager";
+import { BatchDistributionManager } from "./BatchDistributionManager";
 import { V3AdminDashboard } from "./V3AdminDashboard";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
@@ -25,6 +26,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Wallet,
+  Send,
 } from "lucide-react";
 
 export function AdminDashboard() {
@@ -153,7 +155,7 @@ export function AdminDashboard() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-7 bg-muted">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-8 bg-muted">
           {hasCreatorAccess && (
             <TabsTrigger
               value="create"
@@ -188,6 +190,15 @@ export function AdminDashboard() {
             >
               <Gavel className="h-4 w-4" />
               <span>Resolve</span>
+            </TabsTrigger>
+          )}
+          {isAdmin && (
+            <TabsTrigger
+              value="distribute"
+              className="flex items-center gap-2 flex-1 min-w-[120px] md:min-w-0"
+            >
+              <Send className="h-4 w-4" />
+              <span>Distribute</span>
             </TabsTrigger>
           )}
           {isAdmin && (
@@ -244,6 +255,13 @@ export function AdminDashboard() {
         {hasResolverAccess && (
           <TabsContent value="resolve" className="space-y-6">
             <MarketResolver />
+          </TabsContent>
+        )}
+
+        {/* Batch Distribution Tab */}
+        {isAdmin && (
+          <TabsContent value="distribute" className="space-y-6">
+            <BatchDistributionManager />
           </TabsContent>
         )}
 

@@ -250,9 +250,9 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
               <InvalidatedBadge />
               {/* Show free market badge if marketType is 1 */}
               {marketInfo &&
-                marketInfo.length > 6 &&
-                typeof marketInfo[6] === "bigint" &&
-                marketInfo[6] === 1n && <FreeMarketBadge />}
+                marketInfo.length > 7 &&
+                typeof marketInfo[7] === "number" &&
+                marketInfo[7] === 1 && <FreeMarketBadge />}
             </div>
           </div>
           <CardTitle className="text-base leading-relaxed">
@@ -328,9 +328,9 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
             {isInvalidated && <InvalidatedBadge />}
             {/* Show free market badge if marketType is 1 */}
             {marketInfo &&
-              marketInfo.length > 6 &&
-              typeof marketInfo[6] === "bigint" &&
-              marketInfo[6] === 1n && <FreeMarketBadge />}
+              marketInfo.length > 7 &&
+              typeof marketInfo[7] === "number" &&
+              marketInfo[7] === 1 && <FreeMarketBadge />}
           </div>
         </div>
         <CardTitle className="text-base leading-relaxed">

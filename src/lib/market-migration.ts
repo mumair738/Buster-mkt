@@ -5,7 +5,13 @@ import {
   V2contractAbi,
   publicClient,
 } from "@/constants/contract";
-import { Market, MarketV2, MarketCategory, MarketOption } from "@/types/types";
+import {
+  Market,
+  MarketV2,
+  MarketCategory,
+  MarketType,
+  MarketOption,
+} from "@/types/types";
 
 // Determine if a market is V1 (binary) or V2 (multi-option)
 export async function detectMarketVersion(
@@ -45,7 +51,7 @@ export async function detectMarketVersion(
       const v1EndTime = Number(v1Data[3]);
       const v1Resolved = v1Data[7] as boolean;
 
-      // V2 market structure: [question, description, endTime, category, optionCount, resolved, disputed, winningOptionId, creator]
+      // V2 market structure: [question, description, endTime, category, optionCount, resolved, disputed, marketType, invalidated, winningOptionId, creator]
       const v2EndTime = Number(v2Data[2]);
       const v2Resolved = v2Data[5] as boolean;
 
@@ -133,6 +139,7 @@ export async function fetchV2Market(marketId: number): Promise<MarketV2> {
     optionCount,
     resolved,
     disputed,
+    marketType,
     invalidated,
     winningOptionId,
     creator,
@@ -185,13 +192,24 @@ export async function fetchV2Market(marketId: number): Promise<MarketV2> {
     description,
     endTime,
     category: category as MarketCategory,
+    marketType: marketType as MarketType,
     optionCount: Number(optionCount),
     options,
     resolved,
     disputed,
     validated: true, // Assume validated if we can fetch it
+    invalidated: invalidated as boolean,
     winningOptionId: Number(winningOptionId),
-    creator: creator as string,
+    creator,
+    createdAt: 0n, // Not available in basic market info
+    adminInitialLiquidity: 0n,
+    userLiquidity: 0n,
+    totalVolume: 0n,
+    platformFeesCollected: 0n,
+    ammFeesCollected: 0n,
+    adminLiquidityClaimed: false,
+    ammLiquidityPool: 0n,
+    payoutIndex: 0n,
   };
 }
 

@@ -277,6 +277,8 @@ export function VoteHistory() {
             bigint,
             boolean,
             boolean,
+            number,
+            boolean,
             bigint,
             string
           ];

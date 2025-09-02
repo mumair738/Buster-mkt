@@ -1227,9 +1227,9 @@ export function MarketV2BuyInterface({
   // Check if this is a free market (marketType = 1)
   const isFreeMarket =
     marketInfo &&
-    marketInfo.length > 6 &&
-    typeof marketInfo[6] === "bigint" &&
-    marketInfo[6] === 1n;
+    marketInfo.length > 7 &&
+    typeof marketInfo[7] === "number" &&
+    marketInfo[7] === 1;
 
   return (
     <div

@@ -46,41 +46,43 @@ export interface MarketV2 {
   description: string;
   endTime: bigint;
   category: MarketCategory;
-  marketType?: MarketType;
+  marketType: MarketType;
   optionCount: number;
   options: MarketOption[];
   resolved: boolean;
   disputed: boolean;
   validated: boolean;
-  invalidated?: boolean; // NEW: Track if market has been invalidated
+  invalidated: boolean; // Market has been invalidated by admin
   winningOptionId: number;
   creator: string;
-  totalLiquidity?: bigint;
-  totalVolume?: bigint;
-  createdAt?: bigint;
+  createdAt: bigint;
   // V3 Financial Tracking
-  adminInitialLiquidity?: bigint;
-  userLiquidity?: bigint;
-  platformFeesCollected?: bigint;
-  ammFeesCollected?: bigint;
-  adminLiquidityClaimed?: boolean;
-  ammLiquidityPool?: bigint;
-  payoutIndex?: bigint;
+  adminInitialLiquidity: bigint;
+  userLiquidity: bigint;
+  totalVolume: bigint;
+  platformFeesCollected: bigint;
+  ammFeesCollected: bigint;
+  adminLiquidityClaimed: boolean;
+  ammLiquidityPool: bigint;
+  payoutIndex: bigint;
   // Free Entry Configuration
-  freeEntryConfig?: {
-    maxFreeParticipants: bigint;
-    tokensPerParticipant: bigint; // Changed from freeSharesPerUser
-    currentFreeParticipants: bigint;
-    totalPrizePool: bigint;
-    remainingPrizePool: bigint;
-    isActive: boolean;
-  };
+  freeConfig?: FreeMarketConfig;
   // AMM Configuration
   ammConfig?: {
     tokenReserve: bigint;
     totalLiquidity: bigint;
     feeRate: bigint;
   };
+}
+
+// Free Entry Configuration
+export interface FreeMarketConfig {
+  maxFreeParticipants: bigint;
+  tokensPerParticipant: bigint;
+  currentFreeParticipants: bigint;
+  totalPrizePool: bigint;
+  remainingPrizePool: bigint;
+  isActive: boolean;
 }
 
 // V2 User Portfolio
@@ -177,6 +179,36 @@ export interface CreateMarketParams {
 export interface CreateFreeMarketParams extends CreateMarketParams {
   maxFreeParticipants: bigint;
   tokensPerParticipant: bigint;
+}
+
+// Batch Distribution Types
+export interface BatchDistributionRequest {
+  marketId: number;
+  recipients: string[];
+}
+
+export interface BatchDistributionPreview {
+  recipients: string[];
+  amounts: string[];
+  totalRecipients: number;
+  totalAmount: number;
+}
+
+export interface BatchDistributionResult {
+  success: boolean;
+  totalDistributed: bigint;
+  recipientCount: number;
+  txHash?: string;
+  error?: string;
+}
+
+// User Winnings Information
+export interface UserWinnings {
+  hasWinnings: boolean;
+  amount: bigint;
+  hasClaimed: boolean;
+  marketId: number;
+  winningOptionId: number;
 }
 
 export interface VolumeHistoryData {

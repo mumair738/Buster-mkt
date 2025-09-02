@@ -92,7 +92,7 @@ export function V3FinancialManager({
   // Determine actual roles based on contract data
   useEffect(() => {
     if (marketInfo && address) {
-      const [, , , , , , , , , creator] = marketInfo as [
+      const [, , , , , , , , , creator] = marketInfo as readonly [
         string,
         string,
         bigint,
@@ -100,11 +100,14 @@ export function V3FinancialManager({
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string
       ];
-      setActualIsCreator(creator.toLowerCase() === address.toLowerCase());
+      setActualIsCreator(
+        (creator as unknown as string).toLowerCase() === address.toLowerCase()
+      );
     }
   }, [marketInfo, address]);
 

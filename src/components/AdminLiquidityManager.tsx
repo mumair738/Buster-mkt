@@ -120,6 +120,7 @@ export function AdminLiquidityManager() {
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string

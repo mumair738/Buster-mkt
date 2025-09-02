@@ -86,9 +86,9 @@ export function FreeMarketClaimStatus({
 
   // Check if market is free entry (marketType = 1)
   const isFreeMarket =
-    marketInfo.length > 6 &&
-    typeof marketInfo[6] === "bigint" &&
-    marketInfo[6] === 1n;
+    marketInfo.length > 7 &&
+    typeof marketInfo[7] === "number" &&
+    marketInfo[7] === 1;
   if (!isFreeMarket) {
     return null;
   }

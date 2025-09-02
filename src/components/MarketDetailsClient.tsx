@@ -318,17 +318,9 @@ export function MarketDetailsClient({
                     question: market.question,
                     description: market.description || market.question,
                     endTime: market.endTime,
-                    optionCount: market.options?.length || 2,
-                    disputed: market.disputed || false,
-                    validated: true,
-                    resolved: market.resolved,
                     category: convertToMarketCategory(market.category),
-                    winningOptionId: market.resolved ? market.outcome : 0,
-                    creator:
-                      market.creator ||
-                      "0x0000000000000000000000000000000000000000",
-                    totalLiquidity: totalSharesInUnits,
-                    totalVolume: totalSharesInUnits,
+                    marketType: 0, // PAID market type
+                    optionCount: market.options?.length || 2,
                     options: (market.options || []).map((option, index) => ({
                       name: option,
                       description: option,
@@ -337,6 +329,23 @@ export function MarketDetailsClient({
                       currentPrice: 0n, // Will be fetched by the component
                       isActive: !market.resolved,
                     })) satisfies MarketOption[],
+                    resolved: market.resolved,
+                    disputed: market.disputed || false,
+                    validated: true,
+                    invalidated: false,
+                    winningOptionId: market.resolved ? market.outcome : 0,
+                    creator:
+                      market.creator ||
+                      "0x0000000000000000000000000000000000000000",
+                    createdAt: 0n,
+                    adminInitialLiquidity: 0n,
+                    userLiquidity: totalSharesInUnits,
+                    totalVolume: 0n,
+                    platformFeesCollected: 0n,
+                    ammFeesCollected: 0n,
+                    adminLiquidityClaimed: false,
+                    ammLiquidityPool: 0n,
+                    payoutIndex: 0n,
                   } satisfies MarketV2
                 }
               />
@@ -364,17 +373,9 @@ export function MarketDetailsClient({
                     question: market.question,
                     description: market.description || market.question,
                     endTime: market.endTime,
-                    optionCount: market.options?.length || 2,
-                    disputed: market.disputed || false,
-                    validated: true,
-                    resolved: market.resolved,
                     category: convertToMarketCategory(market.category),
-                    winningOptionId: market.resolved ? market.outcome : 0,
-                    creator:
-                      market.creator ||
-                      "0x0000000000000000000000000000000000000000",
-                    totalLiquidity: totalSharesInUnits,
-                    totalVolume: totalSharesInUnits,
+                    marketType: 0, // PAID market type
+                    optionCount: market.options?.length || 2,
                     options: (market.options || []).map((option, index) => ({
                       name: option,
                       description: option,
@@ -383,6 +384,23 @@ export function MarketDetailsClient({
                       currentPrice: 0n, // Will be fetched by the component
                       isActive: !market.resolved,
                     })) satisfies MarketOption[],
+                    resolved: market.resolved,
+                    disputed: market.disputed || false,
+                    validated: true,
+                    invalidated: false,
+                    winningOptionId: market.resolved ? market.outcome : 0,
+                    creator:
+                      market.creator ||
+                      "0x0000000000000000000000000000000000000000",
+                    createdAt: 0n,
+                    adminInitialLiquidity: 0n,
+                    userLiquidity: totalSharesInUnits,
+                    totalVolume: 0n,
+                    platformFeesCollected: 0n,
+                    ammFeesCollected: 0n,
+                    adminLiquidityClaimed: false,
+                    ammLiquidityPool: 0n,
+                    payoutIndex: 0n,
                   } satisfies MarketV2
                 }
               />

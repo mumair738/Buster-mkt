@@ -163,6 +163,7 @@ export function MultiOptionPositions() {
             bigint,
             boolean,
             boolean,
+            number,
             boolean,
             bigint,
             string
@@ -176,8 +177,10 @@ export function MultiOptionPositions() {
             optionCount,
             resolved,
             disputed,
+            marketType,
             invalidated,
             winningOptionId,
+            creator,
           ] = marketInfo;
 
           // Get user shares for this market

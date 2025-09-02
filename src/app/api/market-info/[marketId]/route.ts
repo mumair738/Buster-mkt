@@ -30,6 +30,7 @@ export async function GET(
       bigint, // optionCount
       boolean, // resolved
       boolean, // disputed
+      number, // marketType
       boolean, // invalidated
       bigint, // winningOptionId
       string // creator
@@ -43,6 +44,7 @@ export async function GET(
       optionCount,
       resolved,
       disputed,
+      marketType,
       invalidated,
       winningOptionId,
       creator,
@@ -57,6 +59,7 @@ export async function GET(
       optionCount: Number(optionCount),
       resolved,
       disputed,
+      marketType,
       invalidated,
       winningOptionId: Number(winningOptionId),
       creator,

@@ -5,7 +5,6 @@ import {
   V2contractAddress,
   V2contractAbi,
 } from "@/constants/contract";
-import { ClaimWinningsButton } from "@/components/ClaimWinningsButton";
 
 interface MarketResolvedProps {
   marketId: number;
@@ -80,17 +79,8 @@ export function MarketResolved({
         Resolved: {getWinningOptionText()}
       </div>
 
-      {/* Show distribution message for V1 markets or when not connected */}
-      {(version === "v1" || !isConnected) && (
-        <p className="text-xs text-gray-500 text-center">
-          {distributionMessage}
-        </p>
-      )}
-
-      {/* Add claim button for V2 markets */}
-      {version === "v2" && isConnected && (
-        <ClaimWinningsButton marketId={marketId} className="mt-1" />
-      )}
+      {/* Show distribution message for all markets */}
+      <p className="text-xs text-gray-500 text-center">{distributionMessage}</p>
     </div>
   );
 }

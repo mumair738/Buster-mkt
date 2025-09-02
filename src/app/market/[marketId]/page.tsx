@@ -31,6 +31,7 @@ type MarketInfoV2ContractReturn = readonly [
   bigint, // optionCount
   boolean, // resolved
   boolean, // disputed
+  number, // marketType
   boolean, // invalidated
   bigint, // winningOptionId
   string // creator

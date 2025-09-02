@@ -110,6 +110,7 @@ export function MarketInvalidationManager() {
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string
@@ -119,8 +120,8 @@ export function MarketInvalidationManager() {
         id,
         question: marketData[0], // question
         validated: true, // We'll assume validated since it's queryable, or implement separate validation check
-        invalidated: marketData[7], // invalidated field
-        creator: marketData[9], // creator address
+        invalidated: marketData[8], // invalidated field
+        creator: marketData[10], // creator address
         resolved: marketData[5], // resolved field
       });
     } catch (error) {

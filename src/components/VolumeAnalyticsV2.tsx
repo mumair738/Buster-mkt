@@ -222,7 +222,7 @@ export function VolumeAnalyticsV2() {
             abi: V2contractAbi,
             functionName: "getMarketInfo",
             args: [BigInt(i)],
-          })) as [
+          })) as readonly [
             string,
             string,
             bigint,
@@ -230,6 +230,7 @@ export function VolumeAnalyticsV2() {
             bigint,
             boolean,
             boolean,
+            number,
             boolean,
             bigint,
             string
@@ -342,7 +343,7 @@ export function VolumeAnalyticsV2() {
         abi: V2contractAbi,
         functionName: "getMarketInfo",
         args: [BigInt(marketId)],
-      })) as [
+      })) as readonly [
         string,
         string,
         bigint,
@@ -350,6 +351,7 @@ export function VolumeAnalyticsV2() {
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string

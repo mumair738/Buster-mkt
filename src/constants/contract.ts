@@ -9,7 +9,7 @@ export const publicClient = createPublicClient({
 
 export const contractAddress = "0xd24261cD87Ac11A8961a2d5df7036ad87ca7F02A";
 export const tokenAddress = "0x53Bd7F868764333de01643ca9102ee4297eFA3cb";
-export const V2contractAddress = "0x110Fa6D5f1Fb125E7f38ca9f1F14e8A71326DfB6"; //new ca
+export const V2contractAddress = "0x0E1f2fD0858200435C3D7d36929940b35B4991C9"; //new ca
 
 // V1 Contract ABI for binary markets (legacy)
 export const contractAbi = [
@@ -1270,6 +1270,20 @@ export const V2contractAbi = [
   },
   {
     type: "function",
+    name: "batchDistributeWinnings",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      {
+        name: "_recipients",
+        type: "address[]",
+        internalType: "address[]",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "bettingToken",
     inputs: [],
     outputs: [{ name: "", type: "address", internalType: "contract IERC20" }],
@@ -1460,37 +1474,6 @@ export const V2contractAbi = [
   },
   {
     type: "function",
-    name: "createMarketWithDefaultLiquidity",
-    inputs: [
-      { name: "_question", type: "string", internalType: "string" },
-      { name: "_description", type: "string", internalType: "string" },
-      {
-        name: "_optionNames",
-        type: "string[]",
-        internalType: "string[]",
-      },
-      {
-        name: "_optionDescriptions",
-        type: "string[]",
-        internalType: "string[]",
-      },
-      { name: "_duration", type: "uint256", internalType: "uint256" },
-      {
-        name: "_category",
-        type: "uint8",
-        internalType: "enum PolicastMarketV3.MarketCategory",
-      },
-      {
-        name: "_marketType",
-        type: "uint8",
-        internalType: "enum PolicastMarketV3.MarketType",
-      },
-    ],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
     name: "disputeMarket",
     inputs: [
       { name: "_marketId", type: "uint256", internalType: "uint256" },
@@ -1511,6 +1494,23 @@ export const V2contractAbi = [
     name: "getBettingToken",
     inputs: [],
     outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getEligibleWinners",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_users", type: "address[]", internalType: "address[]" },
+    ],
+    outputs: [
+      {
+        name: "recipients",
+        type: "address[]",
+        internalType: "address[]",
+      },
+      { name: "amounts", type: "uint256[]", internalType: "uint256[]" },
+    ],
     stateMutability: "view",
   },
   {
@@ -1625,6 +1625,11 @@ export const V2contractAbi = [
       { name: "optionCount", type: "uint256", internalType: "uint256" },
       { name: "resolved", type: "bool", internalType: "bool" },
       { name: "disputed", type: "bool", internalType: "bool" },
+      {
+        name: "marketType",
+        type: "uint8",
+        internalType: "enum PolicastMarketV3.MarketType",
+      },
       { name: "invalidated", type: "bool", internalType: "bool" },
       {
         name: "winningOptionId",
@@ -1786,6 +1791,19 @@ export const V2contractAbi = [
   },
   {
     type: "function",
+    name: "getUserWinnings",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_user", type: "address", internalType: "address" },
+    ],
+    outputs: [
+      { name: "hasWinnings", type: "bool", internalType: "bool" },
+      { name: "amount", type: "uint256", internalType: "uint256" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "grantMarketValidatorRole",
     inputs: [{ name: "_account", type: "address", internalType: "address" }],
     outputs: [],
@@ -1836,6 +1854,16 @@ export const V2contractAbi = [
       { name: "", type: "bool", internalType: "bool" },
       { name: "", type: "uint256", internalType: "uint256" },
     ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "hasUserClaimedWinnings",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_user", type: "address", internalType: "address" },
+    ],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
     stateMutability: "view",
   },
   {
@@ -2220,6 +2248,31 @@ export const V2contractAbi = [
       },
       {
         name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "BatchWinningsDistributed",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "totalDistributed",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+      {
+        name: "recipientCount",
         type: "uint256",
         indexed: false,
         internalType: "uint256",
@@ -2771,6 +2824,31 @@ export const V2contractAbi = [
     ],
     anonymous: false,
   },
+  {
+    type: "event",
+    name: "WinningsDistributedToUser",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "user",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "amount",
+        type: "uint256",
+        indexed: false,
+        internalType: "uint256",
+      },
+    ],
+    anonymous: false,
+  },
   { type: "error", name: "AccessControlBadConfirmation", inputs: [] },
   {
     type: "error",
@@ -2786,8 +2864,10 @@ export const V2contractAbi = [
   { type: "error", name: "AmountMustBePositive", inputs: [] },
   { type: "error", name: "BadDuration", inputs: [] },
   { type: "error", name: "BadOptionCount", inputs: [] },
+  { type: "error", name: "BatchDistributionFailed", inputs: [] },
   { type: "error", name: "CannotDisputeIfWon", inputs: [] },
   { type: "error", name: "CannotSwapSameOption", inputs: [] },
+  { type: "error", name: "EmptyBatchList", inputs: [] },
   { type: "error", name: "EmptyQuestion", inputs: [] },
   { type: "error", name: "EnforcedPause", inputs: [] },
   { type: "error", name: "ExceedsFreeAllowance", inputs: [] },

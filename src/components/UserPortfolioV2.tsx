@@ -191,6 +191,7 @@ export function UserPortfolioV2() {
             bigint,
             boolean,
             boolean,
+            number,
             boolean,
             bigint,
             string
@@ -204,8 +205,10 @@ export function UserPortfolioV2() {
             optionCount,
             resolved,
             ,
+            ,
             invalidated,
             winningOptionId,
+            creator,
           ] = marketInfo;
 
           // Get option names and current prices

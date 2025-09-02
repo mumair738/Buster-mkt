@@ -38,6 +38,7 @@ type MarketInfoV2ContractReturn = readonly [
   bigint, // optionCount
   boolean, // resolved
   boolean, // disputed
+  number, // marketType
   boolean, // invalidated
   bigint, // winningOptionId
   string // creator
@@ -79,7 +80,7 @@ async function getCurrentMarketPrice(marketId: string) {
           optionPrices: prices.map((p) => Math.round(p * 1000) / 1000),
           totalShares: Math.floor(Math.random() * 50000) + 10000, // Simulated
           resolved: v2MarketData[5],
-          winningOptionId: v2MarketData[5] ? Number(v2MarketData[8]) : null,
+          winningOptionId: v2MarketData[5] ? Number(v2MarketData[9]) : null,
           timestamp: Date.now(),
         };
       }

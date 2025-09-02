@@ -145,6 +145,7 @@ export function MarketValidationManager() {
         bigint,
         boolean,
         boolean,
+        number,
         boolean,
         bigint,
         string
@@ -158,6 +159,7 @@ export function MarketValidationManager() {
         optionCount,
         resolved,
         disputed,
+        marketType,
         invalidated,
         winningOptionId,
         creator,
