@@ -179,10 +179,12 @@ export function AdminRoleManager() {
   if (!isConnected) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <Users className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Connect Your Wallet</h3>
-          <p className="text-gray-600">
+        <CardContent className="p-4 md:p-6 text-center">
+          <Users className="h-12 w-12 md:h-16 md:w-16 mx-auto text-gray-400 mb-3 md:mb-4" />
+          <h3 className="text-base md:text-lg font-medium mb-2">
+            Connect Your Wallet
+          </h3>
+          <p className="text-sm md:text-base text-gray-600">
             Please connect your wallet to manage user roles.
           </p>
         </CardContent>
@@ -193,10 +195,12 @@ export function AdminRoleManager() {
   if (!isOwner) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto text-red-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Owner Access Required</h3>
-          <p className="text-gray-600">
+        <CardContent className="p-4 md:p-6 text-center">
+          <AlertTriangle className="h-12 w-12 md:h-16 md:w-16 mx-auto text-red-400 mb-3 md:mb-4" />
+          <h3 className="text-base md:text-lg font-medium mb-2">
+            Owner Access Required
+          </h3>
+          <p className="text-sm md:text-base text-gray-600">
             Only the contract owner can manage user roles and permissions.
           </p>
         </CardContent>
@@ -207,15 +211,18 @@ export function AdminRoleManager() {
   if (isConfirmed) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-lg font-medium mb-2">
+        <CardContent className="p-4 md:p-6 text-center">
+          <CheckCircle className="h-12 w-12 md:h-16 md:w-16 mx-auto text-green-500 mb-3 md:mb-4" />
+          <h3 className="text-base md:text-lg font-medium mb-2">
             Role Updated Successfully!
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
             The user role has been {action === "grant" ? "granted" : "revoked"}.
           </p>
-          <Button onClick={() => window.location.reload()}>
+          <Button
+            onClick={() => window.location.reload()}
+            className="text-sm md:text-base px-3 md:px-4 py-2 md:py-2"
+          >
             Continue Managing Roles
           </Button>
         </CardContent>
@@ -224,27 +231,35 @@ export function AdminRoleManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Role Information */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-5 w-5" />
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Info className="h-4 w-4 md:h-5 md:w-5" />
             Platform Roles Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             {Object.entries(ROLE_INFO).map(([key, role]) => {
               const IconComponent = role.icon;
               return (
-                <div key={key} className="p-4 border rounded-lg">
-                  <div className="flex items-center gap-3 mb-2">
-                    <IconComponent className="h-5 w-5" />
-                    <h3 className="font-medium">{role.label}</h3>
-                    <Badge className={role.color}>{key.toUpperCase()}</Badge>
+                <div key={key} className="p-3 md:p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 md:gap-3 mb-2">
+                    <IconComponent className="h-4 w-4 md:h-5 md:w-5" />
+                    <h3 className="font-medium text-sm md:text-base">
+                      {role.label}
+                    </h3>
+                    <Badge
+                      className={`${role.color} text-xs px-1.5 py-0.5 md:px-2 md:py-1`}
+                    >
+                      {key.toUpperCase()}
+                    </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{role.description}</p>
+                  <p className="text-xs md:text-sm text-gray-600">
+                    {role.description}
+                  </p>
                 </div>
               );
             })}
@@ -254,21 +269,23 @@ export function AdminRoleManager() {
 
       {/* Role Management */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Users className="h-4 w-4 md:h-5 md:w-5" />
             Manage User Roles
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-4 md:space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
             <div className="space-y-2">
-              <Label htmlFor="action">Action</Label>
+              <Label htmlFor="action" className="text-sm md:text-base">
+                Action
+              </Label>
               <Select
                 value={action}
                 onValueChange={(value: "grant" | "revoke") => setAction(value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 md:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,12 +296,14 @@ export function AdminRoleManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="role">Role Type</Label>
+              <Label htmlFor="role" className="text-sm md:text-base">
+                Role Type
+              </Label>
               <Select
                 value={selectedRole}
                 onValueChange={(value: RoleType) => setSelectedRole(value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-9 md:h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -298,31 +317,33 @@ export function AdminRoleManager() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">User Address *</Label>
+            <Label htmlFor="address" className="text-sm md:text-base">
+              User Address *
+            </Label>
             <Input
               id="address"
               placeholder="0x..."
               value={targetAddress}
               onChange={(e) => setTargetAddress(e.target.value)}
-              className={
+              className={`h-9 md:h-10 ${
                 targetAddress && !isAddress(targetAddress)
                   ? "border-red-500"
                   : ""
-              }
+              }`}
             />
             {targetAddress && !isAddress(targetAddress) && (
-              <p className="text-sm text-red-600">
+              <p className="text-xs md:text-sm text-red-600">
                 Please enter a valid Ethereum address.
               </p>
             )}
           </div>
 
-          <Separator />
-
           {/* Action Summary */}
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <h3 className="font-medium mb-2">Action Summary</h3>
-            <div className="space-y-1 text-sm">
+          <div className="p-3 md:p-4 bg-gray-50 rounded-lg">
+            <h3 className="font-medium mb-2 text-sm md:text-base">
+              Action Summary
+            </h3>
+            <div className="space-y-1 text-xs md:text-sm">
               <p>
                 <span className="font-medium">Action:</span>{" "}
                 {action === "grant" ? "Grant" : "Revoke"}
@@ -338,8 +359,8 @@ export function AdminRoleManager() {
             </div>
 
             {selectedRole && (
-              <div className="mt-3 p-3 bg-white border rounded">
-                <p className="text-sm">
+              <div className="mt-3 p-2 md:p-3 bg-white border rounded">
+                <p className="text-xs md:text-sm">
                   <span className="font-medium">Permission:</span>{" "}
                   {ROLE_INFO[selectedRole].description}
                 </p>
@@ -347,7 +368,7 @@ export function AdminRoleManager() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-2">
             <Button
               onClick={handleRoleAction}
               disabled={
@@ -356,14 +377,14 @@ export function AdminRoleManager() {
                 isPending ||
                 isConfirming
               }
-              className="flex items-center gap-2"
+              className="flex items-center justify-center gap-2 h-9 md:h-10 text-sm md:text-base"
             >
               {isPending || isConfirming ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
               ) : action === "grant" ? (
-                <UserPlus className="h-4 w-4" />
+                <UserPlus className="h-3 w-3 md:h-4 md:w-4" />
               ) : (
-                <UserMinus className="h-4 w-4" />
+                <UserMinus className="h-3 w-3 md:h-4 md:w-4" />
               )}
               {action === "grant" ? "Grant Role" : "Revoke Role"}
             </Button>
@@ -375,14 +396,17 @@ export function AdminRoleManager() {
                 setSelectedRole("creator");
                 setAction("grant");
               }}
+              className="h-9 md:h-10 text-sm md:text-base"
             >
               Clear Form
             </Button>
           </div>
 
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-sm">Error: {error.message}</p>
+            <div className="p-3 md:p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-xs md:text-sm">
+                Error: {error.message}
+              </p>
             </div>
           )}
         </CardContent>
@@ -390,12 +414,14 @@ export function AdminRoleManager() {
 
       {/* Security Notice */}
       <Card className="border-yellow-200 bg-yellow-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <CardContent className="p-3 md:p-4">
+          <div className="flex items-start gap-2 md:gap-3">
+            <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-medium text-yellow-800">Security Notice</h3>
-              <p className="text-sm text-yellow-700 mt-1">
+              <h3 className="font-medium text-yellow-800 text-sm md:text-base">
+                Security Notice
+              </h3>
+              <p className="text-xs md:text-sm text-yellow-700 mt-1">
                 Role management is a sensitive operation. Only grant roles to
                 trusted addresses. Admin roles have significant permissions and
                 should be used sparingly. Always verify the recipient address

@@ -596,14 +596,14 @@ export function UserStats() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
       {/* Profile Header */}
       <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-4 mb-6">
-            <Avatar className="w-16 h-16 ring-4 ring-blue-100">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
+            <Avatar className="w-12 h-12 md:w-16 md:h-16 ring-2 md:ring-4 ring-blue-100">
               <AvatarImage src={farcasterUser?.pfpUrl} alt="Profile" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-xl font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-lg md:text-xl font-bold">
                 {farcasterUser?.username
                   ? farcasterUser.username.charAt(0).toUpperCase()
                   : accountAddress
@@ -611,13 +611,13 @@ export function UserStats() {
                   : "?"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-gray-900">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
                 {farcasterUser?.username
                   ? `@${farcasterUser.username}`
                   : "Anonymous Trader"}
               </h2>
-              <p className="text-sm text-gray-500 font-mono">
+              <p className="text-xs md:text-sm text-gray-500 font-mono truncate">
                 {accountAddress
                   ? `${accountAddress.slice(0, 6)}...${accountAddress.slice(
                       -4
@@ -635,10 +635,10 @@ export function UserStats() {
                 onClick={handleShare}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 text-blue-600 border-blue-200 hover:bg-blue-50"
+                className="flex items-center gap-1 md:gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 h-8 md:h-9 text-xs md:text-sm px-2 md:px-3"
               >
-                <Share2 className="w-4 h-4" />
-                Share Stats
+                <Share2 className="w-3 h-3 md:w-4 md:h-4" />
+                <span className="hidden sm:inline">Share Stats</span>
               </Button>
             </div>
           </div>
@@ -646,16 +646,16 @@ export function UserStats() {
       </Card>
 
       <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-          <CardTitle className="text-xl font-bold">
+        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white pb-3 md:pb-6">
+          <CardTitle className="text-lg md:text-xl font-bold">
             Performance Overview
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardContent className="p-4 md:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
             {/* Win Rate Circle */}
             <div className="flex items-center justify-center">
-              <div className="relative w-32 h-32">
+              <div className="relative w-24 h-24 md:w-32 md:h-32">
                 <svg
                   className="w-full h-full transform -rotate-90"
                   viewBox="0 0 100 100"
@@ -688,7 +688,7 @@ export function UserStats() {
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">
+                    <div className="text-lg md:text-2xl font-bold text-green-600">
                       {stats.winRate.toFixed(1)}%
                     </div>
                     <div className="text-xs text-gray-500">Win Rate</div>
@@ -698,8 +698,8 @@ export function UserStats() {
             </div>
 
             {/* Stats Grid */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3 md:space-y-4">
+              <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <StatCard
                   label="Wins"
                   value={stats.wins}
@@ -781,16 +781,16 @@ export function UserStats() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="p-4 text-center border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100">
-          <div className="text-2xl font-bold text-blue-700">
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100">
+          <div className="text-lg md:text-2xl font-bold text-blue-700">
             {stats.totalVotes}
           </div>
           <div className="text-xs font-medium text-blue-600">Total Votes</div>
         </Card>
 
-        <Card className="p-4 text-center border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100">
-          <div className="text-2xl font-bold text-purple-700">
+        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100">
+          <div className="text-lg md:text-2xl font-bold text-purple-700">
             {((stats.wins / Math.max(stats.totalVotes, 1)) * 100).toFixed(0)}%
           </div>
           <div className="text-xs font-medium text-purple-600">
@@ -798,8 +798,8 @@ export function UserStats() {
           </div>
         </Card>
 
-        <Card className="p-4 text-center border-0 shadow-md bg-gradient-to-br from-indigo-50 to-indigo-100">
-          <div className="text-2xl font-bold text-indigo-700">
+        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-indigo-50 to-indigo-100">
+          <div className="text-lg md:text-2xl font-bold text-indigo-700">
             {stats.totalVotes > 0
               ? (
                   Number(stats.totalInvested) /
@@ -815,20 +815,20 @@ export function UserStats() {
       {/* V1 vs V2 Performance Breakdown */}
       {(stats.v1Markets > 0 || stats.v2Markets > 0) && (
         <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white">
-            <CardTitle className="text-xl font-bold">
+          <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white pb-3 md:pb-6">
+            <CardTitle className="text-lg md:text-xl font-bold">
               Market Performance Breakdown
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="p-4 md:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               {/* V1 Binary Markets */}
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                <h3 className="text-base md:text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <span className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full"></span>
                   Binary Markets (V1)
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <StatCard
                     label="Markets"
                     value={stats.v1Markets}
@@ -851,7 +851,7 @@ export function UserStats() {
                     bgColor="bg-blue-50"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <StatCard
                     label="Wins"
                     value={stats.v1Wins}
@@ -867,18 +867,18 @@ export function UserStats() {
                     bgColor="bg-red-50"
                   />
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-xs md:text-sm text-gray-600">
                   Classic binary prediction markets with Yes/No options
                 </div>
               </div>
 
               {/* V2 Multi-Option Markets */}
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <span className="w-3 h-3 bg-green-500 rounded-full"></span>
+                <h3 className="text-base md:text-lg font-semibold text-gray-800 flex items-center gap-2">
+                  <span className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full"></span>
                   Multi-Option Markets (V2)
                 </h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <StatCard
                     label="Markets"
                     value={stats.v2Markets}
@@ -901,7 +901,7 @@ export function UserStats() {
                     bgColor="bg-green-50"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2 md:gap-3">
                   <StatCard
                     label="Wins"
                     value={stats.v2Wins}
@@ -917,7 +917,7 @@ export function UserStats() {
                     bgColor="bg-red-50"
                   />
                 </div>
-                <div className="text-sm text-gray-600">
+                <div className="text-xs md:text-sm text-gray-600">
                   Advanced markets with up to 10 different outcome options
                 </div>
 
@@ -1066,15 +1066,19 @@ function StatCard({
 }) {
   return (
     <div
-      className={`p-4 rounded-lg border border-gray-100 ${bgColor} ${
+      className={`p-3 md:p-4 rounded-lg border border-gray-100 ${bgColor} ${
         fullWidth ? "col-span-2" : ""
       }`}
     >
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600">{label}</p>
-          <p className={`text-lg font-bold ${color}`}>{value}</p>
+      <div className="flex items-center gap-2 md:gap-3">
+        <span className="text-lg md:text-2xl">{icon}</span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs md:text-sm font-medium text-gray-600 truncate">
+            {label}
+          </p>
+          <p className={`text-sm md:text-lg font-bold ${color} truncate`}>
+            {value}
+          </p>
         </div>
       </div>
     </div>
