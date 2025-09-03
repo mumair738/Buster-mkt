@@ -7,7 +7,13 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,10 +28,11 @@ export function BatchDistributionManager() {
   const { toast } = useToast();
 
   const [marketId, setMarketId] = useState("");
-  const [recipients, setRecipients] = useState("");
   const [previewData, setPreviewData] = useState<{
     recipients: string[];
     amounts: string[];
+    totalParticipants?: number;
+    eligibleCount?: number;
   } | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -63,11 +70,12 @@ export function BatchDistributionManager() {
         title: "Batch Distribution Successful!",
         description: `Winnings have been distributed to ${
           previewData?.recipients.length || 0
-        } recipients.`,
+        } eligible recipients out of ${
+          previewData?.totalParticipants || 0
+        } total participants.`,
       });
 
       // Reset form
-      setRecipients("");
       setPreviewData(null);
       setShowPreview(false);
       refetchMarketInfo();
@@ -80,12 +88,12 @@ export function BatchDistributionManager() {
   const isMarketInvalidated = marketInfo ? (marketInfo[8] as boolean) : false;
   const marketQuestion = marketInfo ? (marketInfo[0] as string) : "";
 
-  // Load preview data
+  // Load preview data - now automatic!
   const loadPreview = async () => {
-    if (!marketId || !recipients.trim()) {
+    if (!marketId) {
       toast({
         title: "Missing Information",
-        description: "Please enter a market ID and recipient addresses.",
+        description: "Please enter a market ID.",
         variant: "destructive",
       });
       return;
@@ -93,29 +101,14 @@ export function BatchDistributionManager() {
 
     setIsLoadingPreview(true);
     try {
-      const addressList = recipients
-        .split("\n")
-        .map((addr) => addr.trim())
-        .filter((addr) => addr.length === 42 && addr.startsWith("0x"));
-
-      if (addressList.length === 0) {
-        toast({
-          title: "Invalid Addresses",
-          description: "Please enter valid Ethereum addresses (one per line).",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Call the contract to get eligible winners
-      const result = await fetch("/api/preview-batch-distribution", {
+      // Use the new automatic endpoint that fetches participants from blockchain
+      const result = await fetch("/api/auto-preview-batch-distribution", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           marketId: parseInt(marketId),
-          addresses: addressList,
         }),
       });
 
@@ -126,6 +119,11 @@ export function BatchDistributionManager() {
       const data = await result.json();
       setPreviewData(data);
       setShowPreview(true);
+
+      toast({
+        title: "Preview Loaded",
+        description: `Found ${data.totalParticipants} participants, ${data.eligibleCount} eligible for winnings.`,
+      });
     } catch (error) {
       console.error("Preview error:", error);
       toast({
@@ -186,8 +184,12 @@ export function BatchDistributionManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Send className="h-5 w-5" />
-            Batch Winnings Distribution
+            Smart Batch Winnings Distribution
           </CardTitle>
+          <CardDescription>
+            Automatically detect all market participants and distribute winnings
+            to eligible recipients
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Market Selection */}
@@ -221,39 +223,39 @@ export function BatchDistributionManager() {
 
           <Separator />
 
-          {/* Recipients Input */}
-          <div className="space-y-2">
-            <Label htmlFor="recipients">Recipient Addresses</Label>
-            <textarea
-              id="recipients"
-              className="w-full min-h-[200px] p-3 border rounded-md resize-none"
-              placeholder="Enter Ethereum addresses (one per line)&#10;Example:&#10;0x1234567890123456789012345678901234567890&#10;0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
-              value={recipients}
-              onChange={(e) => setRecipients(e.target.value)}
-            />
-            <p className="text-xs text-gray-500">
-              Enter one Ethereum address per line. Invalid addresses will be
-              filtered out.
-            </p>
-          </div>
+          {/* Recipients Input - Now Automatic */}
+          {/* <div className="space-y-2">
+            <Label>Automatic Participant Detection</Label>
+            <div className="p-4 border rounded-md bg-blue-50">
+              <p className="text-sm text-blue-700">
+                <strong>How it works:</strong> This tool automatically scans
+                blockchain events to find all participants in the market, then
+                filters for those eligible to receive winnings.
+              </p>
+              <p className="text-xs text-blue-600 mt-2">
+                No manual address input required - just enter the market ID and
+                click &quot;Auto Preview&quot;!
+              </p>
+            </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex gap-3">
             <Button
               onClick={loadPreview}
-              disabled={!marketId || !recipients.trim() || isLoadingPreview}
+              disabled={!marketId || isLoadingPreview}
               variant="outline"
               className="flex items-center gap-2"
             >
               {isLoadingPreview ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading...
+                  Scanning Blockchain...
                 </>
               ) : (
                 <>
                   <Eye className="h-4 w-4" />
-                  Preview Distribution
+                  Auto Preview Distribution
                 </>
               )}
             </Button>
@@ -281,16 +283,24 @@ export function BatchDistributionManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5" />
-              Distribution Preview
+              Smart Distribution Preview
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-600">
-                  Total Recipients
+                  Total Participants
                 </p>
                 <p className="text-2xl font-bold">
+                  {previewData.totalParticipants || 0}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Eligible Recipients
+                </p>
+                <p className="text-2xl font-bold text-green-600">
                   {previewData.recipients.length}
                 </p>
               </div>
