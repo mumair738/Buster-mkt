@@ -68,7 +68,7 @@ export function MarketInvalidationManager() {
     abi: V2contractAbi,
     functionName: "hasRole",
     args: [
-      "0x7d6a7c8c4b5a2e3f1d0c9b8a7e6d5c4b3a2f1e0d9c8b7a6e5d4c3b2a1f0e9d8c7", // MARKET_VALIDATOR_ROLE
+      "0xd486618b282cb35034d59c30c062b5b3822d6cdf87ec459191ce7f5b7b8a4873", // MARKET_VALIDATOR_ROLE
       address as `0x${string}`,
     ],
     query: { enabled: isConnected && !!address },

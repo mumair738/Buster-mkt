@@ -266,10 +266,10 @@ export function V3AdminDashboard() {
 
   if (!isConnected) {
     return (
-      <Card>
+      <Card className="mx-4 md:mx-0">
         <CardHeader>
-          <CardTitle>Admin Dashboard</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg md:text-xl">Admin Dashboard</CardTitle>
+          <CardDescription className="text-sm md:text-base">
             Connect wallet to access admin functions
           </CardDescription>
         </CardHeader>
@@ -279,13 +279,13 @@ export function V3AdminDashboard() {
 
   if (!isOwner && !isFeeCollector) {
     return (
-      <Card>
+      <Card className="mx-4 md:mx-0">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-amber-500" />
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-amber-500" />
             Access Denied
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm md:text-base">
             You need to be the contract owner or fee collector to access this
             dashboard.
           </CardDescription>
@@ -295,16 +295,21 @@ export function V3AdminDashboard() {
   }
 
   return (
-    <div className="space-y-6 mb-20">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">V3 Admin Dashboard</h1>
-          <p className="text-gray-500">
+    <div className="px-4 md:px-0 space-y-4 md:space-y-6 mb-16 md:mb-20 max-w-full overflow-hidden">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl md:text-3xl font-bold truncate">
+            V3 Admin Dashboard
+          </h1>
+          <p className="text-sm md:text-base text-gray-500 truncate">
             Manage platform settings and collect fees
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant={isOwner ? "default" : "secondary"}>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <Badge
+            variant={isOwner ? "default" : "secondary"}
+            className="text-xs md:text-sm px-2 py-1"
+          >
             {isOwner
               ? "Owner"
               : isFeeCollector
@@ -316,98 +321,130 @@ export function V3AdminDashboard() {
             size="sm"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="h-8 w-8 p-0 md:h-9 md:w-9 md:p-2"
           >
             {isRefreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-3 w-3 md:h-4 md:w-4" />
             )}
           </Button>
         </div>
       </div>
 
       {/* Platform Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="min-w-0">
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className="text-xs md:text-sm font-medium truncate">
               Total Fees Collected
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold truncate">
               {formatAmount(globalStats?.totalFeesCollected)} BSTR
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Markets</CardTitle>
+        <Card className="min-w-0">
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className="text-xs md:text-sm font-medium truncate">
+              Total Markets
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold truncate">
               {globalStats?.totalMarkets?.toString() || "0"}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+        <Card className="min-w-0">
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className="text-xs md:text-sm font-medium truncate">
+              Total Trades
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold truncate">
               {globalStats?.totalTrades?.toString() || "0"}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="min-w-0">
+          <CardHeader className="pb-2 px-3 md:px-6">
+            <CardTitle className="text-xs md:text-sm font-medium truncate">
               Current Fee Rate
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="px-3 md:px-6">
+            <div className="text-lg md:text-2xl font-bold truncate">
               {formatFeeRate(currentFeeRate)}%
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="fees" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="fees">Fee Management</TabsTrigger>
-          <TabsTrigger value="invalidation">Market Invalidation</TabsTrigger>
-          <TabsTrigger value="liquidity">Liquidity Recovery</TabsTrigger>
-          <TabsTrigger value="lprewards">LP Rewards</TabsTrigger>
+      <Tabs defaultValue="fees" className="space-y-3 md:space-y-4 w-full">
+        <TabsList className="w-full h-auto p-1 grid grid-cols-2 md:grid-cols-5 gap-1">
+          <TabsTrigger
+            value="fees"
+            className="text-xs md:text-sm px-2 py-2 md:px-3"
+          >
+            Fee Management
+          </TabsTrigger>
+          <TabsTrigger
+            value="invalidation"
+            className="text-xs md:text-sm px-2 py-2 md:px-3"
+          >
+            Market Invalidation
+          </TabsTrigger>
+          <TabsTrigger
+            value="liquidity"
+            className="text-xs md:text-sm px-2 py-2 md:px-3"
+          >
+            Liquidity Recovery
+          </TabsTrigger>
+          <TabsTrigger
+            value="lprewards"
+            className="text-xs md:text-sm px-2 py-2 md:px-3"
+          >
+            LP Rewards
+          </TabsTrigger>
           {isOwner && (
-            <TabsTrigger value="settings">Platform Settings</TabsTrigger>
+            <TabsTrigger
+              value="settings"
+              className="text-xs md:text-sm px-2 py-2 md:px-3"
+            >
+              Platform Settings
+            </TabsTrigger>
           )}
         </TabsList>
 
-        <TabsContent value="fees" className="space-y-4">
+        <TabsContent value="fees" className="space-y-3 md:space-y-4">
           {/* Fee Collection */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <DollarSign className="h-4 w-4 md:h-5 md:w-5" />
                 Platform Fee Collection
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm md:text-base">
                 Withdraw accumulated platform fees
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg gap-4">
-                <div className="flex-1">
-                  <p className="font-medium">Available for Withdrawal</p>
-                  <p className="text-2xl font-bold text-green-600">
+            <CardContent className="space-y-3 md:space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between p-3 md:p-4 border rounded-lg gap-3 md:gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm md:text-base">
+                    Available for Withdrawal
+                  </p>
+                  <p className="text-xl md:text-2xl font-bold text-green-600 truncate">
                     {formatAmount(globalStats?.totalFeesCollected)} BSTR
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs md:text-sm text-gray-500 truncate">
                     Fee Collector: {globalStats?.feeCollector}
                   </p>
                 </div>
@@ -419,29 +456,30 @@ export function V3AdminDashboard() {
                     !globalStats?.totalFeesCollected ||
                     globalStats.totalFeesCollected === 0n
                   }
-                  className="flex items-center gap-2 w-full sm:w-auto"
+                  className="flex items-center justify-center gap-2 w-full lg:w-auto h-9 md:h-10 text-sm md:text-base"
                 >
                   {isPending || isConfirming ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                   ) : (
-                    <DollarSign className="h-4 w-4" />
+                    <DollarSign className="h-3 w-3 md:h-4 md:w-4" />
                   )}
-                  Withdraw Fees
+                  <span className="hidden sm:inline">Withdraw Fees</span>
+                  <span className="sm:hidden">Withdraw</span>
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="invalidation" className="space-y-4">
+        <TabsContent value="invalidation" className="space-y-3 md:space-y-4">
           {/* Market Invalidation */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-500" />
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                <AlertCircle className="h-4 w-4 md:h-5 md:w-5 text-red-500" />
                 Market Invalidation
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm md:text-base">
                 Invalidate problematic markets and process automatic refunds
               </CardDescription>
             </CardHeader>
@@ -451,28 +489,34 @@ export function V3AdminDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="liquidity" className="space-y-4">
+        <TabsContent value="liquidity" className="space-y-3 md:space-y-4">
           {/* Admin Liquidity Recovery */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <DollarSign className="h-4 w-4 md:h-5 md:w-5" />
                   Withdraw Admin Liquidity
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm md:text-base">
                   Recover liquidity from resolved markets you created
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="adminLiquidityMarketId">Market ID</Label>
+                  <Label
+                    htmlFor="adminLiquidityMarketId"
+                    className="text-sm md:text-base"
+                  >
+                    Market ID
+                  </Label>
                   <Input
                     id="adminLiquidityMarketId"
                     type="number"
                     placeholder="Enter market ID..."
                     value={adminLiquidityMarketId}
                     onChange={(e) => setAdminLiquidityMarketId(e.target.value)}
+                    className="h-9 md:h-10"
                   />
                 </div>
                 <Button
@@ -480,10 +524,10 @@ export function V3AdminDashboard() {
                   disabled={
                     isPending || isConfirming || !adminLiquidityMarketId
                   }
-                  className="w-full"
+                  className="w-full h-9 md:h-10 text-sm md:text-base"
                 >
                   {(isPending || isConfirming) && (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" />
                   )}
                   Withdraw Admin Liquidity
                 </Button>
@@ -491,33 +535,39 @@ export function V3AdminDashboard() {
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+              <CardHeader className="pb-3 md:pb-6">
+                <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                  <Users className="h-4 w-4 md:h-5 md:w-5" />
                   Withdraw Unused Prize Pool
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm md:text-base">
                   Recover unused prize pools from free markets
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 md:space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="prizePoolMarketId">Free Market ID</Label>
+                  <Label
+                    htmlFor="prizePoolMarketId"
+                    className="text-sm md:text-base"
+                  >
+                    Free Market ID
+                  </Label>
                   <Input
                     id="prizePoolMarketId"
                     type="number"
                     placeholder="Enter free market ID..."
                     value={prizePoolMarketId}
                     onChange={(e) => setPrizePoolMarketId(e.target.value)}
+                    className="h-9 md:h-10"
                   />
                 </div>
                 <Button
                   onClick={handleWithdrawUnusedPrizePool}
                   disabled={isPending || isConfirming || !prizePoolMarketId}
-                  className="w-full"
+                  className="w-full h-9 md:h-10 text-sm md:text-base"
                 >
                   {(isPending || isConfirming) && (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin mr-2" />
                   )}
                   Withdraw Prize Pool
                 </Button>
@@ -526,28 +576,30 @@ export function V3AdminDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="lprewards" className="space-y-4">
+        <TabsContent value="lprewards" className="space-y-3 md:space-y-4">
           {/* LP Rewards Management */}
           <LPRewardsManager />
         </TabsContent>
 
         {isOwner && (
-          <TabsContent value="settings" className="space-y-4">
+          <TabsContent value="settings" className="space-y-3 md:space-y-4">
             {/* Platform Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
+                <CardHeader className="pb-3 md:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                    <Settings className="h-4 w-4 md:h-5 md:w-5" />
                     Platform Fee Rate
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm md:text-base">
                     Set the platform fee rate (in basis points, 100 = 1%)
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 md:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="feeRate">Fee Rate (basis points)</Label>
+                    <Label htmlFor="feeRate" className="text-sm md:text-base">
+                      Fee Rate (basis points)
+                    </Label>
                     <Input
                       id="feeRate"
                       type="number"
@@ -556,8 +608,9 @@ export function V3AdminDashboard() {
                       value={newFeeRate}
                       onChange={(e) => setNewFeeRate(e.target.value)}
                       placeholder="200 (2%)"
+                      className="h-9 md:h-10"
                     />
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-gray-500 truncate">
                       Current: {formatFeeRate(currentFeeRate)}% | New:{" "}
                       {(parseInt(newFeeRate) / 100).toFixed(2)}%
                     </p>
@@ -565,12 +618,12 @@ export function V3AdminDashboard() {
                   <Button
                     onClick={handleSetFeeRate}
                     disabled={isPending || isConfirming}
-                    className="w-full"
+                    className="w-full h-9 md:h-10 text-sm md:text-base"
                   >
                     {isPending || isConfirming ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                     ) : (
-                      <Settings className="h-4 w-4" />
+                      <Settings className="h-3 w-3 md:h-4 md:w-4" />
                     )}
                     Update Fee Rate
                   </Button>
@@ -578,38 +631,44 @@ export function V3AdminDashboard() {
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
+                <CardHeader className="pb-3 md:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                    <Users className="h-4 w-4 md:h-5 md:w-5" />
                     Fee Collector Address
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-sm md:text-base">
                     Set the address that can withdraw platform fees
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 md:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="feeCollector">Fee Collector Address</Label>
+                    <Label
+                      htmlFor="feeCollector"
+                      className="text-sm md:text-base"
+                    >
+                      Fee Collector Address
+                    </Label>
                     <Input
                       id="feeCollector"
                       type="text"
                       value={newFeeCollector}
                       onChange={(e) => setNewFeeCollector(e.target.value)}
                       placeholder="0x..."
+                      className="h-9 md:h-10"
                     />
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs md:text-sm text-gray-500 truncate">
                       Current: {globalStats?.feeCollector}
                     </p>
                   </div>
                   <Button
                     onClick={handleSetFeeCollector}
                     disabled={isPending || isConfirming || !newFeeCollector}
-                    className="w-full"
+                    className="w-full h-9 md:h-10 text-sm md:text-base"
                   >
                     {isPending || isConfirming ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-3 w-3 md:h-4 md:w-4 animate-spin" />
                     ) : (
-                      <Users className="h-4 w-4" />
+                      <Users className="h-3 w-3 md:h-4 md:w-4" />
                     )}
                     Update Fee Collector
                   </Button>
