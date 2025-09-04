@@ -11,38 +11,40 @@ import { V2contractAddress, V2contractAbi } from "@/constants/contract";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Loader2, Building2 } from "lucide-react";
+import { DollarSign, Loader2, Gift } from "lucide-react";
 
-interface AdminLiquidity {
+interface UnusedPrizePool {
   marketId: number;
   amount: bigint;
   canWithdraw: boolean;
 }
 
-export function AdminLiquidityManager() {
+export function PrizePoolManager() {
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
-  const [adminLiquidity, setAdminLiquidity] = useState<AdminLiquidity[]>([]);
+  const [unusedPrizePools, setUnusedPrizePools] = useState<UnusedPrizePool[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
 
-  // Contract write for withdrawing admin liquidity
+  // Contract write for withdrawing unused prize pool
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
 
-  // Check for markets where user can withdraw admin liquidity
+  // Check for markets where user can withdraw unused prize pools
   useEffect(() => {
-    const fetchAdminLiquidity = async () => {
+    const fetchUnusedPrizePools = async () => {
       if (!isConnected || !address) return;
 
       setLoading(true);
-      const liquidity: AdminLiquidity[] = [];
+      const prizePools: UnusedPrizePool[] = [];
 
       // Check markets 0-50 for demo (in production, scan blockchain events)
       for (let marketId = 0; marketId < 50; marketId++) {
         try {
-          const result = await fetch("/api/check-admin-liquidity", {
+          const result = await fetch("/api/check-unused-prize-pool", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ marketId, userAddress: address }),
@@ -51,7 +53,7 @@ export function AdminLiquidityManager() {
           if (result.ok) {
             const data = await result.json();
             if (data.canWithdraw && data.amount > 0) {
-              liquidity.push({
+              prizePools.push({
                 marketId,
                 amount: BigInt(data.amount),
                 canWithdraw: true,
@@ -60,41 +62,41 @@ export function AdminLiquidityManager() {
           }
         } catch (error) {
           console.error(
-            `Error checking admin liquidity for market ${marketId}:`,
+            `Error checking unused prize pool for market ${marketId}:`,
             error
           );
         }
       }
 
-      setAdminLiquidity(liquidity);
+      setUnusedPrizePools(prizePools);
       setLoading(false);
     };
 
-    fetchAdminLiquidity();
+    fetchUnusedPrizePools();
   }, [isConnected, address]);
 
-  // Handle withdrawing admin liquidity
-  const handleWithdrawAdminLiquidity = async (marketId: number) => {
+  // Handle withdrawing unused prize pool
+  const handleWithdrawUnusedPrizePool = async (marketId: number) => {
     if (!address) return;
 
     try {
       toast({
         title: "Transaction Submitted",
-        description: "Withdrawing admin liquidity...",
+        description: "Withdrawing unused prize pool...",
       });
 
       await writeContract({
         address: V2contractAddress,
         abi: V2contractAbi,
-        functionName: "withdrawAdminLiquidity",
+        functionName: "withdrawUnusedPrizePool",
         args: [BigInt(marketId)],
       });
     } catch (error: any) {
-      console.error("Error withdrawing admin liquidity:", error);
+      console.error("Error withdrawing unused prize pool:", error);
       toast({
         title: "Transaction Failed",
         description:
-          error?.shortMessage || "Failed to withdraw admin liquidity.",
+          error?.shortMessage || "Failed to withdraw unused prize pool.",
         variant: "destructive",
       });
     }
@@ -104,18 +106,18 @@ export function AdminLiquidityManager() {
   useEffect(() => {
     if (isSuccess) {
       toast({
-        title: "Admin Liquidity Withdrawn!",
-        description: "Your admin liquidity has been successfully withdrawn.",
+        title: "Prize Pool Withdrawn!",
+        description: "Your unused prize pool has been successfully withdrawn.",
       });
-      // Refresh admin liquidity data
-      setAdminLiquidity((prev) =>
+      // Refresh prize pool data
+      setUnusedPrizePools((prev) =>
         prev.filter(
-          (liq) =>
-            !prev.some((l) => l.marketId === parseInt(hash?.toString() || "0"))
+          (pool) =>
+            !prev.some((p) => p.marketId === parseInt(hash?.toString() || "0"))
         )
       );
     }
-  }, [isSuccess, hash, toast]);
+  }, [isSuccess, hash]);
 
   const formatAmount = (amount: bigint | undefined) => {
     if (!amount) return "0.00";
@@ -130,18 +132,18 @@ export function AdminLiquidityManager() {
     return (
       <Card>
         <CardContent className="p-6 text-center">
-          <Building2 className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+          <Gift className="h-16 w-16 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium mb-2">Connect Your Wallet</h3>
           <p className="text-gray-600">
-            Please connect your wallet to manage admin liquidity.
+            Please connect your wallet to manage unused prize pools.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const totalWithdrawable = adminLiquidity.reduce(
-    (sum, liq) => sum + liq.amount,
+  const totalWithdrawable = unusedPrizePools.reduce(
+    (sum, pool) => sum + pool.amount,
     0n
   );
   const totalWithdrawableEth = Number(totalWithdrawable) / 1e18;
@@ -150,61 +152,59 @@ export function AdminLiquidityManager() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Building2 className="h-5 w-5" />
-          Admin Liquidity Manager
+          <Gift className="h-5 w-5" />
+          Prize Pool Manager
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Summary */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-medium text-blue-800 mb-1">
-            Total Withdrawable Liquidity
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h3 className="font-medium text-green-800 mb-1">
+            Total Unused Prize Pools
           </h3>
-          <p className="text-2xl font-bold text-blue-600">
+          <p className="text-2xl font-bold text-green-600">
             {totalWithdrawableEth.toFixed(4)} Buster
           </p>
-          <p className="text-sm text-blue-700 mt-1">
-            From {adminLiquidity.length} markets
+          <p className="text-sm text-green-700 mt-1">
+            From {unusedPrizePools.length} markets
           </p>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <Loader2 className="w-6 h-6 animate-spin text-green-600" />
             <span className="ml-2 text-sm text-gray-600">
-              Checking withdrawable liquidity...
+              Checking unused prize pools...
             </span>
           </div>
-        ) : adminLiquidity.length === 0 ? (
+        ) : unusedPrizePools.length === 0 ? (
           <div className="text-center py-8">
-            <DollarSign className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">
-              No admin liquidity available to withdraw
-            </p>
+            <Gift className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600">No unused prize pools available</p>
             <p className="text-sm text-gray-500 mt-1">
-              Create markets to provide initial liquidity
+              Prize pools are distributed when markets resolve
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {adminLiquidity.map((liq) => (
+            {unusedPrizePools.map((pool) => (
               <div
-                key={liq.marketId}
+                key={pool.marketId}
                 className="flex items-center justify-between p-3 bg-white rounded-lg border"
               >
                 <div>
                   <p className="font-medium text-gray-900">
-                    Market #{liq.marketId}
+                    Market #{pool.marketId}
                   </p>
                   <p className="text-sm text-gray-600">
-                    {formatAmount(liq.amount)} Buster
+                    {formatAmount(pool.amount)} Buster
                   </p>
                 </div>
                 <Button
-                  onClick={() => handleWithdrawAdminLiquidity(liq.marketId)}
+                  onClick={() => handleWithdrawUnusedPrizePool(pool.marketId)}
                   disabled={isPending || isConfirming}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   {isPending || isConfirming ? (
                     <>

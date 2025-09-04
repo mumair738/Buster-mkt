@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   useAccount,
   useWriteContract,
@@ -15,16 +15,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
 import { Coins, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 
+interface LPReward {
+  marketId: number;
+  estimatedRewards: bigint;
+  contribution: bigint;
+  rewardsClaimed: boolean;
+}
+
 export function LPRewardsManager() {
   const { address, isConnected } = useAccount();
   const { toast } = useToast();
-  const [marketId, setMarketId] = useState("");
+  const [lpRewards, setLpRewards] = useState<LPReward[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } =
@@ -39,15 +46,51 @@ export function LPRewardsManager() {
     query: { enabled: isConnected && !!address },
   });
 
-  const handleClaimLPRewards = async () => {
-    if (!marketId) {
-      toast({
-        title: "Missing Market ID",
-        description: "Please enter a market ID to claim LP rewards.",
-        variant: "destructive",
-      });
-      return;
-    }
+  // Get user's participated markets and check LP rewards
+  useEffect(() => {
+    const fetchLPRewards = async () => {
+      if (!isConnected || !address) return;
+
+      setLoading(true);
+      const rewards: LPReward[] = [];
+
+      // Check markets 0-50 for demo (in production, you'd scan blockchain events)
+      for (let marketId = 0; marketId < 50; marketId++) {
+        try {
+          const result = await fetch("/api/check-lp-rewards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ marketId, userAddress: address }),
+          });
+
+          if (result.ok) {
+            const data = await result.json();
+            if (data.hasRewards && data.estimatedRewards > 0) {
+              rewards.push({
+                marketId,
+                estimatedRewards: BigInt(data.estimatedRewards),
+                contribution: BigInt(data.contribution),
+                rewardsClaimed: data.rewardsClaimed,
+              });
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Error checking LP rewards for market ${marketId}:`,
+            error
+          );
+        }
+      }
+
+      setLpRewards(rewards);
+      setLoading(false);
+    };
+
+    fetchLPRewards();
+  }, [isConnected, address]);
+
+  const handleClaimLPRewards = async (marketId: number) => {
+    if (!address) return;
 
     try {
       toast({
@@ -70,6 +113,23 @@ export function LPRewardsManager() {
       });
     }
   };
+
+  // Handle successful transaction
+  useEffect(() => {
+    if (isConfirmed) {
+      toast({
+        title: "LP Rewards Claimed!",
+        description: "Your LP rewards have been successfully claimed.",
+      });
+      // Refresh LP rewards data
+      setLpRewards((prev) =>
+        prev.filter(
+          (reward) =>
+            !prev.some((r) => r.marketId === parseInt(hash?.toString() || "0"))
+        )
+      );
+    }
+  }, [isConfirmed, hash, toast]);
 
   const formatAmount = (amount: bigint | undefined) => {
     if (!amount) return "0.00";
@@ -94,20 +154,10 @@ export function LPRewardsManager() {
     );
   }
 
-  if (isConfirmed) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center">
-          <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-lg font-medium mb-2">LP Rewards Claimed!</h3>
-          <p className="text-gray-600 mb-4">
-            Your LP rewards have been successfully claimed.
-          </p>
-          <Button onClick={() => window.location.reload()}>Continue</Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const totalClaimableRewards = lpRewards
+    .filter((r) => !r.rewardsClaimed)
+    .reduce((sum, r) => sum + r.estimatedRewards, 0n);
+  const totalClaimableEth = Number(totalClaimableRewards) / 1e18;
 
   return (
     <div className="space-y-6">
@@ -138,53 +188,83 @@ export function LPRewardsManager() {
 
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h3 className="font-medium text-blue-800 mb-1">
-                How LP Rewards Work
+                Available to Claim
               </h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Earn 0.3% fee from every AMM swap</li>
-                <li>• Rewards proportional to liquidity provided</li>
-                <li>• Claim rewards per market</li>
-                <li>• No time restrictions on claiming</li>
-              </ul>
+              <p className="text-2xl font-bold text-blue-600">
+                {totalClaimableEth.toFixed(4)} Buster
+              </p>
+              <p className="text-sm text-blue-700 mt-1">
+                From {lpRewards.filter((r) => !r.rewardsClaimed).length} markets
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Claim Rewards Card */}
+      {/* Claimable Rewards */}
       <Card>
         <CardHeader>
-          <CardTitle>Claim LP Rewards</CardTitle>
+          <CardTitle>Claimable LP Rewards</CardTitle>
           <CardDescription>
-            Enter a market ID to claim your accumulated liquidity provider
-            rewards
+            Claim your accumulated liquidity provider rewards
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="marketId">Market ID</Label>
-            <Input
-              id="marketId"
-              type="number"
-              placeholder="Enter market ID..."
-              value={marketId}
-              onChange={(e) => setMarketId(e.target.value)}
-            />
-            <p className="text-sm text-gray-500">
-              Enter the ID of a market where you&apos;ve provided liquidity
-            </p>
-          </div>
-
-          <Button
-            onClick={handleClaimLPRewards}
-            disabled={!marketId || isPending || isConfirming}
-            className="w-full"
-          >
-            {(isPending || isConfirming) && (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            )}
-            Claim LP Rewards
-          </Button>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+              <span className="ml-2 text-sm text-gray-600">
+                Checking available LP rewards...
+              </span>
+            </div>
+          ) : lpRewards.filter((r) => !r.rewardsClaimed).length === 0 ? (
+            <div className="text-center py-8">
+              <Coins className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-600">No LP rewards available to claim</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Provide liquidity to markets to earn rewards
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {lpRewards
+                .filter((r) => !r.rewardsClaimed)
+                .map((reward) => (
+                  <div
+                    key={reward.marketId}
+                    className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Market #{reward.marketId}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Reward: {formatAmount(reward.estimatedRewards)} Buster
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Your LP contribution:{" "}
+                        {formatAmount(reward.contribution)} Buster
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => handleClaimLPRewards(reward.marketId)}
+                      disabled={isPending || isConfirming}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      {isPending || isConfirming ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Claiming...
+                        </>
+                      ) : (
+                        "Claim"
+                      )}
+                    </Button>
+                  </div>
+                ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -299,7 +299,7 @@ export function V3AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-0">
         <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-3xl font-bold truncate">
-            V3 Admin Dashboard
+            Admin settings
           </h1>
           <p className="text-sm md:text-base text-gray-500 truncate">
             Manage platform settings and collect fees

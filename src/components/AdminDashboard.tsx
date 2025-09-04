@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { CreateMarketV2 } from "./CreateMarketV2";
 import { MarketResolver } from "./MarketResolver";
 import { AdminLiquidityManager } from "./AdminLiquidityManager";
+import { LPRewardsManager } from "./LPRewardsManager";
+import { PrizePoolManager } from "./PrizePoolManager";
 import { AdminRoleManager } from "./AdminRoleManager";
 import { MarketValidationManager } from "./MarketValidationManager";
 import { MarketInvalidationManager } from "./MarketInvalidationManager";
@@ -314,7 +316,11 @@ export function AdminDashboard() {
             value="liquidity"
             className="space-y-4 md:space-y-6 mt-3 md:mt-6"
           >
-            <AdminLiquidityManager />
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              <AdminLiquidityManager />
+              <LPRewardsManager />
+              <PrizePoolManager />
+            </div>
           </TabsContent>
         )}
 
