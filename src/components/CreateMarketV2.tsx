@@ -859,7 +859,7 @@ export function CreateMarketV2() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Create V2 Prediction Market
+            Create Market
             <Badge variant="secondary">Admin</Badge>
           </CardTitle>
         </CardHeader>

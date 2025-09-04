@@ -21,8 +21,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useV3PlatformData } from "@/hooks/useV3PlatformData";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
-import { MarketInvalidationManager } from "./MarketInvalidationManager";
-import { LPRewardsManager } from "./LPRewardsManager";
+// import { MarketInvalidationManager } from "./MarketInvalidationManager";
+// import { LPRewardsManager } from "./LPRewardsManager";
 import { AdminWithdrawalsSection } from "./AdminWithdrawalsSection";
 import {
   Loader2,
@@ -389,7 +389,7 @@ export function V3AdminDashboard() {
       </div>
 
       <Tabs defaultValue="fees" className="space-y-3 md:space-y-4 w-full">
-        <TabsList className="w-full h-auto p-1 grid grid-cols-2 md:grid-cols-6 gap-1">
+        <TabsList className="w-full h-auto p-1 grid grid-cols-1 md:grid-cols-3 gap-1">
           <TabsTrigger
             value="fees"
             className="text-xs md:text-sm px-2 py-2 md:px-3"
@@ -400,26 +400,26 @@ export function V3AdminDashboard() {
             value="withdrawals"
             className="text-xs md:text-sm px-2 py-2 md:px-3"
           >
-            Auto Withdrawals
+            LP & Free Market Pool
           </TabsTrigger>
-          <TabsTrigger
+          {/* <TabsTrigger
             value="invalidation"
             className="text-xs md:text-sm px-2 py-2 md:px-3"
           >
             Market Invalidation
-          </TabsTrigger>
-          <TabsTrigger
+          </TabsTrigger> */}
+          {/* <TabsTrigger
             value="liquidity"
             className="text-xs md:text-sm px-2 py-2 md:px-3"
           >
             Liquidity Recovery
-          </TabsTrigger>
-          <TabsTrigger
+          </TabsTrigger> */}
+          {/* <TabsTrigger
             value="lprewards"
             className="text-xs md:text-sm px-2 py-2 md:px-3"
           >
             LP Rewards
-          </TabsTrigger>
+          </TabsTrigger> */}
           {isOwner && (
             <TabsTrigger
               value="settings"
@@ -483,8 +483,8 @@ export function V3AdminDashboard() {
           <AdminWithdrawalsSection />
         </TabsContent>
 
-        <TabsContent value="invalidation" className="space-y-3 md:space-y-4">
-          {/* Market Invalidation */}
+        {/* Market Invalidation */}
+        {/* <TabsContent value="invalidation" className="space-y-3 md:space-y-4">
           <Card>
             <CardHeader className="pb-3 md:pb-6">
               <CardTitle className="flex items-center gap-2 text-base md:text-lg">
@@ -499,10 +499,9 @@ export function V3AdminDashboard() {
               <MarketInvalidationManager />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="liquidity" className="space-y-3 md:space-y-4">
-          {/* Admin Liquidity Recovery */}
+        </TabsContent> */}
+        {/* Admin Liquidity Recovery */}
+        {/* <TabsContent value="liquidity" className="space-y-3 md:space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
             <Card>
               <CardHeader className="pb-3 md:pb-6">
@@ -586,12 +585,12 @@ export function V3AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
+        </TabsContent> */}
 
-        <TabsContent value="lprewards" className="space-y-3 md:space-y-4">
-          {/* LP Rewards Management */}
+        {/* LP Rewards Management */}
+        {/* <TabsContent value="lprewards" className="space-y-3 md:space-y-4">
           <LPRewardsManager />
-        </TabsContent>
+        </TabsContent> */}
 
         {isOwner && (
           <TabsContent value="settings" className="space-y-3 md:space-y-4">

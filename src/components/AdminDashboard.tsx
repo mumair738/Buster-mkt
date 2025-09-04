@@ -11,7 +11,7 @@ import { AdminLiquidityManager } from "./AdminLiquidityManager";
 import { AdminRoleManager } from "./AdminRoleManager";
 import { MarketValidationManager } from "./MarketValidationManager";
 import { MarketInvalidationManager } from "./MarketInvalidationManager";
-import { BatchDistributionManager } from "./BatchDistributionManager";
+// import { BatchDistributionManager } from "./BatchDistributionManager";
 import { V3AdminDashboard } from "./V3AdminDashboard";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { V2contractAddress, V2contractAbi } from "@/constants/contract";
@@ -183,7 +183,7 @@ export function AdminDashboard() {
 
       {/* Admin Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-8 bg-muted">
+        <TabsList className="flex flex-wrap justify-start gap-1 h-auto p-1 md:grid md:grid-cols-7 bg-muted">
           {hasCreatorAccess && (
             <TabsTrigger
               value="create"
@@ -299,14 +299,14 @@ export function AdminDashboard() {
         )}
 
         {/* Batch Distribution Tab */}
-        {isAdmin && (
+        {/* {isAdmin && (
           <TabsContent
             value="distribute"
             className="space-y-4 md:space-y-6 mt-3 md:mt-6"
           >
             <BatchDistributionManager />
           </TabsContent>
-        )}
+        )} */}
 
         {/* Liquidity Management Tab */}
         {isAdmin && (
