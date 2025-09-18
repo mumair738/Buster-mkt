@@ -20,15 +20,21 @@ export async function GET(
       return NextResponse.json({ error: "Invalid address" }, { status: 400 });
     }
 
-    // Get LP info from contract//
-    const lpInfo = (await publicClient.readContract({
+    // Get LP info from contract
+    const readParams: any = {
       address: V2contractAddress,
       abi: V2contractAbi,
       functionName: "getLPInfo",
       args: [BigInt(marketId), address as `0x${string}`],
-    })) as [bigint, boolean, bigint];
+    };
 
-    const [contribution, rewardsClaimed, estimatedRewards] = lpInfo;
+    const rawLp = (await (publicClient.readContract as any)(
+      readParams
+    )) as unknown;
+    const li = (rawLp as readonly any[]) || [];
+    const contribution = BigInt(li[0] ?? 0n);
+    const rewardsClaimed = Boolean(li[1]);
+    const estimatedRewards = BigInt(li[2] ?? 0n);
 
     return NextResponse.json({
       marketId: Number(marketId),

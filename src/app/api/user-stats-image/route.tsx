@@ -83,7 +83,7 @@ async function fetchUserStats(address: Address): Promise<UserStatsData> {
       v2Portfolio = await publicClient.readContract({
         address: V2contractAddress,
         abi: V2contractAbi,
-        functionName: "getUserPortfolio",
+        functionName: "userPortfolios",
         args: [address],
       });
 
