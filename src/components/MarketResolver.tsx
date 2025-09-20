@@ -116,6 +116,13 @@ export function MarketResolver() {
             args: [BigInt(i)],
           });
 
+          const earlyResolutionAllowed = await publicClient.readContract({
+            address: PolicastViews,
+            abi: PolicastViewsAbi,
+            functionName: "getMarketEarlyResolutionAllowed",
+            args: [BigInt(i)],
+          });
+
           // Convert BigInt values to numbers/strings for JSON serialization
           const serializedMarketInfo = [
             marketInfo[0], // title (string)
@@ -143,6 +150,7 @@ export function MarketResolver() {
             id: i,
             marketInfo: serializedMarketInfo,
             marketStatus: serializedMarketStatus,
+            earlyResolutionAllowed: Boolean(earlyResolutionAllowed),
           });
         } catch (error) {
           console.error(`Error fetching market ${i}:`, error);
@@ -175,7 +183,7 @@ export function MarketResolver() {
       try {
         const now = Math.floor(Date.now() / 1000);
         const mapped: MarketInfo[] = items.map((item) => {
-          const { marketInfo, marketStatus } = item;
+          const { marketInfo, marketStatus, earlyResolutionAllowed } = item;
           const [
             title,
             description,
@@ -212,7 +220,7 @@ export function MarketResolver() {
             options: [], // Would need additional calls to get option names
             totalShares: Array(optionCount).fill(0n), // optionCount is already a number
             canResolve: Boolean(canResolve),
-            earlyResolutionAllowed: false, // Would need additional call
+            earlyResolutionAllowed: Boolean(earlyResolutionAllowed), // Now using actual value
           } as MarketInfo;
         });
 
@@ -569,6 +577,14 @@ export function MarketResolver() {
                       </div>
                       <div className="flex items-center gap-2 ml-4">
                         {getStatusBadge(market)}
+                        {market.earlyResolutionAllowed && !market.resolved && (
+                          <Badge
+                            variant="outline"
+                            className="text-blue-600 border-blue-200"
+                          >
+                            Early Resolution
+                          </Badge>
+                        )}
                       </div>
                     </div>
 
@@ -626,16 +642,21 @@ export function MarketResolver() {
 
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
-                      {market.canResolve && !market.disputed && (
-                        <Button
-                          size="sm"
-                          onClick={() => setSelectedMarket(market)}
-                          className="flex items-center gap-2"
-                        >
-                          <Gavel className="h-4 w-4" />
-                          Resolve Market
-                        </Button>
-                      )}
+                      {(market.canResolve || market.earlyResolutionAllowed) &&
+                        !market.resolved &&
+                        !market.disputed && (
+                          <Button
+                            size="sm"
+                            onClick={() => setSelectedMarket(market)}
+                            className="flex items-center gap-2"
+                          >
+                            <Gavel className="h-4 w-4" />
+                            {market.earlyResolutionAllowed &&
+                            Number(market.endTime) * 1000 > Date.now()
+                              ? "Early Resolve"
+                              : "Resolve Market"}
+                          </Button>
+                        )}
 
                       {market.resolved && !market.disputed && (
                         <Button
