@@ -420,7 +420,7 @@ export function MarketResolver() {
                 <p>Debug info:</p>
                 <p>Total markets loaded: {markets.length}</p>
                 <p>Current filter: {filter}</p>
-                <p>Search term: "{searchTerm}"</p>
+                <p>Search term: &ldquo;{searchTerm}&ldquo;</p>
                 <p>Connected: {isConnected ? "Yes" : "No"}</p>
               </div>
             </div>
