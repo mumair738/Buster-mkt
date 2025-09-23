@@ -395,7 +395,8 @@ export function PriceHistoryV2() {
   }, [selectedMarketId, selectedTimeRange]);
 
   const formatPrice = (price: number) => {
-    return price.toFixed(4);
+    // Price is already in token format (0-100), format with 2 decimals
+    return price.toFixed(2);
   };
 
   const formatVolume = (volume: number) => {

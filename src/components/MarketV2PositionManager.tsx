@@ -259,10 +259,11 @@ export function MarketV2PositionManager({
     let unrealizedPnLPercent = 0;
 
     if (shares > 0n && currentPrice > 0n) {
-      // For simplicity, assume average cost basis of 0.5 per share (50 cents)
+      // For simplicity, assume average cost basis of 50 tokens per share
       // This is a rough estimate since we don't have exact purchase history
+      // 50 tokens represents approximately 50% probability in a typical 2-option market
       const estimatedCostBasis =
-        (shares * BigInt(5 * 10 ** 17)) / BigInt(10 ** 18); // 0.5 per share
+        (shares * BigInt(50 * 10 ** 18)) / BigInt(10 ** 18); // 50 tokens per share
       unrealizedPnL = currentValue - estimatedCostBasis;
       unrealizedPnLPercent =
         estimatedCostBasis > 0n

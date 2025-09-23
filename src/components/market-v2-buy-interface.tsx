@@ -2,7 +2,7 @@
 
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   BaseError,
   useAccount,
@@ -58,19 +58,22 @@ function toUnits(amount: string, decimals: number): bigint {
 
 // Helper function to calculate implied probability from price
 function calculateProbability(price: bigint): number {
-  const priceAsNumber = Number(price) / 1e18;
-  return Math.max(0, Math.min(100, priceAsNumber * 100));
+  // Contract stores probabilities (0-1 range scaled by 1e18), convert to percentage
+  const probability = Number(price) / 1e18;
+  return Math.max(0, Math.min(100, probability * 100));
 }
 
 // Helper function to calculate implied odds
 function calculateOdds(price: bigint): number {
-  const priceAsNumber = Number(price) / 1e18;
-  if (priceAsNumber <= 0) return 0;
-  return 1 / priceAsNumber;
+  // Convert probability to odds
+  const probability = Number(price) / 1e18;
+  if (probability <= 0) return 0;
+  return 1 / probability;
 }
 
 // Format price with proper decimals
 function formatPrice(price: bigint, decimals: number = 18): string {
+  // Format the raw value with proper scaling
   const formatted = Number(price) / Math.pow(10, decimals);
   if (formatted < 0.01) return formatted.toFixed(4);
   if (formatted < 1) return formatted.toFixed(3);
@@ -273,13 +276,22 @@ export function MarketV2BuyInterface({
     },
   });
 
-  // Fetch real-time AMM cost estimation for purchase amount with fresher data
-  // Note: calculateAMMBuyCost function not available in current ABI
-  // Using current price from optionData for estimation
-  const estimatedCost =
-    optionData && amount
-      ? (optionData[4] as bigint) * BigInt(parseFloat(amount || "0"))
-      : 0n;
+  // Fetch real-time cost estimation - contract stores probabilities, convert to cost
+  const estimatedCost = useMemo(() => {
+    if (!optionData || !amount || parseFloat(amount) <= 0) return 0n;
+
+    const probability = optionData[4] as bigint; // This is probability (0-1 range scaled by 1e18)
+    const quantity = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, 18)));
+
+    // Calculate cost: probability * quantity * PAYOUT_PER_SHARE / 1e18
+    // PAYOUT_PER_SHARE = 100e18 (100 tokens per share)
+    const probTimesQty = (probability * quantity) / BigInt(1e18);
+    const rawCost = (probTimesQty * BigInt(100e18)) / BigInt(1e18);
+
+    // Add platform fee (2%)
+    const fee = (rawCost * 200n) / 10000n;
+    return rawCost + fee;
+  }, [optionData, amount]);
 
   // Fetch market info for validation
   const { data: marketInfo } = useReadContract({
@@ -1324,7 +1336,7 @@ export function MarketV2BuyInterface({
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                          {currentPrice} {tokenSymbol}
+                          {probability.toFixed(1)}%
                         </p>
                       </div>
                     </div>

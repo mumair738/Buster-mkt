@@ -96,7 +96,7 @@ export function CreateMarketV2() {
   );
   const [marketType, setMarketType] = useState<MarketType>(MarketType.PAID);
   const [duration, setDuration] = useState<string>("7"); // days
-  const [initialLiquidity, setInitialLiquidity] = useState<string>("1000");
+  const [initialLiquidity, setInitialLiquidity] = useState<string>("5000");
   const [options, setOptions] = useState<MarketOption[]>([
     { name: "", description: "" },
     { name: "", description: "" },
@@ -736,7 +736,7 @@ export function CreateMarketV2() {
     setCategory(MarketCategory.OTHER);
     setMarketType(MarketType.PAID);
     setDuration("7");
-    setInitialLiquidity("1000");
+    setInitialLiquidity("5000");
     setOptions([
       { name: "", description: "" },
       { name: "", description: "" },

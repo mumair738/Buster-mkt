@@ -2,7 +2,7 @@
 
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   useAccount,
   useReadContract,
@@ -91,7 +91,7 @@ export function MarketV2SellInterface({
     null
   );
 
-  // Token information
+  // Token information//
   const { data: tokenSymbol } = useReadContract({
     address: tokenAddress,
     abi: tokenAbi,
@@ -113,17 +113,24 @@ export function MarketV2SellInterface({
     query: { enabled: selectedOptionId !== null },
   });
 
-  // Fetch real-time AMM revenue estimation for sell amount
-  // Note: calculateAMMSellRevenue function not available in current ABI
-  // Using current price from optionData for estimation
-  const estimatedRevenue =
-    optionData && sellAmount
-      ? ((optionData[4] as bigint) *
-          BigInt(
-            Math.floor(parseFloat(sellAmount || "0") * Math.pow(10, 18))
-          )) /
-        BigInt(10 ** 18)
-      : 0n;
+  // Calculate estimated revenue - contract stores probabilities, convert to revenue
+  const estimatedRevenue = useMemo(() => {
+    if (!optionData || !sellAmount || parseFloat(sellAmount) <= 0) return 0n;
+
+    const probability = optionData[4] as bigint; // This is probability (0-1 range scaled by 1e18)
+    const quantity = BigInt(
+      Math.floor(parseFloat(sellAmount) * Math.pow(10, 18))
+    );
+
+    // Calculate revenue: probability * quantity * PAYOUT_PER_SHARE / 1e18
+    // PAYOUT_PER_SHARE = 100e18 (100 tokens per share)
+    const probTimesQty = (probability * quantity) / BigInt(1e18);
+    const rawRefund = (probTimesQty * BigInt(100e18)) / BigInt(1e18);
+
+    // Subtract platform fee (2%)
+    const fee = (rawRefund * 200n) / 10000n;
+    return rawRefund - fee;
+  }, [optionData, sellAmount]);
 
   // Calculate minimum price with slippage protection (5% slippage tolerance)
   const calculateMinPrice = useCallback((currentPrice: bigint): bigint => {

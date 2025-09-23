@@ -239,7 +239,15 @@ export function MarketAnalyticsV2() {
   };
 
   const formatPrice = (price: bigint) => {
-    return (Number(price) / 10 ** 18).toFixed(4);
+    // Price is now in token format (0-100 range), format with 2 decimals
+    const tokenPrice = Number(price) / 10 ** 18;
+    return tokenPrice.toFixed(2);
+  };
+
+  const calculateProbability = (tokenPrice: bigint): number => {
+    // Convert token price (0-100) to probability percentage (0-100)
+    const price = Number(tokenPrice) / 10 ** 18;
+    return Math.max(0, Math.min(100, price)); // Clamp to 0-100 range
   };
 
   const getCategoryName = (category: number) => {

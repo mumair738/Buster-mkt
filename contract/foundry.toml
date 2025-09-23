@@ -1,0 +1,14 @@
+[profile.default]
+src = '.'
+libs = ['lib']
+solc_version = '0.8.26'
+evm_version = 'paris'
+optimizer = true
+optimizer_runs = 200
+remappings = [
+    'forge-std/=lib/forge-std/src/',
+    'prb-math/=lib/prb-math/src/',
+    '@openzeppelin/=lib/openzeppelin-contracts/',
+]
+# Skip problematic Certora harness files that have missing patched dependencies
+skip = ['**/certora/harnesses/**']

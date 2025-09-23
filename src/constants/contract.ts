@@ -9,8 +9,8 @@ export const publicClient = createPublicClient({
 
 export const contractAddress = "0xd24261cD87Ac11A8961a2d5df7036ad87ca7F02A";
 export const tokenAddress = "0x53Bd7F868764333de01643ca9102ee4297eFA3cb";
-export const V2contractAddress = "0xDd999881D1733A0E80Ff0674f31F62eb108B8163";
-export const PolicastViews = "0xa91e5eb29B2EEE97E0E2379d0400f7D8Cf7A43aA";
+export const V2contractAddress = "0x22Bc3bE4E71BAfbf4743dB6FFb127FB7E9CB30A9";
+export const PolicastViews = "0x6ADFb0b39994b2a31031f126dA8e7A5fdb0D5442";
 // V1 Contract ABI for binary markets (legacy)
 export const contractAbi = [
   {
@@ -1295,17 +1295,6 @@ export const V2contractAbi = [
   },
   {
     type: "function",
-    name: "calculateSellPrice",
-    inputs: [
-      { name: "_marketId", type: "uint256", internalType: "uint256" },
-      { name: "_optionId", type: "uint256", internalType: "uint256" },
-      { name: "_quantity", type: "uint256", internalType: "uint256" },
-    ],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
     name: "categoryMarkets",
     inputs: [
       {
@@ -1441,20 +1430,6 @@ export const V2contractAbi = [
     name: "feeCollector",
     inputs: [],
     outputs: [{ name: "", type: "address", internalType: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "getFeeCollector",
-    inputs: [],
-    outputs: [{ name: "", type: "address", internalType: "address" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "getGlobalTradeCount",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
@@ -1599,13 +1574,6 @@ export const V2contractAbi = [
     name: "getRoleAdmin",
     inputs: [{ name: "role", type: "bytes32", internalType: "bytes32" }],
     outputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "getTotalFeesCollected",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
@@ -2689,6 +2657,25 @@ export const V2contractAbi = [
   },
   {
     type: "event",
+    name: "TokenPricesUpdated",
+    inputs: [
+      {
+        name: "marketId",
+        type: "uint256",
+        indexed: true,
+        internalType: "uint256",
+      },
+      {
+        name: "tokenPrices",
+        type: "uint256[]",
+        indexed: false,
+        internalType: "uint256[]",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
     name: "TradeExecuted",
     inputs: [
       {
@@ -2943,6 +2930,27 @@ export const PolicastViewsAbi = [
   },
   {
     type: "function",
+    name: "calculateCurrentPriceInTokens",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_optionId", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "calculateSellPrice",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_optionId", type: "uint256", internalType: "uint256" },
+      { name: "_quantity", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "calculateUnrealizedPnL",
     inputs: [{ name: "_user", type: "address", internalType: "address" }],
     outputs: [{ name: "", type: "int256", internalType: "int256" }],
@@ -2971,6 +2979,13 @@ export const PolicastViewsAbi = [
     name: "getEventBasedMarkets",
     inputs: [],
     outputs: [{ name: "", type: "uint256[]", internalType: "uint256[]" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getFeeCollector",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
     stateMutability: "view",
   },
   {
@@ -3005,6 +3020,13 @@ export const PolicastViewsAbi = [
       },
       { name: "isActive", type: "bool", internalType: "bool" },
     ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getGlobalTradeCount",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
@@ -3186,6 +3208,13 @@ export const PolicastViewsAbi = [
   },
   {
     type: "function",
+    name: "getMarketPricesInTokens",
+    inputs: [{ name: "_marketId", type: "uint256", internalType: "uint256" }],
+    outputs: [{ name: "", type: "uint256[]", internalType: "uint256[]" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "getMarketResolved",
     inputs: [{ name: "_marketId", type: "uint256", internalType: "uint256" }],
     outputs: [{ name: "", type: "bool", internalType: "bool" }],
@@ -3268,6 +3297,16 @@ export const PolicastViewsAbi = [
   },
   {
     type: "function",
+    name: "getOptionPriceInTokens",
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_optionId", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
     name: "getPlatformFeeBreakdown",
     inputs: [],
     outputs: [
@@ -3339,6 +3378,13 @@ export const PolicastViewsAbi = [
         ],
       },
     ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getTotalFeesCollected",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
     stateMutability: "view",
   },
   {
