@@ -471,7 +471,7 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         market.adminInitialLiquidity = _initialLiquidity;
         market.userLiquidity = 0; // No user liquidity yet
 
-        // Initialize options with equal starting prices (1.0 tokens total, split equally) - createFreeMarket  
+        // Initialize options with equal starting prices (1.0 tokens total, split equally) - createFreeMarket
         uint256 initialPrice = 1e18 / _optionNames.length; // Equal price distribution
 
         for (uint256 i = 0; i < _optionNames.length; i++) {
@@ -530,14 +530,14 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
             refundAmount = market.adminInitialLiquidity;
             market.adminLiquidityClaimed = true;
         }
-        
+
         // For free markets, also refund remaining prize pool
         if (market.marketType == MarketType.FREE_ENTRY && market.freeConfig.remainingPrizePool > 0) {
             refundAmount += market.freeConfig.remainingPrizePool;
             market.freeConfig.remainingPrizePool = 0;
             market.freeConfig.isActive = false;
         }
-        
+
         // Transfer the total refund amount if any
         if (refundAmount > 0) {
             if (!bettingToken.transfer(market.creator, refundAmount)) revert TransferFailed();
@@ -548,15 +548,15 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
 
     function disputeMarket(uint256 _marketId, string calldata _reason) external nonReentrant validMarket(_marketId) {
         if (!hasRole(MARKET_VALIDATOR_ROLE, msg.sender) && msg.sender != owner()) revert NotAuthorized();
-        
+
         Market storage market = markets[_marketId];
         if (!market.resolved) revert MarketNotResolved();
         if (market.disputed) revert MarketAlreadyResolved(); // Already disputed
         if (market.invalidated) revert MarketIsInvalidated();
-        
+
         // Set market as disputed
         market.disputed = true;
-        
+
         emit MarketDisputed(_marketId, msg.sender, _reason);
     }
 
@@ -626,13 +626,13 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
 
         Market storage market = markets[_marketId];
         MarketOption storage option = market.options[_optionId];
-        
-    // Use option-specific pricing scaled by payout per share (token base units)
-    // 1 share costs probability * PAYOUT_PER_SHARE tokens
-    // Units: currentPrice (1e18) * PAYOUT_PER_SHARE (1e18) / 1e18 -> tokens (1e18)
-    // Compute (prob * qty) first to keep precision, then scale by payout
-    uint256 probTimesQty = (option.currentPrice * _quantity) / 1e18; // still 1e18-scaled
-    uint256 rawCost = (probTimesQty * PAYOUT_PER_SHARE) / 1e18; // tokens
+
+        // Use option-specific pricing scaled by payout per share (token base units)
+        // 1 share costs probability * PAYOUT_PER_SHARE tokens
+        // Units: currentPrice (1e18) * PAYOUT_PER_SHARE (1e18) / 1e18 -> tokens (1e18)
+        // Compute (prob * qty) first to keep precision, then scale by payout
+        uint256 probTimesQty = (option.currentPrice * _quantity) / 1e18; // still 1e18-scaled
+        uint256 rawCost = (probTimesQty * PAYOUT_PER_SHARE) / 1e18; // tokens
         if (rawCost == 0) revert PriceTooLow();
 
         uint256 fee = (rawCost * platformFeeRate) / 10000;
@@ -726,11 +726,11 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
 
         Market storage market = markets[_marketId];
         MarketOption storage option = market.options[_optionId];
-        
-    // Use option-specific pricing scaled by payout per share (token base units)
-    // 1 share refunds probability * PAYOUT_PER_SHARE tokens
-    uint256 probTimesQty = (option.currentPrice * _quantity) / 1e18;
-    uint256 rawRefund = (probTimesQty * PAYOUT_PER_SHARE) / 1e18;
+
+        // Use option-specific pricing scaled by payout per share (token base units)
+        // 1 share refunds probability * PAYOUT_PER_SHARE tokens
+        uint256 probTimesQty = (option.currentPrice * _quantity) / 1e18;
+        uint256 rawRefund = (probTimesQty * PAYOUT_PER_SHARE) / 1e18;
         if (rawRefund == 0) revert PriceTooLow();
         uint256 fee = (rawRefund * platformFeeRate) / 10000;
         uint256 netRefund = rawRefund - fee;
@@ -769,10 +769,11 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         uint256 userShares = market.userShares[msg.sender][_optionId] + _quantity; // original shares before sale
         uint256 avgCostBasis = userShares > 0 ? totalCostBasis / userShares : 0; // average cost per share
         uint256 soldCostBasis = avgCostBasis * _quantity; // cost basis for sold shares
-        
+
         // Update cost basis tracking
-        userCostBasis[msg.sender][_marketId][_optionId] = totalCostBasis > soldCostBasis ? totalCostBasis - soldCostBasis : 0;
-        
+        userCostBasis[msg.sender][_marketId][_optionId] =
+            totalCostBasis > soldCostBasis ? totalCostBasis - soldCostBasis : 0;
+
         userPortfolios[msg.sender].tradeCount++;
         userPortfolios[msg.sender].realizedPnL += int256(netRefund) - int256(soldCostBasis);
         emit UserPortfolioUpdated(
@@ -819,7 +820,7 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     function resolveMarket(uint256 _marketId, uint256 _winningOptionId) external nonReentrant validMarket(_marketId) {
         if (msg.sender != owner() && !hasRole(QUESTION_RESOLVE_ROLE, msg.sender)) revert NotAuthorized();
         Market storage market = markets[_marketId];
-        
+
         // Require market validation before resolution
         if (!market.validated) revert MarketNotValidated();
 
@@ -841,7 +842,6 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
 
         // Note: Admin liquidity remains in contract for winner payouts
         // Creators can manually withdraw remaining liquidity after all claims
-        
 
         // Handle free market unused prize pool
         uint256 unusedPrizePool = 0;
@@ -872,9 +872,9 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         }
 
         emit MarketResolved(_marketId, _winningOptionId, msg.sender);
-        
+
         // Admin liquidity remains in contract - no withdrawal event needed
-        
+
         if (unusedPrizePool > 0) {
             emit UnusedPrizePoolWithdrawn(_marketId, market.creator, unusedPrizePool);
         }
@@ -887,19 +887,19 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         if (market.invalidated) revert MarketIsInvalidated();
         if (market.hasClaimed[msg.sender]) revert AlreadyClaimed();
 
-    uint256 userWinningShares = market.userShares[msg.sender][market.winningOptionId];
-    if (userWinningShares == 0) revert NoWinningShares();
-    // Fixed payout per winning share (Polymarket-style)
-    // Units: userWinningShares (1e18) * PAYOUT_PER_SHARE (1e18) / 1e18 -> tokens (1e18)
-    uint256 winnings = (userWinningShares * PAYOUT_PER_SHARE) / 1e18;
+        uint256 userWinningShares = market.userShares[msg.sender][market.winningOptionId];
+        if (userWinningShares == 0) revert NoWinningShares();
+        // Fixed payout per winning share (Polymarket-style)
+        // Units: userWinningShares (1e18) * PAYOUT_PER_SHARE (1e18) / 1e18 -> tokens (1e18)
+        uint256 winnings = (userWinningShares * PAYOUT_PER_SHARE) / 1e18;
 
         // Effects: Update all state before external call
         market.hasClaimed[msg.sender] = true;
-        
+
         // Calculate realized PnL from winnings vs cost basis
         uint256 costBasis = userCostBasis[msg.sender][_marketId][market.winningOptionId];
         userCostBasis[msg.sender][_marketId][market.winningOptionId] = 0; // Clear cost basis as position is closed
-        
+
         userPortfolios[msg.sender].totalWinnings += winnings;
         userPortfolios[msg.sender].realizedPnL += int256(winnings) - int256(costBasis);
         // NOTE: The standalone totalWinnings[msg.sender] mapping is deprecated.
@@ -926,13 +926,11 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     // NEW: Platform Fee Management
     // Backwards-compatible function now only withdraws unlocked fees
     function withdrawPlatformFees() external nonReentrant {
-
-    if (msg.sender != feeCollector && msg.sender != owner()) revert NotAuthorized();
+        if (msg.sender != feeCollector && msg.sender != owner()) revert NotAuthorized();
         _withdrawUnlockedPlatformFees();
     }
 
     function _withdrawUnlockedPlatformFees() internal {
-        
         uint256 amount = totalUnlockedPlatformFees;
         if (amount == 0) revert NoUnlockedFees();
         totalUnlockedPlatformFees = 0;
@@ -942,67 +940,54 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     }
 
     // NEW: Admin Initial Liquidity Withdrawal
-    function withdrawAdminLiquidity(uint256 _marketId) 
-        external 
-        nonReentrant 
-        validMarket(_marketId) 
-    {
+    function withdrawAdminLiquidity(uint256 _marketId) external nonReentrant validMarket(_marketId) {
         Market storage market = markets[_marketId];
-        
+
         // Only market creator can withdraw their initial liquidity
         if (msg.sender != market.creator) revert NotAuthorized();
-        
+
         // Market must be resolved or invalidated
         if (!market.resolved && !market.invalidated) revert MarketNotReady();
-        
+
         // Check if already claimed
         if (market.adminLiquidityClaimed) revert AdminLiquidityAlreadyClaimed();
-        
+
         // Must have initial liquidity to withdraw
         if (market.adminInitialLiquidity == 0) revert NoLiquidityToWithdraw();
-        
+
         uint256 withdrawAmount = market.adminInitialLiquidity;
-        
+
         // Effects: Update state before interaction
         market.adminLiquidityClaimed = true;
-        
+
         // Interactions: Transfer tokens
         if (!bettingToken.transfer(market.creator, withdrawAmount)) revert TransferFailed();
-        
+
         emit AdminLiquidityWithdrawn(_marketId, market.creator, withdrawAmount);
     }
 
     // NEW: Emergency token withdrawal (owner only)
-    function emergencyWithdraw(uint256 _amount) 
-        external 
-        onlyOwner 
-        nonReentrant 
-    {
+    function emergencyWithdraw(uint256 _amount) external onlyOwner nonReentrant {
         if (_amount == 0) revert AmountMustBePositive();
-        
+
         uint256 contractBalance = bettingToken.balanceOf(address(this));
         if (contractBalance < _amount) revert InsufficientContractBalance();
-        
+
         // Transfer tokens to owner
         if (!bettingToken.transfer(owner(), _amount)) revert TransferFailed();
-        
+
         emit AdminLiquidityWithdrawn(0, owner(), _amount); // Use marketId 0 for emergency withdrawals
     }
 
     // NEW: Get withdrawable admin liquidity for a market
-    function getWithdrawableAdminLiquidity(uint256 _marketId) 
-        external 
-        view 
-        validMarket(_marketId) 
-        returns (uint256) 
-    {
+    function getWithdrawableAdminLiquidity(uint256 _marketId) external view validMarket(_marketId) returns (uint256) {
         Market storage market = markets[_marketId];
-        
+
         // Must be resolved or invalidated, and not already claimed
         if ((!market.resolved && !market.invalidated) || market.adminLiquidityClaimed) {
             return 0;
         }
-        
+
         return market.adminInitialLiquidity;
     }
 

@@ -49,7 +49,7 @@ library LMSRMath {
         // then atanh series: ln(y) = 2*( z + z^3/3 + z^5/5 + z^7/7 + z^9/9 ), z=(y-1)/(y+1)
         require(y > 0, "LN_ZERO");
         // Note: Removed require(y >= 1e18) to support full range
-        
+
         int256 result = 0;
         // Range reduce by powers of two to bring y into (0.5, 2]
         while (y >= 2e18) {
@@ -79,7 +79,7 @@ library LMSRMath {
         series += z7 / 7;
         series += z9 / 9;
         uint256 core = (series * 2); // multiply by 2 (still 1e18 scaled)
-        
+
         // Combine with accumulated powers-of-two adjustments using signed arithmetic
         if (sign == 0) {
             // y < 1, so ln(y) < 0
@@ -88,7 +88,7 @@ library LMSRMath {
             // y >= 1, so ln(y) >= 0
             result += int256(core);
         }
-        
+
         // Convert back to uint256, handling negative results appropriately
         if (result < 0) {
             // This should not happen in practice since we require y >= 1e18
@@ -130,11 +130,11 @@ library LMSRMath {
         if (_optionCount < 2) revert("BadOptionCount");
         if (_initialLiquidity == 0) revert("ZeroLiquidity");
         if (payoutPerShare == 0) revert("ZeroPayoutPerShare");
-        
+
         // Fixed b values based on option count for optimal price stability (25-30 range)
         uint256 b;
         uint256 lnN;
-        
+
         if (_optionCount == 2) {
             b = 30e18;
             lnN = 693147180559945309; // ln(2)
@@ -165,7 +165,7 @@ library LMSRMath {
         } else {
             revert("UnsupportedOptionCount");
         }
-        
+
         // Effects: Calculate worst case loss using conservative approximation
         // This represents the maximum loss when all volume goes to one outcome
         // Formula: worst_case_loss = b * ln(n) * payoutPerShare
@@ -176,12 +176,12 @@ library LMSRMath {
             uint256 bTimesLn = (b * lnN) / 1e18;
             worstCaseLoss = (bTimesLn * payoutPerShare) / 1e18;
         }
-        
+
         // Final validation: ensure liquidity can cover worst case
         if (_initialLiquidity < worstCaseLoss) {
             revert("InsufficientInitialLiquidity");
         }
-        
+
         return b;
     }
 }

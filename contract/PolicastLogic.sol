@@ -66,8 +66,10 @@ library PolicastLogic {
      * @param shares Array of share amounts for each option
      * @return LMSR cost in tokens
      */
-   function calculateLMSRCostWithShares(MarketData memory market, uint256[] memory shares)
-        internal pure returns (uint256)
+    function calculateLMSRCostWithShares(MarketData memory market, uint256[] memory shares)
+        internal
+        pure
+        returns (uint256)
     {
         if (market.optionCount == 0) return 0;
         if (market.lmsrB == 0) revert PriceInvariant(); // Prevent division by zero
@@ -130,7 +132,7 @@ library PolicastLogic {
             uint256 diff = scaled[i] >= maxScaled ? 0 : (maxScaled - scaled[i]);
             uint256 e = LMSRMath.expNeg(diff);
             expVals[i] = e;
-            
+
             // Overflow protection for denominator
             if (denom > type(uint256).max - e) revert PriceInvariant();
             denom += e;
@@ -155,7 +157,7 @@ library PolicastLogic {
 
         // Validate prices BEFORE updating options array (atomicity)
         _validatePrices(prices);
-        
+
         // Only update options after validation passes
         for (uint256 i = 0; i < market.optionCount; i++) {
             options[i].currentPrice = prices[i];
@@ -183,13 +185,15 @@ library PolicastLogic {
 
         for (uint256 i = 0; i < prices.length; i++) {
             uint256 p = prices[i];
-            if (p > 1e18) {  // Individual prices should not exceed 100%
+            if (p > 1e18) {
+                // Individual prices should not exceed 100%
                 revert PriceInvariant();
             }
             sumProb += p;
         }
 
-        if (sumProb + PROB_EPS < 1e18 || sumProb > 1e18 + PROB_EPS) {  // Sum should be ~1e18 (100%)
+        if (sumProb + PROB_EPS < 1e18 || sumProb > 1e18 + PROB_EPS) {
+            // Sum should be ~1e18 (100%)
             revert ProbabilityInvariant();
         }
     }
