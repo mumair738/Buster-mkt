@@ -18,6 +18,8 @@ import {
   V2contractAbi,
   tokenAddress,
   tokenAbi,
+  PolicastViews,
+  PolicastViewsAbi,
 } from "@/constants/contract";
 import { encodeFunctionData } from "viem";
 import { Loader2, TrendingDown } from "lucide-react";
@@ -39,7 +41,22 @@ type SellingStep =
   | "processing"
   | "sellSuccess";
 
-// Format price with proper decimals//
+// Helper function to calculate implied probability from token price
+function calculateProbability(tokenPrice: bigint): number {
+  // PolicastViews returns token prices (0-100 range), convert to percentage
+  const price = Number(tokenPrice) / 1e18;
+  return Math.max(0, Math.min(100, price));
+}
+
+// Helper function to calculate implied odds
+function calculateOdds(tokenPrice: bigint): number {
+  // Convert token price to probability and then to odds
+  const probability = Number(tokenPrice) / (100 * 1e18); // Convert back to 0-1 range
+  if (probability <= 0) return 0;
+  return 1 / probability;
+}
+
+// Format price with proper decimals
 function formatPrice(price: bigint, decimals: number = 18): string {
   const formatted = Number(price) / Math.pow(10, decimals);
   if (formatted < 0.01) return formatted.toFixed(4);
@@ -51,6 +68,13 @@ function formatPrice(price: bigint, decimals: number = 18): string {
 function formatShares(shares: bigint): string {
   const formatted = Number(shares) / Math.pow(10, 18);
   return formatted.toFixed(2);
+}
+
+// Convert internal probability to token price (for fallback scenarios)
+function probabilityToTokenPrice(probability: bigint): bigint {
+  // Convert internal probability (0-1 range scaled by 1e18) to token price (0-100 range)
+  const PAYOUT_PER_SHARE = 100n * BigInt(1e18); // 100 tokens per share
+  return (probability * PAYOUT_PER_SHARE) / BigInt(1e18);
 }
 
 export function MarketV2SellInterface({
@@ -104,6 +128,17 @@ export function MarketV2SellInterface({
     functionName: "decimals",
   });
 
+  // Fetch token prices from PolicastViews
+  const { data: tokenPrices, refetch: refetchTokenPrices } = useReadContract({
+    address: PolicastViews,
+    abi: PolicastViewsAbi,
+    functionName: "getMarketPricesInTokens",
+    args: [BigInt(marketId)],
+    query: {
+      refetchInterval: 2000, // Refresh every 2 seconds
+    },
+  });
+
   // Fetch current price for selected option
   const { data: optionData, refetch: refetchOptionData } = useReadContract({
     address: V2contractAddress,
@@ -113,24 +148,28 @@ export function MarketV2SellInterface({
     query: { enabled: selectedOptionId !== null },
   });
 
-  // Calculate estimated revenue - contract stores probabilities, convert to revenue
+  // Calculate estimated revenue using token prices from PolicastViews
   const estimatedRevenue = useMemo(() => {
-    if (!optionData || !sellAmount || parseFloat(sellAmount) <= 0) return 0n;
+    if (
+      !tokenPrices ||
+      selectedOptionId === null ||
+      !sellAmount ||
+      parseFloat(sellAmount) <= 0
+    )
+      return 0n;
 
-    const probability = optionData[4] as bigint; // This is probability (0-1 range scaled by 1e18)
+    const tokenPrice = (tokenPrices as readonly bigint[])[selectedOptionId]; // Direct token price from contract
     const quantity = BigInt(
       Math.floor(parseFloat(sellAmount) * Math.pow(10, 18))
     );
 
-    // Calculate revenue: probability * quantity * PAYOUT_PER_SHARE / 1e18
-    // PAYOUT_PER_SHARE = 100e18 (100 tokens per share)
-    const probTimesQty = (probability * quantity) / BigInt(1e18);
-    const rawRefund = (probTimesQty * BigInt(100e18)) / BigInt(1e18);
+    // Calculate revenue: tokenPrice * quantity / 1e18
+    const rawRefund = (tokenPrice * quantity) / BigInt(1e18);
 
     // Subtract platform fee (2%)
     const fee = (rawRefund * 200n) / 10000n;
     return rawRefund - fee;
-  }, [optionData, sellAmount]);
+  }, [tokenPrices, selectedOptionId, sellAmount]);
 
   // Calculate minimum price with slippage protection (5% slippage tolerance)
   const calculateMinPrice = useCallback((currentPrice: bigint): bigint => {
@@ -219,6 +258,7 @@ export function MarketV2SellInterface({
 
       // Refresh data
       refetchOptionData();
+      refetchTokenPrices();
 
       // Reset after delay
       setTimeout(() => {
@@ -262,7 +302,12 @@ export function MarketV2SellInterface({
     }
   }, [sellingStep, selectedOptionId, error]);
 
-  const currentPrice = optionData?.[4] || 0n;
+  const currentPrice =
+    tokenPrices && selectedOptionId !== null
+      ? (tokenPrices as readonly bigint[])[selectedOptionId]
+      : optionData?.[4]
+      ? probabilityToTokenPrice(optionData[4] as bigint)
+      : 0n;
   const userSharesForOption =
     selectedOptionId !== null ? userShares[selectedOptionId] || 0n : 0n;
   const maxSellAmount = Number(userSharesForOption) / Math.pow(10, 18);
@@ -272,14 +317,20 @@ export function MarketV2SellInterface({
     ? Number(estimatedRevenue) / Math.pow(10, 18)
     : 0;
 
-  // Get options with user shares
+  // Get options with user shares using token prices
   const optionsWithShares = market.options
-    .map((option, index) => ({
-      id: index,
-      name: option.name,
-      shares: userShares[index] || 0n,
-      currentPrice: option.currentPrice,
-    }))
+    .map((option, index) => {
+      const tokenPrice = tokenPrices
+        ? (tokenPrices as readonly bigint[])[index]
+        : probabilityToTokenPrice(option.currentPrice);
+
+      return {
+        id: index,
+        name: option.name,
+        shares: userShares[index] || 0n,
+        currentPrice: tokenPrice,
+      };
+    })
     .filter((option) => option.shares > 0n);
 
   if (!isVisible) return null;

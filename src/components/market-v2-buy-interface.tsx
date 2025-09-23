@@ -58,9 +58,10 @@ function toUnits(amount: string, decimals: number): bigint {
 
 // Helper function to calculate implied probability from price
 function calculateProbability(price: bigint): number {
-  // Contract stores probabilities (0-1 range scaled by 1e18), convert to percentage
-  const probability = Number(price) / 1e18;
-  return Math.max(0, Math.min(100, probability * 100));
+  // PolicastViews returns token prices (0-100 range), convert to percentage
+  // If using raw probabilities from getMarketOption, those are (0-1 range scaled by 1e18)
+  const tokenPrice = Number(price) / 1e18;
+  return Math.max(0, Math.min(100, tokenPrice));
 }
 
 // Helper function to calculate implied odds
@@ -78,6 +79,13 @@ function formatPrice(price: bigint, decimals: number = 18): string {
   if (formatted < 0.01) return formatted.toFixed(4);
   if (formatted < 1) return formatted.toFixed(3);
   return formatted.toFixed(2);
+}
+
+// Convert internal probability to token price (for fallback scenarios)
+function probabilityToTokenPrice(probability: bigint): bigint {
+  // Convert internal probability (0-1 range scaled by 1e18) to token price (0-100 range)
+  const PAYOUT_PER_SHARE = 100n * BigInt(1e18); // 100 tokens per share
+  return (probability * PAYOUT_PER_SHARE) / BigInt(1e18);
 }
 
 export function MarketV2BuyInterface({
@@ -261,6 +269,17 @@ export function MarketV2BuyInterface({
     query: {
       enabled: !!accountAddress,
       refetchInterval: 5000, // Refresh allowance every 5 seconds
+    },
+  });
+
+  // Fetch token prices directly from PolicastViews (ready for display)
+  const { data: tokenPrices, refetch: refetchTokenPrices } = useReadContract({
+    address: PolicastViews,
+    abi: PolicastViewsAbi,
+    functionName: "getMarketPricesInTokens",
+    args: [BigInt(marketId)],
+    query: {
+      refetchInterval: 2000, // Refresh every 2 seconds
     },
   });
 
@@ -647,10 +666,14 @@ export function MarketV2BuyInterface({
       }
 
       const currentPrice = optionData?.[4] || 0n;
+      // Get token price directly from PolicastViews (if available)
+      const tokenPriceFromContract =
+        tokenPrices?.[selectedOptionId || 0] || currentPrice;
+
       // Calculate max price per share from estimated cost with slippage tolerance
       const avgPricePerShare = estimatedCost
         ? (estimatedCost * BigInt(1e18)) / amountInUnits
-        : currentPrice;
+        : tokenPriceFromContract;
       const maxPricePerShare = calculateMaxPrice(avgPricePerShare);
 
       console.log("=== V2 BATCH TRANSACTION DEBUG ===");
@@ -1295,9 +1318,11 @@ export function MarketV2BuyInterface({
 
             <div className="grid gap-1">
               {market.options.map((option, index) => {
-                const currentPrice = formatPrice(option.currentPrice);
+                // Use token price from PolicastViews if available, fallback to option.currentPrice
+                const tokenPrice = tokenPrices?.[index] || option.currentPrice;
+                const currentPrice = formatPrice(tokenPrice);
                 const contractOdds = odds[index] || 0n;
-                const probability = calculateProbability(option.currentPrice);
+                const probability = calculateProbability(tokenPrice);
                 const oddsFormatted = Number(contractOdds) / 1e18;
                 const isSelected = selectedOptionId === index;
 
@@ -1330,7 +1355,7 @@ export function MarketV2BuyInterface({
                           {probability.toFixed(1)}% •{" "}
                           {odds.length > 0
                             ? (Number(contractOdds) / 1e18).toFixed(2)
-                            : calculateOdds(option.currentPrice).toFixed(2)}
+                            : calculateOdds(tokenPrice).toFixed(2)}
                           x odds
                         </p>
                       </div>
