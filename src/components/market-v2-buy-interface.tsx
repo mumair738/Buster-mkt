@@ -1402,7 +1402,7 @@ export function MarketV2BuyInterface({
                           )
                         ) * 100
                       ).toFixed(1)}
-                      %
+                      Buster
                     </span>
                   </p>
                 </div>

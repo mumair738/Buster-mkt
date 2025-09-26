@@ -288,7 +288,17 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
           )}
 
           {/* Free Market Claim Status */}
-          <FreeMarketClaimStatus marketId={index} className="mt-3" />
+          <FreeMarketClaimStatus
+            marketId={index}
+            className="mt-3"
+            marketType={
+              marketInfo &&
+              marketInfo.length > 7 &&
+              typeof marketInfo[7] === "number"
+                ? marketInfo[7]
+                : undefined
+            }
+          />
         </CardHeader>
         <CardContent className="pb-4">
           <div className="text-center py-4">
@@ -324,7 +334,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   // Share handling
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL || "https://buster-mkt.vercel.app";
-  const marketPageUrl = `${appUrl}/market/v2/${index}/details`;
+  const marketPageUrl = `${appUrl}/market/${index}/details`;
 
   const handleShare = async () => {
     try {
@@ -372,7 +382,17 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
         )}
 
         {/* Free Market Claim Status */}
-        <FreeMarketClaimStatus marketId={index} className="mt-3" />
+        <FreeMarketClaimStatus
+          marketId={index}
+          className="mt-3"
+          marketType={
+            marketInfo &&
+            marketInfo.length > 7 &&
+            typeof marketInfo[7] === "number"
+              ? marketInfo[7]
+              : undefined
+          }
+        />
       </CardHeader>
 
       <CardContent className="pb-0">
@@ -414,7 +434,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 userShares={userShares || []}
                 options={options}
               />
-              <Link href={`/market/v2/${index}/details`}>
+              <Link href={`/market/${index}/details`}>
                 <Button variant="outline" size="sm" className="text-xs">
                   Manage Position
                 </Button>
@@ -449,7 +469,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
           </Button>
 
           {/* Details link */}
-          <Link href={`/market/v2/${index}/details`} passHref>
+          <Link href={`/market/${index}/details`} passHref>
             <Button
               variant="ghost"
               size="sm"

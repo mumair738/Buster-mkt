@@ -4,6 +4,8 @@ import {
   contractAbi,
   V2contractAddress,
   V2contractAbi,
+  PolicastViews,
+  PolicastViewsAbi,
 } from "@/constants/contract";
 import { notFound } from "next/navigation";
 import { Metadata, ResolvingMetadata } from "next";
@@ -49,7 +51,7 @@ async function fetchMarketData(marketId: string, publicClient: any) {
   const marketIdBigInt = BigInt(marketId);
 
   // Try both V1 and V2 in parallel to handle overlapping IDs
-  const [v1Result, v2Result] = await Promise.allSettled([
+  const [v1Result, v2Result, extendedResult] = await Promise.allSettled([
     publicClient.readContract({
       address: contract.address,
       abi: contractAbi,
@@ -62,22 +64,43 @@ async function fetchMarketData(marketId: string, publicClient: any) {
       functionName: "getMarketInfo",
       args: [marketIdBigInt],
     }) as Promise<MarketInfoV2ContractReturn>,
+    publicClient
+      .readContract({
+        address: PolicastViews,
+        abi: PolicastViewsAbi,
+        functionName: "getMarketInfo",
+        args: [marketIdBigInt],
+      })
+      .catch(() => null) as Promise<any>, // For marketType
   ]);
 
   const v1Exists = v1Result.status === "fulfilled" && v1Result.value[0]; // Check if question exists
   const v2Exists = v2Result.status === "fulfilled" && v2Result.value[0]; // Check if question exists
+
+  // Extract marketType from extended info if available
+  let marketType = 0; // Default to PAID market
+  if (
+    extendedResult.status === "fulfilled" &&
+    extendedResult.value &&
+    Array.isArray(extendedResult.value) &&
+    extendedResult.value.length > 7
+  ) {
+    marketType = Number(extendedResult.value[7]) || 0;
+  }
 
   // If only one version exists, return that one
   if (v1Exists && !v2Exists) {
     return {
       version: "v1" as const,
       data: v1Result.value,
+      marketType: 0, // V1 markets don't have marketType
     };
   }
   if (v2Exists && !v1Exists) {
     return {
       version: "v2" as const,
       data: v2Result.value,
+      marketType: marketType,
     };
   }
 
@@ -103,6 +126,7 @@ async function fetchMarketData(marketId: string, publicClient: any) {
       return {
         version: "v2" as const,
         data: v2Data,
+        marketType: marketType,
       };
     }
     if (v1Active && !v2Active) {
@@ -110,6 +134,7 @@ async function fetchMarketData(marketId: string, publicClient: any) {
       return {
         version: "v1" as const,
         data: v1Data,
+        marketType: 0,
       };
     }
 
@@ -120,6 +145,7 @@ async function fetchMarketData(marketId: string, publicClient: any) {
     return {
       version: "v2" as const,
       data: v2Data,
+      marketType: marketType,
     };
   }
 
@@ -323,6 +349,7 @@ export default async function MarketDetailsPage({ params }: Props) {
         totalOptionBShares: marketData[6],
         resolved: marketData[7],
         version: "v1",
+        marketType: 0, // V1 markets are always paid markets
       };
       console.log(`Market ${marketId} V1 data:`, market);
     } else {
@@ -372,6 +399,7 @@ export default async function MarketDetailsPage({ params }: Props) {
         version: "v2",
         options,
         optionShares,
+        marketType: marketResult.marketType,
       };
       console.log(`Market ${marketId} V2 data:`, market);
     }
