@@ -293,7 +293,10 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   // Determine market status
   const isExpired = new Date(Number(market.endTime) * 1000) < new Date();
   const isResolved = market.resolved;
-  const isInvalidated = market.invalidated;
+  const isValidated = market.validated;
+  // Treat validation or resolution as authoritative over legacy invalidation flags
+  const isInvalidated =
+    Boolean(market.invalidated) && !isValidated && !isResolved;
 
   // If market is invalidated, show special message instead of normal UI
   if (isInvalidated) {
