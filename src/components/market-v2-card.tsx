@@ -307,6 +307,15 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   const isValidated =
     contractValidated !== null ? contractValidated : market.validated;
 
+  // Treat validation or resolution as authoritative over legacy invalidation flags
+  // If the contract says it's validated or resolved, it's NOT invalidated regardless of server data
+  // Also don't show invalidated state if we haven't loaded contract validation data yet
+  const isInvalidated =
+    Boolean(market.invalidated) &&
+    !isValidated &&
+    !isResolved &&
+    contractValidated !== null; // Only show invalidated if we have definitive contract data
+
   // Debug logging for invalidation logic
   console.debug(`[MarketV2Card] market ${index} status check:`, {
     marketInvalidated: market.invalidated,
@@ -315,11 +324,8 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
     isValidated,
     isResolved,
     isExpired,
+    finalIsInvalidated: isInvalidated,
   });
-
-  // Treat validation or resolution as authoritative over legacy invalidation flags
-  const isInvalidated =
-    Boolean(market.invalidated) && !isValidated && !isResolved;
 
   // If market is invalidated, show special message instead of normal UI
   if (isInvalidated) {
