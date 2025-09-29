@@ -136,6 +136,23 @@ export function MarketV2BuyInterface({
   // Convert contract odds to array of bigints
   const odds = (marketOdds as readonly bigint[]) || [];
 
+  // Helper to calculate probability from on-chain odds (matches MultiOptionProgress)
+  function calculateProbabilityFromOdds(oddsVal: bigint): number {
+    const oddsNumber = Number(oddsVal) / 1e18;
+    if (oddsNumber <= 0) return 0;
+    return Math.max(0, Math.min(100, (1 / oddsNumber) * 100));
+  }
+
+  // When on-chain odds are available, derive normalized probabilities and a normalization factor
+  const onChainProbabilities =
+    odds.length > 0 ? odds.map((o) => calculateProbabilityFromOdds(o)) : [];
+  const onChainTotalProbability = onChainProbabilities.reduce(
+    (s, p) => s + p,
+    0
+  );
+  const onChainNormalizationFactor =
+    onChainTotalProbability > 0 ? 100 / onChainTotalProbability : 0;
+
   // Check if we're using Farcaster connector
   const isFarcasterConnector =
     connector?.id === "miniAppConnector" ||
@@ -1308,12 +1325,19 @@ export function MarketV2BuyInterface({
             <div className="grid gap-1">
               {market.options.map((option, index) => {
                 const tokenPrice = option.currentPrice;
-                const probability =
-                  calculateProbabilityFromTokenPrice(tokenPrice);
-                const oddsFormatted =
-                  odds.length > 0
-                    ? Number(odds[index] || 0n) / 1e18
-                    : calculateOddsFromTokenPrice(tokenPrice);
+
+                // Use on-chain odds when present (normalize to 100% total) to match MultiOptionProgress
+                let probability = 0;
+                let oddsFormatted = 0;
+                if (odds.length > 0) {
+                  const rawProb = onChainProbabilities[index] || 0;
+                  const normalizedProb = rawProb * onChainNormalizationFactor;
+                  probability = normalizedProb;
+                  oddsFormatted = normalizedProb > 0 ? 100 / normalizedProb : 0;
+                } else {
+                  probability = calculateProbabilityFromTokenPrice(tokenPrice);
+                  oddsFormatted = calculateOddsFromTokenPrice(tokenPrice);
+                }
                 const isSelected = selectedOptionId === index;
 
                 return (
@@ -1342,14 +1366,7 @@ export function MarketV2BuyInterface({
                           {option.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {probability.toFixed(1)}% •{" "}
-                          {odds.length > 0
-                            ? (Number(odds[index] || 0n) / 1e18 / 100).toFixed(
-                                2
-                              )
-                            : calculateOddsFromTokenPrice(tokenPrice).toFixed(
-                                2
-                              )}
+                          {probability.toFixed(1)}% • {oddsFormatted.toFixed(2)}
                           x odds
                         </p>
                       </div>

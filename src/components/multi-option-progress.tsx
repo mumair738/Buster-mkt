@@ -155,7 +155,7 @@ export function MultiOptionProgress({
               <div className="text-right">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-bold text-gray-900">
-                    {normalizedProbability.toFixed(1)}$Buster
+                    {normalizedProbability.toFixed(1)}Buster
                   </span>
                   <span className="text-xs text-gray-500">
                     {displayOdds.toFixed(2)}x
