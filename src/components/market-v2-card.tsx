@@ -255,67 +255,121 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   // Fetch options data: static from API (with cache-busting), real-time price from contract
   useEffect(() => {
     let mounted = true;
+
     const fetchOptions = async () => {
-      // Use market.optionCount from prop for immediate loading; fallback to marketInfo[4]
-      const optionCount =
-        Number(market.optionCount) || (marketInfo ? Number(marketInfo[4]) : 0);
-      if (optionCount <= 0) return; // Early return if no options
+      try {
+        // Determine option count immediately from prop, fallback to on-chain marketInfo
+        const propCount = Number(market?.optionCount ?? 0) || 0;
+        const infoCount =
+          marketInfo && Array.isArray(marketInfo) && marketInfo.length > 4
+            ? Number(marketInfo[4])
+            : 0;
+        const optionCount =
+          propCount || infoCount || (market.options?.length ?? 0);
 
-      const optionsData: MarketOption[] = [];
-      let totalVol = 0n;
-
-      for (let i = 0; i < optionCount; i++) {
-        try {
-          // Fetch static data from API with cache-busting
-          const response = await fetch(
-            `/api/market-option?marketId=${index}&optionId=${i}&t=${Date.now()}`
-          );
-          if (!response.ok) throw new Error(`API fetch failed for option ${i}`);
-          const option = await response.json();
-
-          // Fetch real-time price from contract
-          const priceData = await (publicClient.readContract as any)({
-            address: V2contractAddress,
-            abi: V2contractAbi,
-            functionName: "calculateCurrentPrice",
-            args: [BigInt(index), BigInt(i)],
-          });
-          const realTimePrice = priceData
-            ? BigInt(priceData)
-            : BigInt(option.currentPrice || 0);
-
-          optionsData.push({
-            name: option.name || `Option ${i + 1}`,
-            description: option.description || "",
-            totalShares: BigInt(option.totalShares || 0),
-            totalVolume: BigInt(option.totalVolume || 0),
-            currentPrice: realTimePrice,
-            isActive: option.isActive ?? true,
-          });
-          totalVol += BigInt(option.totalVolume || 0);
-        } catch (error) {
-          console.error(`Error fetching option ${i}:`, error);
-          // Fallback: minimal option to prevent crashes
-          optionsData.push({
-            name: `Option ${i + 1}`,
-            description: "",
-            totalShares: 0n,
-            totalVolume: 0n,
-            currentPrice: 0n,
-            isActive: false,
-          });
+        if (optionCount <= 0) {
+          // clear state if there are no options
+          if (mounted) {
+            setOptions([]);
+            setTotalVolume(0n);
+          }
+          return;
         }
-      }
 
-      if (mounted) {
-        setOptions(optionsData);
-        setTotalVolume(totalVol);
+        const optionsData: MarketOption[] = [];
+        let totalVol = 0n;
+
+        for (let i = 0; i < optionCount; i++) {
+          try {
+            // Static metadata from local API (cache-busted)
+            const apiRes = await fetch(
+              `/api/market-option?marketId=${index}&optionId=${i}&t=${Date.now()}`
+            );
+            const apiJson = apiRes.ok ? await apiRes.json() : null;
+
+            // Real-time price from contract (calculateCurrentPrice). Fallback to apiJson.currentPrice.
+            let realTimePrice = 0n;
+            try {
+              const priceData = await (publicClient.readContract as any)({
+                address: V2contractAddress,
+                abi: V2contractAbi,
+                functionName: "calculateCurrentPrice",
+                args: [BigInt(index), BigInt(i)],
+              });
+              if (priceData !== undefined && priceData !== null) {
+                realTimePrice =
+                  typeof priceData === "bigint"
+                    ? priceData
+                    : BigInt(priceData.toString());
+              }
+            } catch (priceErr) {
+              // contract read may fail; fallback to API value if available
+              if (apiJson && apiJson.currentPrice) {
+                try {
+                  realTimePrice = BigInt(apiJson.currentPrice);
+                } catch {}
+              }
+              console.debug(
+                `calculateCurrentPrice fallback for market ${index} option ${i}`,
+                priceErr
+              );
+            }
+
+            // Build option record using API metadata when present, otherwise safe defaults.
+            const optName = apiJson?.name ?? `Option ${i + 1}`;
+            const optDescription = apiJson?.description ?? "";
+            const optTotalShares = apiJson?.totalShares
+              ? BigInt(apiJson.totalShares)
+              : 0n;
+            const optTotalVolume = apiJson?.totalVolume
+              ? BigInt(apiJson.totalVolume)
+              : 0n;
+            const isActive = apiJson?.isActive ?? true;
+
+            optionsData.push({
+              name: optName,
+              description: optDescription,
+              totalShares: optTotalShares,
+              totalVolume: optTotalVolume,
+              currentPrice: realTimePrice,
+              isActive,
+            });
+
+            totalVol += optTotalVolume;
+          } catch (innerErr) {
+            // keep loop resilient; push a safe fallback entry so UI can render
+            console.error(
+              `Error loading option ${i} for market ${index}`,
+              innerErr
+            );
+            optionsData.push({
+              name: `Option ${i + 1}`,
+              description: "",
+              totalShares: 0n,
+              totalVolume: 0n,
+              currentPrice: 0n,
+              isActive: false,
+            });
+          }
+        }
+
+        if (mounted) {
+          setOptions(optionsData);
+          setTotalVolume(totalVol);
+        }
+      } catch (err) {
+        console.error("fetchOptions failed", err);
+        if (mounted) {
+          setOptions([]);
+          setTotalVolume(0n);
+        }
       }
     };
 
+    // initial fetch
     fetchOptions();
 
-    // Listen for global market-updated events and refetch
+    // Listen for global market-updated events and refetch when this market changes
     const handler = (e: Event) => {
       try {
         const ev = e as CustomEvent;
@@ -332,7 +386,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
       mounted = false;
       window.removeEventListener("market-updated", handler);
     };
-  }, [index, market, marketInfo]); // Added market to dependencies for reactivity
+  }, [index, market, marketInfo]); // re-run when market prop or on-chain marketInfo changes
 
   // Calculate probabilities from prices (pass to MultiOptionProgress)
   const probabilities = displayOptions.map((option) =>
