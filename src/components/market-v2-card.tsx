@@ -342,14 +342,12 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
     if ((mq as any).addEventListener) {
       (mq as any).addEventListener("change", handle);
     } else {
-      // @ts-ignore - fallback for older browsers
       mq.addListener(handle);
     }
     return () => {
       if ((mq as any).removeEventListener) {
         (mq as any).removeEventListener("change", handle);
       } else {
-        // @ts-ignore - fallback for older browsers
         mq.removeListener(handle);
       }
     };
