@@ -423,15 +423,15 @@ export function MarketResolver() {
       const timeUntilEnd = endTime - now;
 
       // Must be at least 1 hour before end time for early resolution
-      if (timeUntilEnd < 3600) {
-        toast({
-          title: "Cannot Resolve Early",
-          description:
-            "Event-based markets must be resolved at least 1 hour before the scheduled end time.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // if (timeUntilEnd < 3600) {
+      //   toast({
+      //     title: "Cannot Resolve Early",
+      //     description:
+      //       "Event-based markets must be resolved at least 1 hour before the scheduled end time.",
+      //     variant: "destructive",
+      //   });
+      //   return;
+      // }
     }
 
     try {
@@ -665,7 +665,7 @@ export function MarketResolver() {
                             variant="outline"
                             className="text-blue-600 border-blue-200"
                           >
-                            Early Resolution
+                            Er
                           </Badge>
                         )}
                       </div>

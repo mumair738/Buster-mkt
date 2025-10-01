@@ -7,9 +7,45 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {PolicastLogic} from "./PolicastLogic.sol";
+import {FreeClaimHandler} from "./FreeClaimHandler.sol";
+import {IPolicastMarket} from "./IPolicastMarket.sol";
 
 //check
 contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
+    // FreeClaimHandler integration
+    address public freeClaimHandler;
+
+    modifier onlyFreeClaimHandler() {
+        if (msg.sender != freeClaimHandler) revert NotAuthorized();
+        _;
+    }
+
+    function setFreeClaimHandler(address _handler) external onlyOwner {
+        if (_handler == address(0)) revert InvalidInput();
+        freeClaimHandler = _handler;
+    }
+    // Setters for FreeClaimHandler
+
+    function updateUserShares(address user, uint256 marketId, uint256 optionId, uint256 quantity)
+        external
+        onlyFreeClaimHandler
+    {
+        Market storage market = markets[marketId];
+        market.userShares[user][optionId] += quantity;
+    }
+
+    function updateOptionShares(uint256 marketId, uint256 optionId, uint256 quantity) external onlyFreeClaimHandler {
+        Market storage market = markets[marketId];
+        market.options[optionId].totalShares += quantity;
+    }
+
+    function updateMaxOptionShares(uint256 marketId, uint256 optionId) external onlyFreeClaimHandler {
+        _updateMaxOptionShares(marketId, optionId);
+    }
+
+    function updateLMSRPrices(uint256 marketId) external onlyFreeClaimHandler {
+        _updateLMSRPrices(marketId);
+    }
     // ERRORS
 
     error InvalidMarket();
@@ -22,7 +58,7 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     error NoWinningShares();
     error TransferFailed();
     error InvalidInput();
-    error OnlyAdminOrOwner();
+ 
     error MarketEnded();
     error MarketResolvedAlready();
     error OptionInactive();
@@ -32,12 +68,9 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     error BadOptionCount();
     error LengthMismatch();
     error MinTokensRequired();
-
-    error NotFreeMarket();
     error FreeEntryInactive();
     error AlreadyClaimedFree();
     error FreeSlotseFull();
-
     error InsufficientPrizePool();
     error AmountMustBePositive();
     error InsufficientShares();
@@ -46,10 +79,8 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     error PriceTooLow();
     error MarketNotEndedYet();
     error InvalidWinningOption();
-
     error MarketNotReady();
     error InvalidToken();
-    error SameToken();
 
     error AdminLiquidityAlreadyClaimed();
 
@@ -67,8 +98,6 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     bytes32 public constant QUESTION_CREATOR_ROLE = keccak256("QUESTION_CREATOR_ROLE");
     bytes32 public constant QUESTION_RESOLVE_ROLE = keccak256("QUESTION_RESOLVE_ROLE");
     bytes32 public constant MARKET_VALIDATOR_ROLE = keccak256("MARKET_VALIDATOR_ROLE");
-    // New standardized role identifiers
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     // Alias for backward compatibility with QUESTION_CREATOR_ROLE (future migrations can consolidate)
     bytes32 public constant MARKET_CREATOR_ROLE = QUESTION_CREATOR_ROLE;
 
@@ -177,7 +206,7 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     uint256 public marketCount;
     uint256 public globalTradeCount; // NEW: Total trades across all markets
     uint256 public platformFeeRate = 200; // 2% (basis points)
-    uint256 public constant MAX_OPTIONS = 10;
+    // uint256 public constant MAX_OPTIONS = 10;
     uint256 public constant MIN_MARKET_DURATION = 1 hours;
     uint256 public constant MAX_MARKET_DURATION = 1000 days;
     address public feeCollector; // NEW: Address that can withdraw platform fees
@@ -297,10 +326,6 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         grantRole(QUESTION_CREATOR_ROLE, _account);
     }
 
-    function grantPauserRole(address _account) external onlyOwner {
-        grantRole(PAUSER_ROLE, _account);
-    }
-
     function grantQuestionResolveRole(address _account) external onlyOwner {
         grantRole(QUESTION_RESOLVE_ROLE, _account);
     }
@@ -314,17 +339,12 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         platformFeeRate = _feeRate;
     }
 
-    function pause() external {
-        if (msg.sender != owner() && !hasRole(PAUSER_ROLE, msg.sender) && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert NotAuthorized();
-        }
+    function pause() external onlyOwner {
+       
         _pause();
     }
 
-    function unpause() external {
-        if (msg.sender != owner() && !hasRole(PAUSER_ROLE, msg.sender) && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
-            revert NotAuthorized();
-        }
+    function unpause() external onlyOwner {
         _unpause();
     }
 
@@ -400,7 +420,7 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
         if (msg.sender != owner() && !hasRole(QUESTION_CREATOR_ROLE, msg.sender)) revert NotAuthorized();
         if (_duration < MIN_MARKET_DURATION || _duration > MAX_MARKET_DURATION) revert BadDuration();
         if (bytes(_question).length == 0) revert EmptyQuestion();
-        if (_optionNames.length < 2 || _optionNames.length > MAX_OPTIONS) revert BadOptionCount();
+        if (_optionNames.length < 2 || _optionNames.length > 10) revert BadOptionCount();
         if (_optionNames.length != _optionDescriptions.length) revert LengthMismatch();
         if (_initialLiquidity < 100 * 1e18) revert MinTokensRequired();
 
@@ -523,46 +543,35 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
     }
 
     // Trading Functions
-    function claimFreeTokens(uint256 _marketId)
+    function claimFreeTokens(uint256 _marketId, uint256 _optionId)
         external
         nonReentrant
         whenNotPaused
         validMarket(_marketId)
         marketActive(_marketId)
     {
+        if (freeClaimHandler == address(0)) revert NotAuthorized();
         Market storage market = markets[_marketId];
-        if (market.marketType != MarketType.FREE_ENTRY) revert NotFreeMarket();
-        if (!market.freeConfig.isActive) revert FreeEntryInactive();
-        if (market.freeConfig.hasClaimedFree[msg.sender]) revert AlreadyClaimedFree();
-        if (market.freeConfig.currentFreeParticipants >= market.freeConfig.maxFreeParticipants) revert FreeSlotseFull();
-        if (market.freeConfig.remainingPrizePool < market.freeConfig.tokensPerParticipant) {
-            revert InsufficientPrizePool();
-        }
+        FreeMarketConfig storage config = market.freeConfig;
+        if (config.hasClaimedFree[msg.sender]) revert AlreadyClaimedFree();
+        if (!config.isActive) revert FreeEntryInactive();
+        if (config.currentFreeParticipants >= config.maxFreeParticipants) revert FreeSlotseFull();
+        if (config.remainingPrizePool < config.tokensPerParticipant) revert InsufficientPrizePool();
 
-        uint256 freeTokens = market.freeConfig.tokensPerParticipant;
+        // Effects: update state before interaction
+        config.hasClaimedFree[msg.sender] = true;
+        config.currentFreeParticipants++;
+        config.remainingPrizePool -= config.tokensPerParticipant;
+        config.tokensReceived[msg.sender] = config.tokensPerParticipant;
 
-        // Effects: Update all state before external call
-        market.freeConfig.hasClaimedFree[msg.sender] = true;
-        market.freeConfig.tokensReceived[msg.sender] = freeTokens;
-        market.freeConfig.currentFreeParticipants++;
-        market.freeConfig.remainingPrizePool -= freeTokens;
-
-        // Add user as participant if new
-        if (_isNewParticipant(msg.sender, _marketId)) {
-            market.participants.push(msg.sender);
-            if (userPortfolios[msg.sender].totalInvested == 0) {
-                allParticipants.push(msg.sender);
-            }
-        }
-
-        // Update user portfolio (tokens received count as "investment" for tracking)
-        userPortfolios[msg.sender].tradeCount++;
-
-        // Interactions: External call at the very end
-        if (!bettingToken.transfer(msg.sender, freeTokens)) revert TransferFailed();
-
-        // Events after successful interaction
-        emit FreeTokensClaimed(_marketId, msg.sender, freeTokens);
+        // Interactions: direct call to handler
+        uint256 sharesBought = FreeClaimHandler(freeClaimHandler).claimAndAutoBuy(
+            msg.sender,
+            _marketId,
+            _optionId,
+            IPolicastMarket(address(this))
+        );
+        if (sharesBought == 0) revert TransferFailed();
     }
 
     // New extended version with aggregate slippage: _maxTotalCost (0 means ignore aggregate bound)
@@ -1201,6 +1210,4 @@ contract PolicastMarketV3 is Ownable, ReentrancyGuard, AccessControl, Pausable {
             market.platformFeesCollected
         );
     }
-
-    // NOTE: getPlatformFeeBreakdownData moved to views to reduce core size
 }

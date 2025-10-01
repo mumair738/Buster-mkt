@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   useAccount,
   useWriteContract,
@@ -9,14 +10,23 @@ import {
   type BaseError,
 } from "wagmi";
 import { Button } from "@/components/ui/button";
-import { Loader2, Gift, Users } from "lucide-react";
+import { Loader2, Gift, Users, Share } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { sdk } from "@farcaster/miniapp-sdk";
 import {
   PolicastViews,
   PolicastViewsAbi,
   V2contractAbi,
   V2contractAddress,
+  publicClient,
 } from "@/constants/contract";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatPrice } from "@/lib/utils";
 
 interface FreeTokenClaimButtonProps {
@@ -41,6 +51,8 @@ export function FreeTokenClaimButton({
 }: FreeTokenClaimButtonProps) {
   const { address } = useAccount();
   const { toast } = useToast();
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL || "https://buster-mkt.vercel.app";
 
   const {
     data: hash,
@@ -50,12 +62,16 @@ export function FreeTokenClaimButton({
   } = (useWriteContract as any)();
 
   const {
+    data: txReceipt,
     isLoading: isConfirming,
     isSuccess: isTxConfirmed,
     error: txError,
   } = useWaitForTransactionReceipt({ hash });
 
   const [hasClaimed, setHasClaimed] = useState(false);
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [handledHash, setHandledHash] = useState<string | null>(null);
+  const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
 
   // Check if user has already claimed free tokens
   const { data: claimStatus, refetch: refetchClaimStatus } = (
@@ -105,10 +121,8 @@ export function FreeTokenClaimButton({
         }
   );
 
-  const isLoading = isWritePending || isConfirming;
   const _claimStatus = claimStatus as [boolean, bigint] | undefined;
   const hasUserClaimed = _claimStatus ? _claimStatus[0] : false;
-  const tokensReceived = _claimStatus ? _claimStatus[1] : 0n;
 
   // Parse free market info with new shape
   type FreeMarketInfoTuple =
@@ -142,6 +156,53 @@ export function FreeTokenClaimButton({
       : undefined;
   const isFreeMarket = marketType === 1;
 
+  const {
+    data: marketOptions,
+    isLoading: isOptionsLoading,
+    error: optionsError,
+  } = useQuery<{ id: number; name: string }[]>({
+    queryKey: ["free-market-options", marketId],
+    enabled: isFreeMarket && Number.isFinite(marketId),
+    staleTime: 30000,
+    queryFn: async (): Promise<{ id: number; name: string }[]> => {
+      const optionCountRaw = await publicClient.readContract({
+        address: PolicastViews,
+        abi: PolicastViewsAbi,
+        functionName: "getMarketOptionCount",
+        args: [BigInt(marketId)],
+      });
+      const optionCount = Number(optionCountRaw);
+      if (Number.isNaN(optionCount) || optionCount <= 0) {
+        return [];
+      }
+
+      const options: { id: number; name: string }[] = [];
+      for (let optionIndex = 0; optionIndex < optionCount; optionIndex++) {
+        const optionData = await publicClient.readContract({
+          address: PolicastViews,
+          abi: PolicastViewsAbi,
+          functionName: "getMarketOption",
+          args: [BigInt(marketId), BigInt(optionIndex)],
+        });
+        const name = optionData[0] as string;
+        const isActive = optionData[3] as boolean;
+        if (isActive) {
+          options.push({ id: optionIndex, name });
+        }
+      }
+
+      return options;
+    },
+  });
+
+  const optionFetchError = (() => {
+    if (!optionsError) return null;
+    if (optionsError instanceof Error) return optionsError.message;
+    return "Unable to load outcomes.";
+  })();
+
+  const noActiveOptions = (marketOptions?.length ?? 0) === 0;
+
   // Debug visibility reasoning
   useEffect(() => {
     console.debug("[FreeTokenClaimButton] state", {
@@ -154,6 +215,7 @@ export function FreeTokenClaimButton({
       slotsRemaining: slotsRemaining.toString(),
       maxParticipants: maxParticipants.toString(),
       currentParticipants: currentParticipants.toString(),
+      selectedOptionId,
     });
   }, [
     marketId,
@@ -165,7 +227,36 @@ export function FreeTokenClaimButton({
     slotsRemaining,
     maxParticipants,
     currentParticipants,
+    selectedOptionId,
   ]);
+
+  useEffect(() => {
+    if (!isFreeMarket) {
+      setSelectedOptionId(null);
+      return;
+    }
+
+    if (marketOptions && marketOptions.length > 0 && !selectedOptionId) {
+      setSelectedOptionId(String(marketOptions[0].id));
+    }
+  }, [isFreeMarket, marketOptions, selectedOptionId]);
+
+  const handleShareMarket = async () => {
+    try {
+      const marketPageUrl = `${appUrl}/market/${marketId}/details`;
+      await sdk.actions.composeCast({
+        text: `I just claimed free tokens on this Policast market! Check it out:`,
+        embeds: [marketPageUrl],
+      });
+    } catch (error) {
+      console.error("Failed to share market:", error);
+      toast({
+        title: "Sharing Failed",
+        description: "Could not share to Farcaster. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleClaimFreeTokens = async () => {
     if (!address) {
@@ -196,12 +287,40 @@ export function FreeTokenClaimButton({
       return;
     }
 
+    if (optionFetchError) {
+      toast({
+        title: "Outcomes unavailable",
+        description: "Unable to load market outcomes. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (noActiveOptions) {
+      toast({
+        title: "No active outcomes",
+        description: "This market has no active outcomes to back right now.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedOptionId) {
+      toast({
+        title: "Select an outcome",
+        description: "Choose the outcome you'd like your free tokens to back.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      setLastErrorMessage(null);
       await writeContractAsync({
         address: V2contractAddress,
         abi: V2contractAbi,
         functionName: "claimFreeTokens",
-        args: [BigInt(marketId)],
+        args: [BigInt(marketId), BigInt(selectedOptionId)],
       });
     } catch (error: unknown) {
       console.error("Free token claim error:", error);
@@ -233,44 +352,81 @@ export function FreeTokenClaimButton({
   };
 
   useEffect(() => {
-    if (isTxConfirmed) {
-      toast({
-        title: "Free Tokens Claimed!",
-        description: `You've claimed ${formatPrice(
-          tokensPerParticipant,
-          18
-        )} free tokens for this market.`,
-      });
-      setHasClaimed(true);
-      refetchClaimStatus();
-      onClaimComplete?.();
-    }
+    if (!hash) return;
+    if (handledHash === hash) return;
 
-    if (txError || writeError) {
-      const errorToShow = txError || writeError;
-      let message =
-        (errorToShow as BaseError)?.shortMessage || "Transaction failed.";
+    if (isTxConfirmed && txReceipt) {
+      setHandledHash(hash);
 
-      if (message.toLowerCase().includes("already claimed")) {
-        message = "Already claimed free tokens for this market.";
+      if (txReceipt.status === "success") {
+        toast({
+          title: "Free Tokens Claimed!",
+          description: (
+            <div className="flex flex-col gap-2">
+              <p>
+                You've claimed {formatPrice(tokensPerParticipant, 18)} free
+                tokens for this market.
+              </p>
+              <Button
+                onClick={handleShareMarket}
+                variant="secondary"
+                size="sm"
+                className="flex items-center justify-center gap-2 w-full mt-1"
+              >
+                <Share className="h-4 w-4" />
+                Share on Farcaster
+              </Button>
+            </div>
+          ),
+          duration: 10000, // Extended duration to give time to share
+        });
         setHasClaimed(true);
+        refetchClaimStatus();
+        onClaimComplete?.();
+      } else {
+        toast({
+          title: "Claim Failed",
+          description: "Transaction reverted. Please try again.",
+          variant: "destructive",
+        });
       }
-
-      toast({
-        title: "Claim Failed",
-        description: message,
-        variant: "destructive",
-      });
     }
   }, [
+    hash,
+    handledHash,
     isTxConfirmed,
-    txError,
-    writeError,
+    txReceipt,
     toast,
     onClaimComplete,
     tokensPerParticipant,
     refetchClaimStatus,
   ]);
+
+  useEffect(() => {
+    const errorToShow = txError || writeError;
+    if (!errorToShow) return;
+
+    const baseMessage =
+      (errorToShow as BaseError)?.shortMessage ||
+      (errorToShow as Error)?.message ||
+      "Transaction failed.";
+
+    if (lastErrorMessage === baseMessage) return;
+
+    let message = baseMessage;
+    if (message.toLowerCase().includes("already claimed")) {
+      message = "Already claimed free tokens for this market.";
+      setHasClaimed(true);
+    }
+
+    toast({
+      title: "Claim Failed",
+      description: message,
+      variant: "destructive",
+    });
+
+    setLastErrorMessage(baseMessage);
+  }, [txError, writeError, toast, lastErrorMessage]);
 
   // Update local state when contract data changes
   useEffect(() => {
@@ -366,15 +522,60 @@ export function FreeTokenClaimButton({
         </div>
       </div>
 
+      {/* Outcome Selector */}
+      <div className="space-y-1">
+        <span className="text-xs font-semibold text-green-700 dark:text-green-300">
+          Choose outcome
+        </span>
+        <Select
+          value={selectedOptionId ?? undefined}
+          onValueChange={(value) => setSelectedOptionId(value)}
+          disabled={isOptionsLoading || noActiveOptions || !!optionFetchError}
+        >
+          <SelectTrigger className="h-9 text-xs">
+            <SelectValue
+              placeholder={
+                isOptionsLoading
+                  ? "Loading outcomes..."
+                  : noActiveOptions
+                  ? "No active outcomes available"
+                  : "Select an outcome"
+              }
+            />
+          </SelectTrigger>
+          <SelectContent className="text-sm">
+            {marketOptions?.map((option) => (
+              <SelectItem key={option.id} value={String(option.id)}>
+                {option.name || `Outcome ${option.id + 1}`}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {optionFetchError ? (
+          <p className="text-xs text-red-600 dark:text-red-400">
+            {optionFetchError}
+          </p>
+        ) : null}
+      </div>
+
       {/* Claim Button */}
       <Button
         onClick={handleClaimFreeTokens}
-        disabled={isLoading || hasUserClaimed || slotsRemaining <= 0n}
+        disabled={
+          isOptionsLoading ||
+          hasUserClaimed ||
+          slotsRemaining <= 0n ||
+          !selectedOptionId ||
+          noActiveOptions ||
+          !!optionFetchError ||
+          isWritePending ||
+          isConfirming
+        }
         className={`w-full bg-green-600 hover:bg-green-700 text-white ${
           className || ""
         }`}
       >
-        {isLoading ? (
+        {isWritePending || isConfirming ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Claiming...

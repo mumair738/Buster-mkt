@@ -9,8 +9,10 @@ export const publicClient = createPublicClient({
 
 export const contractAddress = "0xd24261cD87Ac11A8961a2d5df7036ad87ca7F02A";
 export const tokenAddress = "0x53Bd7F868764333de01643ca9102ee4297eFA3cb";
-export const V2contractAddress = "0xB03F0D1f7FA743819fa05a52d9093447590A54D4";
-export const PolicastViews = "0xACd268F272445b7F9b5e0e23382ae11b826aEf1a";
+export const V2contractAddress = "0x4aD26B13F192f2B33B4eA6c4619EF9A04515ED60";
+export const PolicastViews = "0x93C21b632E9B612221F3eE115bD13556d92F3D9A";
+export const FreeClaimHandler = "0xd95bE66B1F01b1483ef1C692d62B284e9a0979A3";
+
 // V1 Contract ABI for binary markets (legacy)
 export const contractAbi = [
   {
@@ -1211,13 +1213,6 @@ export const V2contractAbi = [
   },
   {
     type: "function",
-    name: "MAX_OPTIONS",
-    inputs: [],
-    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
     name: "MIN_LMSR_B",
     inputs: [],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
@@ -1228,13 +1223,6 @@ export const V2contractAbi = [
     name: "MIN_MARKET_DURATION",
     inputs: [],
     outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
-    name: "PAUSER_ROLE",
-    inputs: [],
-    outputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
     stateMutability: "view",
   },
   {
@@ -1310,7 +1298,10 @@ export const V2contractAbi = [
   {
     type: "function",
     name: "claimFreeTokens",
-    inputs: [{ name: "_marketId", type: "uint256", internalType: "uint256" }],
+    inputs: [
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_optionId", type: "uint256", internalType: "uint256" },
+    ],
     outputs: [],
     stateMutability: "nonpayable",
   },
@@ -1440,6 +1431,13 @@ export const V2contractAbi = [
   {
     type: "function",
     name: "feeCollector",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "freeClaimHandler",
     inputs: [],
     outputs: [{ name: "", type: "address", internalType: "address" }],
     stateMutability: "view",
@@ -1637,13 +1635,6 @@ export const V2contractAbi = [
   },
   {
     type: "function",
-    name: "grantPauserRole",
-    inputs: [{ name: "_account", type: "address", internalType: "address" }],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    type: "function",
     name: "grantQuestionCreatorRole",
     inputs: [{ name: "_account", type: "address", internalType: "address" }],
     outputs: [],
@@ -1835,6 +1826,13 @@ export const V2contractAbi = [
   },
   {
     type: "function",
+    name: "setFreeClaimHandler",
+    inputs: [{ name: "_handler", type: "address", internalType: "address" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
     name: "setPlatformFeeRate",
     inputs: [{ name: "_feeRate", type: "uint256", internalType: "uint256" }],
     outputs: [],
@@ -1886,6 +1884,46 @@ export const V2contractAbi = [
     type: "function",
     name: "unpause",
     inputs: [],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "updateLMSRPrices",
+    inputs: [{ name: "marketId", type: "uint256", internalType: "uint256" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "updateMaxOptionShares",
+    inputs: [
+      { name: "marketId", type: "uint256", internalType: "uint256" },
+      { name: "optionId", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "updateOptionShares",
+    inputs: [
+      { name: "marketId", type: "uint256", internalType: "uint256" },
+      { name: "optionId", type: "uint256", internalType: "uint256" },
+      { name: "quantity", type: "uint256", internalType: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "updateUserShares",
+    inputs: [
+      { name: "user", type: "address", internalType: "address" },
+      { name: "marketId", type: "uint256", internalType: "uint256" },
+      { name: "optionId", type: "uint256", internalType: "uint256" },
+      { name: "quantity", type: "uint256", internalType: "uint256" },
+    ],
     outputs: [],
     stateMutability: "nonpayable",
   },
@@ -2654,8 +2692,6 @@ export const V2contractAbi = [
   { type: "error", name: "NoUnlockedFees", inputs: [] },
   { type: "error", name: "NoWinningShares", inputs: [] },
   { type: "error", name: "NotAuthorized", inputs: [] },
-  { type: "error", name: "NotFreeMarket", inputs: [] },
-  { type: "error", name: "OnlyAdminOrOwner", inputs: [] },
   { type: "error", name: "OptionInactive", inputs: [] },
   {
     type: "error",
@@ -2687,7 +2723,6 @@ export const V2contractAbi = [
   { type: "error", name: "PriceTooLow", inputs: [] },
   { type: "error", name: "ProbabilityInvariant", inputs: [] },
   { type: "error", name: "ReentrancyGuardReentrantCall", inputs: [] },
-  { type: "error", name: "SameToken", inputs: [] },
   { type: "error", name: "SlippageExceeded", inputs: [] },
   { type: "error", name: "TransferFailed", inputs: [] },
 ] as const;
@@ -3297,6 +3332,273 @@ export const PolicastViewsAbi = [
   { type: "error", name: "PriceInvariant", inputs: [] },
 ] as const;
 
+export const FreeClaimHandlerabi = [
+  {
+    type: "constructor",
+    inputs: [
+      {
+        name: "_bettingToken",
+        type: "address",
+        internalType: "address",
+      },
+      { name: "_feeRate", type: "uint256", internalType: "uint256" },
+      {
+        name: "_mainContract",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "DEFAULT_ADMIN_ROLE",
+    inputs: [],
+    outputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "bettingToken",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "contract IERC20" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "claimAndAutoBuy",
+    inputs: [
+      { name: "_user", type: "address", internalType: "address" },
+      { name: "_marketId", type: "uint256", internalType: "uint256" },
+      { name: "_optionId", type: "uint256", internalType: "uint256" },
+      {
+        name: "_market",
+        type: "address",
+        internalType: "contract IPolicastMarket",
+      },
+    ],
+    outputs: [
+      { name: "sharesBought", type: "uint256", internalType: "uint256" },
+    ],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getRoleAdmin",
+    inputs: [{ name: "role", type: "bytes32", internalType: "bytes32" }],
+    outputs: [{ name: "", type: "bytes32", internalType: "bytes32" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "grantRole",
+    inputs: [
+      { name: "role", type: "bytes32", internalType: "bytes32" },
+      { name: "account", type: "address", internalType: "address" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "hasRole",
+    inputs: [
+      { name: "role", type: "bytes32", internalType: "bytes32" },
+      { name: "account", type: "address", internalType: "address" },
+    ],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "mainContract",
+    inputs: [],
+    outputs: [{ name: "", type: "address", internalType: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "paused",
+    inputs: [],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "platformFeeRate",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256", internalType: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "renounceRole",
+    inputs: [
+      { name: "role", type: "bytes32", internalType: "bytes32" },
+      {
+        name: "callerConfirmation",
+        type: "address",
+        internalType: "address",
+      },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "revokeRole",
+    inputs: [
+      { name: "role", type: "bytes32", internalType: "bytes32" },
+      { name: "account", type: "address", internalType: "address" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "supportsInterface",
+    inputs: [{ name: "interfaceId", type: "bytes4", internalType: "bytes4" }],
+    outputs: [{ name: "", type: "bool", internalType: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "Paused",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        indexed: false,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RoleAdminChanged",
+    inputs: [
+      {
+        name: "role",
+        type: "bytes32",
+        indexed: true,
+        internalType: "bytes32",
+      },
+      {
+        name: "previousAdminRole",
+        type: "bytes32",
+        indexed: true,
+        internalType: "bytes32",
+      },
+      {
+        name: "newAdminRole",
+        type: "bytes32",
+        indexed: true,
+        internalType: "bytes32",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RoleGranted",
+    inputs: [
+      {
+        name: "role",
+        type: "bytes32",
+        indexed: true,
+        internalType: "bytes32",
+      },
+      {
+        name: "account",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "sender",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "RoleRevoked",
+    inputs: [
+      {
+        name: "role",
+        type: "bytes32",
+        indexed: true,
+        internalType: "bytes32",
+      },
+      {
+        name: "account",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+      {
+        name: "sender",
+        type: "address",
+        indexed: true,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "Unpaused",
+    inputs: [
+      {
+        name: "account",
+        type: "address",
+        indexed: false,
+        internalType: "address",
+      },
+    ],
+    anonymous: false,
+  },
+  { type: "error", name: "AccessControlBadConfirmation", inputs: [] },
+  {
+    type: "error",
+    name: "AccessControlUnauthorizedAccount",
+    inputs: [
+      { name: "account", type: "address", internalType: "address" },
+      { name: "neededRole", type: "bytes32", internalType: "bytes32" },
+    ],
+  },
+  { type: "error", name: "AlreadyClaimedFree", inputs: [] },
+  { type: "error", name: "AutoBuyFailed", inputs: [] },
+  { type: "error", name: "EnforcedPause", inputs: [] },
+  { type: "error", name: "ExpectedPause", inputs: [] },
+  { type: "error", name: "FreeEntryInactive", inputs: [] },
+  { type: "error", name: "FreeSlotseFull", inputs: [] },
+  { type: "error", name: "InsufficientPrizePool", inputs: [] },
+  { type: "error", name: "NoContractsAllowed", inputs: [] },
+  {
+    type: "error",
+    name: "PRBMath_UD60x18_Exp2_InputTooBig",
+    inputs: [{ name: "x", type: "uint256", internalType: "UD60x18" }],
+  },
+  {
+    type: "error",
+    name: "PRBMath_UD60x18_Exp_InputTooBig",
+    inputs: [{ name: "x", type: "uint256", internalType: "UD60x18" }],
+  },
+  {
+    type: "error",
+    name: "PRBMath_UD60x18_Log_InputTooSmall",
+    inputs: [{ name: "x", type: "uint256", internalType: "UD60x18" }],
+  },
+  { type: "error", name: "PriceInvariant", inputs: [] },
+  { type: "error", name: "ReentrancyGuardReentrantCall", inputs: [] },
+  { type: "error", name: "SlippageExceeded", inputs: [] },
+] as const;
+
 export const contract = getContract({
   address: contractAddress,
   abi: contractAbi,
@@ -3318,5 +3620,11 @@ export const PoliticalViewContract = getContract({
 export const tokenContract = getContract({
   address: tokenAddress,
   abi: tokenAbi,
+  client: publicClient,
+});
+
+export const freeClaimHandlerContract = getContract({
+  address: FreeClaimHandler,
+  abi: FreeClaimHandlerabi,
   client: publicClient,
 });
