@@ -333,12 +333,6 @@ export function MarketAnalyticsV2() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Markets List */}
         <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChart className="h-5 w-5" />
-              Markets
-            </CardTitle>
-          </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {marketsList.map((market) => (

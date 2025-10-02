@@ -851,61 +851,6 @@ export function UserStats() {
                 )}
               </div>
             </div>
-
-            {/* Market Distribution */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-800 mb-4">
-                Market Activity Distribution
-              </h4>
-              <div className="flex h-4 bg-gray-200 rounded-full overflow-hidden">
-                {stats.v1Markets > 0 && (
-                  <div
-                    className="bg-blue-500 flex items-center justify-center text-xs text-white font-medium"
-                    style={{
-                      width: `${
-                        (stats.v1Markets /
-                          (stats.v1Markets + stats.v2Markets)) *
-                        100
-                      }%`,
-                      minWidth: stats.v1Markets > 0 ? "20%" : "0%",
-                    }}
-                  >
-                    {stats.v1Markets > 0 &&
-                      (
-                        (stats.v1Markets /
-                          (stats.v1Markets + stats.v2Markets)) *
-                        100
-                      ).toFixed(0)}
-                    %
-                  </div>
-                )}
-                {stats.v2Markets > 0 && (
-                  <div
-                    className="bg-green-500 flex items-center justify-center text-xs text-white font-medium"
-                    style={{
-                      width: `${
-                        (stats.v2Markets /
-                          (stats.v1Markets + stats.v2Markets)) *
-                        100
-                      }%`,
-                      minWidth: stats.v2Markets > 0 ? "20%" : "0%",
-                    }}
-                  >
-                    {stats.v2Markets > 0 &&
-                      (
-                        (stats.v2Markets /
-                          (stats.v1Markets + stats.v2Markets)) *
-                        100
-                      ).toFixed(0)}
-                    %
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-between mt-2 text-sm text-gray-600">
-                <span>V1 Binary: {stats.v1Markets} markets</span>
-                <span>V2 Multi-Option: {stats.v2Markets} markets</span>
-              </div>
-            </div>
           </CardContent>
         </Card>
       )}

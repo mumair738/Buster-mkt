@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPortfolioV2 } from "@/components/UserPortfolioV2";
 import { MarketAnalyticsV2 } from "@/components/MarketAnalyticsV2";
 import { PriceHistoryV2 } from "@/components/PriceHistoryV2";
-import { VolumeAnalyticsV2 } from "@/components/VolumeAnalyticsV2";
+
 import { MultiOptionPositions } from "@/components/MultiOptionPositions";
 import {
   BarChart3,
@@ -85,20 +85,6 @@ function AnalyticsContentInner() {
             <BarChart3 className="h-4 w-4" />
             <span>Markets</span>
           </TabsTrigger>
-          <TabsTrigger
-            value="prices"
-            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
-          >
-            <TrendingUp className="h-4 w-4" />
-            <span>Prices</span>
-          </TabsTrigger>
-          <TabsTrigger
-            value="volume"
-            className="flex items-center gap-2 flex-1 min-w-[100px] md:min-w-0"
-          >
-            <Activity className="h-4 w-4" />
-            <span>Volume</span>
-          </TabsTrigger>
         </TabsList>
 
         {/* Portfolio Analytics */}
@@ -138,93 +124,7 @@ function AnalyticsContentInner() {
         <TabsContent value="markets" className="space-y-6">
           <MarketAnalyticsV2 />
         </TabsContent>
-
-        {/* Price History */}
-        <TabsContent value="prices" className="space-y-6">
-          <PriceHistoryV2 />
-        </TabsContent>
-
-        {/* Volume Analytics */}
-        <TabsContent value="volume" className="space-y-6">
-          <VolumeAnalyticsV2 />
-        </TabsContent>
       </Tabs>
-
-      {/* Quick Stats Overview */}
-      {/* <div className="mt-12">
-        <h2 className="text-xl font-semibold mb-6 text-gray-900 dark:text-white">
-          Platform Overview
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    V2 Features
-                  </p>
-                  <p className="text-2xl font-bold">Advanced</p>
-                </div>
-                <BarChart3 className="h-8 w-8 text-blue-600" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Multi-option markets, swapping, and advanced analytics
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Real-time Data
-                  </p>
-                  <p className="text-2xl font-bold">Live</p>
-                </div>
-                <Activity className="h-8 w-8 text-green-600" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Live price updates and trading activity monitoring
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Portfolio Tracking
-                  </p>
-                  <p className="text-2xl font-bold">Detailed</p>
-                </div>
-                <PieChart className="h-8 w-8 text-purple-600" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Multi-option position tracking and portfolio management
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Market Insights
-                  </p>
-                  <p className="text-2xl font-bold">Deep</p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-orange-600" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Volume analysis, liquidity metrics, and trader behavior
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div> */}
     </div>
   );
 }

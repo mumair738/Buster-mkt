@@ -153,8 +153,8 @@ export function MultiOptionPositions() {
         try {
           // Get market info
           const marketInfo = (await (publicClient.readContract as any)({
-            address: V2contractAddress,
-            abi: V2contractAbi,
+            address: PolicastViews,
+            abi: PolicastViewsAbi,
             functionName: "getMarketInfo",
             args: [BigInt(marketId)],
           })) as unknown as readonly any[];
@@ -175,8 +175,8 @@ export function MultiOptionPositions() {
 
           // Get user shares for this market
           const userShares = (await (publicClient.readContract as any)({
-            address: V2contractAddress,
-            abi: V2contractAbi,
+            address: PolicastViews,
+            abi: PolicastViewsAbi,
             functionName: "getUserShares",
             args: [BigInt(marketId), address],
           })) as unknown as readonly bigint[];
@@ -196,8 +196,8 @@ export function MultiOptionPositions() {
 
             // Get option info
             const optionInfo = (await (publicClient.readContract as any)({
-              address: V2contractAddress,
-              abi: V2contractAbi,
+              address: PolicastViews,
+              abi: PolicastViewsAbi,
               functionName: "getMarketOption",
               args: [BigInt(marketId), BigInt(optionId)],
             })) as unknown as readonly any[];

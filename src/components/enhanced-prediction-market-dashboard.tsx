@@ -169,34 +169,7 @@ export function EnhancedPredictionMarketDashboard() {
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 bg-gradient-to-br from-[#6A5ACD] via-[#E6E6FA] to-[#F0F8FF] dark:from-[#2D1B69] dark:via-[#1a1a2e] dark:to-[#16213e]">
       <Navbar />
       <div className="flex-grow container mx-auto p-4">
-        {/* V2 Analytics Banner */}
-        {/* <Card className="mb-6 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">
-                    V2 Analytics Available
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Advanced portfolio tracking, market insights, and volume
-                    analytics
-                  </p>
-                </div>
-              </div>
-              <Link href="/analytics">
-                <Button className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  View Analytics
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card> */}
+     
 
         <Tabs
           value={activeTab}

@@ -39,10 +39,10 @@ export default function ProfilePage() {
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                       <BarChart3 className="h-5 w-5 text-blue-600" />
-                      V2 Analytics
+                      Analytics
                     </h3>
                     <p className="text-sm text-gray-600 mb-4">
-                      Access advanced analytics for V2 prediction markets
+                      Access advanced analytics for prediction markets
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <Link href="/analytics?tab=portfolio">
