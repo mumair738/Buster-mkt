@@ -467,9 +467,7 @@ export function MarketV2SellInterface({
                           Current Price
                         </div>
                         <div className="font-medium text-xs">
-                          {(
-                            Number(formatPrice(option.currentPrice)) * 100
-                          ).toFixed(1)}
+                          {Number(formatPrice(option.currentPrice)).toFixed(1)}
                           Buster
                         </div>
                       </div>
