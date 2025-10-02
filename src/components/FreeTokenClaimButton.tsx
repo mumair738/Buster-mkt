@@ -10,6 +10,7 @@ import {
   type BaseError,
 } from "wagmi";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Loader2, Gift, Users, Share } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { sdk } from "@farcaster/miniapp-sdk";
@@ -72,6 +73,7 @@ export function FreeTokenClaimButton({
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [handledHash, setHandledHash] = useState<string | null>(null);
   const [lastErrorMessage, setLastErrorMessage] = useState<string | null>(null);
+  const [showClaimedDetails, setShowClaimedDetails] = useState(false); // Toggle for showing claimed info
 
   // Check if user has already claimed free tokens
   const { data: claimStatus, refetch: refetchClaimStatus } = (
@@ -84,6 +86,22 @@ export function FreeTokenClaimButton({
     query: {
       enabled: !!address,
       refetchInterval: 5000,
+    },
+  });
+
+  // Parse claim status early so we can use it
+  const _claimStatus = claimStatus as [boolean, bigint] | undefined;
+  const hasUserClaimed = _claimStatus ? _claimStatus[0] : false;
+
+  // Get user's claim status from main contract (includes both free tokens and winnings)
+  const { data: fullClaimStatus } = (useReadContract as any)({
+    address: V2contractAddress,
+    abi: V2contractAbi,
+    functionName: "getUserClaimStatus",
+    args: [BigInt(marketId), address as `0x${string}`],
+    query: {
+      enabled: !!address && hasUserClaimed,
+      refetchInterval: 10000,
     },
   });
 
@@ -120,9 +138,6 @@ export function FreeTokenClaimButton({
           },
         }
   );
-
-  const _claimStatus = claimStatus as [boolean, bigint] | undefined;
-  const hasUserClaimed = _claimStatus ? _claimStatus[0] : false;
 
   // Parse free market info with new shape
   type FreeMarketInfoTuple =
@@ -360,7 +375,7 @@ export function FreeTokenClaimButton({
 
       if (txReceipt.status === "success") {
         toast({
-          title: "Free Tokens Claimed!",
+          title: "🎉 Free Tokens Claimed Successfully!",
           description: (
             <div className="flex flex-col gap-2">
               <p>
@@ -461,8 +476,77 @@ export function FreeTokenClaimButton({
   // If still no address and not showing placeholder simply hide
   if (!address) return null;
 
-  // Hide once user claimed
-  if (hasUserClaimed) return null;
+  // Show "Already Claimed" state instead of hiding completely
+  if (hasUserClaimed) {
+    return (
+      <div className="space-y-3">
+        {/* Already Claimed Badge */}
+        <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Gift className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                Free Tokens Claimed!
+              </span>
+            </div>
+            <Badge variant="secondary" className="bg-green-100 text-green-700">
+              ✓ Claimed
+            </Badge>
+          </div>
+
+          <div className="space-y-1 text-xs text-green-700 dark:text-green-300">
+            <div className="flex justify-between">
+              <span>Tokens Received:</span>
+              <span className="font-medium">
+                {(Number(tokensPerParticipant) / 1e18).toFixed(2)} $Buster
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Status:</span>
+              <span className="font-medium">Successfully claimed</span>
+            </div>
+          </div>
+
+          {/* Toggle Details Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowClaimedDetails(!showClaimedDetails)}
+            className="w-full mt-2 h-7 text-xs"
+          >
+            {showClaimedDetails ? "Hide Details" : "Show Market Details"}
+          </Button>
+        </div>
+
+        {/* Expanded Details */}
+        {showClaimedDetails && (
+          <div className="p-3 bg-gray-50 dark:bg-gray-800 border rounded-lg space-y-2">
+            <div className="text-xs space-y-1">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <span>Total Prize Pool:</span>
+                <span>
+                  {(Number(totalPrizePool) / 1e18).toFixed(2)} $Buster
+                </span>
+              </div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <span>Participants:</span>
+                <span>
+                  {currentParticipants.toString()} /{" "}
+                  {maxParticipants.toString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                <span>Remaining Pool:</span>
+                <span>
+                  {(Number(remainingPrizePool) / 1e18).toFixed(2)} $Buster
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   // If market free entry inactive
   if (!freeIsActive) {

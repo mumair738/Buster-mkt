@@ -49,6 +49,7 @@ interface UserWinnings {
   marketId: number;
   amount: bigint;
   hasWinnings: boolean;
+  hasClaimed: boolean; // Track if user already claimed
 }
 
 export async function POST(request: NextRequest) {
@@ -73,12 +74,19 @@ export async function POST(request: NextRequest) {
       participatedMarkets
     );
 
-    // Step 2: Check winnings eligibility for each market (use Views.getUserWinnings)
+    // Step 2: Check winnings eligibility AND claim status for each market
     const winningsData: UserWinnings[] = [];
 
     // Process sequentially to avoid RPC rate limits (markets count is usually small)
     for (const marketId of participatedMarkets) {
       try {
+        // First, check if user has already claimed from this market
+        const claimStatus = (await readCore<[boolean, boolean]>(
+          "getUserClaimStatus",
+          [BigInt(marketId), userAddress as `0x${string}`]
+        )) as [boolean, boolean];
+        const hasClaimed = claimStatus[0]; // claimedWinnings is first return value
+
         // Prefer Views.getUserWinnings(address,uint256)
         const abiHasFn =
           Array.isArray(PolicastViewsAbi) &&
@@ -97,7 +105,12 @@ export async function POST(request: NextRequest) {
             const hasWinnings = Boolean(r[0]);
             const amount = BigInt(r[1] ?? 0n);
             if (hasWinnings && amount > 0n) {
-              winningsData.push({ marketId, amount, hasWinnings: true });
+              winningsData.push({
+                marketId,
+                amount,
+                hasWinnings: true,
+                hasClaimed,
+              });
             }
             continue;
           } catch (err) {
@@ -138,7 +151,12 @@ export async function POST(request: NextRequest) {
         }
 
         if (amount > 0n) {
-          winningsData.push({ marketId, amount, hasWinnings: true });
+          winningsData.push({
+            marketId,
+            amount,
+            hasWinnings: true,
+            hasClaimed,
+          });
         }
       } catch (error) {
         console.error(`Error checking winnings for market ${marketId}:`, error);
@@ -149,20 +167,32 @@ export async function POST(request: NextRequest) {
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
 
-    console.log(`Found ${winningsData.length} markets with claimable winnings`);
+    console.log(
+      `Found ${winningsData.length} markets with winnings (claimed + unclaimed)`
+    );
+
+    // Separate claimed vs unclaimed for logging
+    const unclaimedCount = winningsData.filter((w) => !w.hasClaimed).length;
+    const claimedCount = winningsData.filter((w) => w.hasClaimed).length;
+    console.log(
+      `  - ${unclaimedCount} unclaimed, ${claimedCount} already claimed`
+    );
 
     // Serialize BigInt amounts to strings for JSON
     const winningsDataSerialized = winningsData.map((w) => ({
       marketId: w.marketId,
       amount: w.amount.toString(),
       hasWinnings: w.hasWinnings,
+      hasClaimed: w.hasClaimed,
     }));
 
     return NextResponse.json({
       participatedMarkets,
       winningsData: winningsDataSerialized,
       totalMarkets: participatedMarkets.length,
-      claimableMarkets: winningsDataSerialized.length,
+      claimableMarkets: winningsDataSerialized.filter((w) => !w.hasClaimed)
+        .length,
+      claimedMarkets: winningsDataSerialized.filter((w) => w.hasClaimed).length,
     });
   } catch (error) {
     console.error("Auto-discover user markets error:", error);

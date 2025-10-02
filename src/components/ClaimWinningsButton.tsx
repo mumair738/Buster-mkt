@@ -18,6 +18,7 @@ interface UserWinnings {
   marketId: number;
   amount: bigint;
   hasWinnings: boolean;
+  hasClaimed: boolean; // Track if user already claimed
 }
 // Claim winnings from markets the user has participated in//
 export function ClaimWinningsSection() {
@@ -25,6 +26,7 @@ export function ClaimWinningsSection() {
   const [userMarkets, setUserMarkets] = useState<number[]>([]);
   const [winningsData, setWinningsData] = useState<UserWinnings[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showClaimed, setShowClaimed] = useState(false); // Toggle to show claimed markets
 
   // Contract write for claiming winnings
   const { writeContract, data: hash, isPending } = useWriteContract();
@@ -48,8 +50,15 @@ export function ClaimWinningsSection() {
         const data = await response.json();
         console.log("Auto-discovered markets:", data);
 
-        // Set winnings data directly from API response
-        setWinningsData(data.winningsData || []);
+        // Convert amount strings to BigInt and add hasClaimed status
+        const winnings = (data.winningsData || []).map((w: any) => ({
+          marketId: w.marketId,
+          amount: BigInt(w.amount || 0),
+          hasWinnings: w.hasWinnings,
+          hasClaimed: w.hasClaimed || false,
+        }));
+
+        setWinningsData(winnings);
         setUserMarkets(data.participatedMarkets || []);
       } else {
         console.error("Failed to auto-discover markets:", response.statusText);
@@ -117,8 +126,18 @@ export function ClaimWinningsSection() {
     );
   }
 
-  const totalWinnings = winningsData.reduce((sum, w) => sum + w.amount, 0n);
+  // Separate claimed and unclaimed winnings
+  const unclaimedWinnings = winningsData.filter((w) => !w.hasClaimed);
+  const claimedWinnings = winningsData.filter((w) => w.hasClaimed);
+
+  const totalWinnings = unclaimedWinnings.reduce(
+    (sum, w) => sum + w.amount,
+    0n
+  );
   const totalWinningsEth = Number(totalWinnings) / 1e18;
+
+  const totalClaimed = claimedWinnings.reduce((sum, w) => sum + w.amount, 0n);
+  const totalClaimedEth = Number(totalClaimed) / 1e18;
 
   return (
     <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
@@ -136,13 +155,54 @@ export function ClaimWinningsSection() {
               Checking available winnings...
             </span>
           </div>
-        ) : winningsData.length === 0 ? (
+        ) : unclaimedWinnings.length === 0 && claimedWinnings.length === 0 ? (
           <div className="text-center py-8">
             <Coins className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p className="text-gray-600">No winnings available to claim</p>
             <p className="text-sm text-gray-500 mt-1">
               Check back after markets resolve
             </p>
+          </div>
+        ) : unclaimedWinnings.length === 0 && claimedWinnings.length > 0 ? (
+          <div className="text-center py-8">
+            <Trophy className="w-12 h-12 mx-auto mb-4 text-green-600" />
+            <p className="text-gray-900 font-semibold">All Winnings Claimed!</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Total claimed: {totalClaimedEth.toFixed(4)} $Buster
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowClaimed(!showClaimed)}
+              className="mt-4"
+            >
+              {showClaimed ? "Hide" : "Show"} Claimed Markets
+            </Button>
+            {showClaimed && (
+              <div className="mt-4 space-y-2">
+                {claimedWinnings.map((w) => (
+                  <div
+                    key={w.marketId}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-700">
+                        Market #{w.marketId}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {(Number(w.amount) / 1e18).toFixed(4)} $Buster
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-100 text-green-800"
+                    >
+                      Claimed
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -161,18 +221,33 @@ export function ClaimWinningsSection() {
                   variant="secondary"
                   className="bg-green-200 text-green-800"
                 >
-                  {winningsData.length} Market
-                  {winningsData.length !== 1 ? "s" : ""}
+                  {unclaimedWinnings.length} Unclaimed Market
+                  {unclaimedWinnings.length !== 1 ? "s" : ""}
                 </Badge>
               </div>
             </div>
 
             {/* Individual Market Claims */}
             <div className="space-y-3">
-              {winningsData.map((winnings) => (
+              <h4 className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                <span>Unclaimed Winnings</span>
+                {claimedWinnings.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowClaimed(!showClaimed)}
+                    className="text-xs h-auto py-1"
+                  >
+                    {showClaimed ? "Hide" : "Show"} Claimed (
+                    {claimedWinnings.length})
+                  </Button>
+                )}
+              </h4>
+
+              {unclaimedWinnings.map((winnings) => (
                 <div
                   key={winnings.marketId}
-                  className="flex items-center justify-between p-3 bg-white rounded-lg border"
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-200"
                 >
                   <div>
                     <p className="font-medium text-gray-900">
@@ -199,6 +274,36 @@ export function ClaimWinningsSection() {
                   </Button>
                 </div>
               ))}
+
+              {/* Claimed Winnings History */}
+              {showClaimed && claimedWinnings.length > 0 && (
+                <div className="mt-4 space-y-2 border-t pt-3">
+                  <h4 className="text-sm font-semibold text-gray-700">
+                    Already Claimed
+                  </h4>
+                  {claimedWinnings.map((winnings) => (
+                    <div
+                      key={winnings.marketId}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                    >
+                      <div>
+                        <p className="font-medium text-gray-700">
+                          Market #{winnings.marketId}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {(Number(winnings.amount) / 1e18).toFixed(4)} $Buster
+                        </p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="bg-gray-200 text-gray-700"
+                      >
+                        ✓ Claimed
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}
