@@ -160,9 +160,13 @@ export function Navbar() {
                   {availableConnectors.map((connector) => (
                     <button
                       key={connector.id}
-                      onClick={() => {
-                        wallet.connect(connector.id);
-                        setShowWalletOptions(false);
+                      onClick={async () => {
+                        try {
+                          await wallet.connect(connector.id);
+                          setShowWalletOptions(false);
+                        } catch (error) {
+                          console.error("Error connecting to wallet:", error);
+                        }
                       }}
                       className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg text-sm"
                     >
