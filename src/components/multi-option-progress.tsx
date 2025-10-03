@@ -103,14 +103,14 @@ export function MultiOptionProgress({
               <div className="text-right">
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-bold text-gray-900">
-                    {normalizedProbability.toFixed(1)}Buster
+                    {normalizedProbability.toFixed(1)}%
                   </span>
                   <span className="text-xs text-gray-500">
                     {displayOdds.toFixed(2)}x
                   </span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  {formatPrice(option.currentPrice * 100n)} Buster • Vol:{" "}
+                  {formatPrice(option.currentPrice * 100n)} % • Vol:{" "}
                   {formatPrice(option.totalVolume)}
                 </div>
               </div>
