@@ -149,16 +149,89 @@ export function MultiOptionPositions() {
       let winningPositions = 0;
       let losingPositions = 0;
 
-      for (let marketId = 0; marketId < count; marketId++) {
-        try {
-          // Get market info
-          const marketInfo = (await (publicClient.readContract as any)({
-            address: PolicastViews,
-            abi: PolicastViewsAbi,
-            functionName: "getMarketInfo",
-            args: [BigInt(marketId)],
-          })) as unknown as readonly any[];
+      console.log(
+        `🚀 Fetching positions for ${count} markets using optimized multicall...`
+      );
 
+      // ==================== STEP 1: BATCH FETCH ALL MARKET INFO + USER SHARES ====================
+      const BATCH_SIZE = 20; // Process markets in batches of 20
+      const allMarketData: Array<{
+        marketId: number;
+        marketInfo: any;
+        userShares: readonly bigint[];
+      }> = [];
+
+      for (let batchStart = 0; batchStart < count; batchStart += BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + BATCH_SIZE, count);
+        const batchSize = batchEnd - batchStart;
+
+        // Create multicall contracts for this batch
+        const marketInfoContracts = Array.from(
+          { length: batchSize },
+          (_, i) => ({
+            address: PolicastViews as `0x${string}`,
+            abi: PolicastViewsAbi,
+            functionName: "getMarketInfo" as const,
+            args: [BigInt(batchStart + i)],
+          })
+        );
+
+        const userSharesContracts = Array.from(
+          { length: batchSize },
+          (_, i) => ({
+            address: PolicastViews as `0x${string}`,
+            abi: PolicastViewsAbi,
+            functionName: "getUserShares" as const,
+            args: [BigInt(batchStart + i), address as `0x${string}`],
+          })
+        );
+
+        // Execute both multicalls in parallel
+        const [marketInfoResults, userSharesResults] = await Promise.all([
+          publicClient.multicall({
+            contracts: marketInfoContracts,
+            allowFailure: true,
+          }),
+          publicClient.multicall({
+            contracts: userSharesContracts,
+            allowFailure: true,
+          }),
+        ]);
+
+        // Process results
+        for (let i = 0; i < batchSize; i++) {
+          const marketId = batchStart + i;
+          const marketInfoResult = marketInfoResults[i];
+          const userSharesResult = userSharesResults[i];
+
+          if (
+            marketInfoResult.status === "success" &&
+            userSharesResult.status === "success" &&
+            marketInfoResult.result &&
+            userSharesResult.result
+          ) {
+            const userShares = userSharesResult.result as readonly bigint[];
+            const hasShares = userShares.some((shares) => shares > 0n);
+
+            // Only store data for markets where user has positions
+            if (hasShares) {
+              allMarketData.push({
+                marketId,
+                marketInfo: marketInfoResult.result,
+                userShares,
+              });
+            }
+          }
+        }
+      }
+
+      console.log(
+        `✅ Found ${allMarketData.length} markets with user positions`
+      );
+
+      // ==================== STEP 2: BATCH FETCH OPTION DETAILS ====================
+      for (const { marketId, marketInfo, userShares } of allMarketData) {
+        try {
           const [
             question,
             description,
@@ -173,63 +246,64 @@ export function MultiOptionPositions() {
             creator,
           ] = marketInfo as any;
 
-          // Get user shares for this market
-          const userShares = (await (publicClient.readContract as any)({
-            address: PolicastViews,
+          // Get indices of options where user has shares
+          const optionIndices = userShares
+            .map((shares, idx) => (shares > 0n ? idx : -1))
+            .filter((idx) => idx !== -1);
+
+          if (optionIndices.length === 0) continue;
+
+          // Batch fetch option info for all options where user has shares
+          const optionInfoContracts = optionIndices.map((optionId) => ({
+            address: PolicastViews as `0x${string}`,
             abi: PolicastViewsAbi,
-            functionName: "getUserShares",
-            args: [BigInt(marketId), address],
-          })) as unknown as readonly bigint[];
+            functionName: "getMarketOption" as const,
+            args: [BigInt(marketId), BigInt(optionId)],
+          }));
 
-          // Check if user has any shares in this market
-          const hasShares = userShares.some((shares) => shares > 0n);
-          if (!hasShares) continue;
+          const optionInfoResults = await publicClient.multicall({
+            contracts: optionInfoContracts,
+            allowFailure: true,
+          });
 
-          // Get option details
+          // Process options
           const options: OptionPosition[] = [];
           let marketTotalInvested = 0n;
           let marketCurrentValue = 0n;
 
-          for (let optionId = 0; optionId < Number(optionCount); optionId++) {
-            const shares = userShares[optionId] || 0n;
-            if (shares === 0n) continue;
+          optionInfoResults.forEach((result, idx) => {
+            if (result.status === "success" && result.result) {
+              const optionId = optionIndices[idx];
+              const shares = userShares[optionId] || 0n;
+              const [optionName, , totalShares, , currentPrice] =
+                result.result as any;
 
-            // Get option info
-            const optionInfo = (await (publicClient.readContract as any)({
-              address: PolicastViews,
-              abi: PolicastViewsAbi,
-              functionName: "getMarketOption",
-              args: [BigInt(marketId), BigInt(optionId)],
-            })) as unknown as readonly any[];
+              // Calculate position metrics
+              const marketValue =
+                (shares * currentPrice) / 10n ** BigInt(tokenDecimals);
+              const percentageHeld =
+                totalShares > 0n ? Number((shares * 100n) / totalShares) : 0;
 
-            const [optionName, , totalShares, , currentPrice] =
-              optionInfo as any;
+              // Estimate invested amount
+              const estimatedInvested =
+                (shares * currentPrice) / 10n ** BigInt(tokenDecimals);
 
-            // Calculate position metrics
-            const marketValue =
-              (shares * currentPrice) / 10n ** BigInt(tokenDecimals);
-            const percentageHeld =
-              totalShares > 0n ? Number((shares * 100n) / totalShares) : 0;
+              options.push({
+                optionId,
+                optionName,
+                shares,
+                currentPrice,
+                marketValue,
+                percentageHeld,
+                isWinning: resolved
+                  ? optionId === Number(winningOptionId)
+                  : undefined,
+              });
 
-            // Estimate invested amount (this is simplified - would need trade history for accuracy)
-            const estimatedInvested =
-              (shares * currentPrice) / 10n ** BigInt(tokenDecimals);
-
-            options.push({
-              optionId,
-              optionName,
-              shares,
-              currentPrice,
-              marketValue,
-              percentageHeld,
-              isWinning: resolved
-                ? optionId === Number(winningOptionId)
-                : undefined,
-            });
-
-            marketTotalInvested += estimatedInvested;
-            marketCurrentValue += marketValue;
-          }
+              marketTotalInvested += estimatedInvested;
+              marketCurrentValue += marketValue;
+            }
+          });
 
           if (options.length === 0) continue;
 
