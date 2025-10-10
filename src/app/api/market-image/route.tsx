@@ -33,7 +33,6 @@ interface MarketImageDataV2 {
   category: number;
   optionCount: number;
   resolved: boolean;
-  disputed: boolean;
   marketType: number;
   invalidated: boolean;
   winningOptionId: number;
@@ -103,30 +102,46 @@ async function fetchMarketData(marketId: string): Promise<MarketImageData> {
         throw new Error("Empty response from V2 getMarketInfo");
       }
 
-      // Some deployments return a 12-element tuple, others 13. Map both to a stable shape.
-      // Known V2 shape (13): [question, description, endTime, category, optionCount, resolved, disputed, marketType, invalidated, winningOptionId, totalVolume, creator, earlyResolutionAllowed]
-      // Older/alternate V2 shape (12): [question, description, endTime, category, optionCount, resolved, disputed, marketType, invalidated, winningOptionId, creator, earlyResolutionAllowed]
+      // The actual PolicastViews.getMarketInfo() returns a 9-element tuple:
+      // [question, description, endTime, category, marketType, resolved, invalidated, creator, lmsrB]
+      // NOTE: It does NOT include optionCount - we need to fetch that separately!
 
-      // Helper accessors with safe fallbacks
       const question = String(v2Arr[0] ?? "");
       const description = String(v2Arr[1] ?? "");
       const endTime = BigInt(v2Arr[2] ?? 0n);
       const category = Number(v2Arr[3] ?? 0);
-      const optionCount = Number(v2Arr[4] ?? 0);
+      const marketType = Number(v2Arr[4] ?? 0);
       const resolved = Boolean(v2Arr[5]);
-      // disputed may be at index 6 or 7 depending on tuple ordering; try to read consistently
-      const disputed = Boolean(v2Arr[6]);
-      const marketType = Number(v2Arr[7] ?? 0);
-      const invalidated = Boolean(v2Arr[8]);
-      const winningOptionId = Number(v2Arr[9] ?? 0);
+      const invalidated = Boolean(v2Arr[6]);
+      const creator = String(v2Arr[7] ?? "");
+      // v2Arr[8] is lmsrB - we don't need it for images
 
-      // totalVolume may be present at index 10 in the 13-element shape; if missing, set 0n
-      const creatorRaw = v2Arr.length > 12 ? v2Arr[11] : v2Arr[10];
-      const earlyResolutionAllowedRaw =
-        v2Arr.length > 12 ? v2Arr[12] : v2Arr[11];
+      // Fetch optionCount separately
+      const optionCount = Number(
+        await publicClient.readContract({
+          address: PolicastViews,
+          abi: PolicastViewsAbi,
+          functionName: "getMarketOptionCount",
+          args: [marketIdBigInt],
+        })
+      );
 
-      const creator = creatorRaw ? String(creatorRaw) : "";
-      const earlyResolutionAllowed = Boolean(earlyResolutionAllowedRaw);
+      // Fetch winningOptionId if resolved
+      let winningOptionId = 0;
+      if (resolved) {
+        try {
+          winningOptionId = Number(
+            await publicClient.readContract({
+              address: PolicastViews,
+              abi: PolicastViewsAbi,
+              functionName: "getMarketResolvedOutcome",
+              args: [marketIdBigInt],
+            })
+          );
+        } catch (e) {
+          console.log(`Could not fetch winningOptionId for market ${marketId}`);
+        }
+      }
 
       console.log(`Market Image API: Found V2 market ${marketId}:`, v2Arr);
 
@@ -181,7 +196,6 @@ async function fetchMarketData(marketId: string): Promise<MarketImageData> {
         category,
         optionCount,
         resolved,
-        disputed,
         marketType,
         invalidated,
         winningOptionId,

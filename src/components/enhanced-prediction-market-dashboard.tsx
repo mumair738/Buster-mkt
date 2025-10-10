@@ -34,7 +34,7 @@ type LeaderboardEntry = {
   username: string;
   fid: string;
   pfp_url: string | null;
-  winnings: number;
+  winnings: number | null;
   address: string;
   voteCount: number;
 };
@@ -354,7 +354,7 @@ export function EnhancedPredictionMarketDashboard() {
                       </div>
                       <div className="col-span-2 text-right">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {entry.winnings.toLocaleString()} $Buster
+                          {(entry.winnings ?? 0).toLocaleString()} $Buster
                         </div>
                       </div>
                     </div>
