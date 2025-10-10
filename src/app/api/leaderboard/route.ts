@@ -12,10 +12,11 @@ import {
 } from "@/constants/contract";
 import { Address } from "viem";
 
-const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1-hour TTL//
-const CACHE_KEY = "leaderboard_v7"; // Updated version for V1+V2 combined
-const NEYNAR_CACHE_KEY = "neynar_users_v7";
-const PAGE_SIZE = 100; // Users per contract call
+const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1-hour TTL
+const CACHE_KEY = "leaderboard_v8"; // Updated version
+const NEYNAR_CACHE_KEY = "neynar_users_v8";
+const PAGE_SIZE = 100; // Users per V1 contract call
+const V2_BATCH_SIZE = 50; // Addresses per V2 multicall batch
 
 interface NeynarRawUser {
   username: string;
@@ -46,8 +47,6 @@ async function withRetry<T>(
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       if (i === retries - 1) throw error;
       let delay = baseDelay * Math.pow(2, i);
@@ -97,7 +96,6 @@ export async function GET() {
   const cachedLeaderboard = cache.get<LeaderboardEntry[]>(CACHE_KEY);
   if (cachedLeaderboard) {
     console.log("✅ Serving from cache");
-    // Ensure no BigInt values in cached data by re-serializing
     const safeLeaderboard = JSON.parse(
       JSON.stringify(cachedLeaderboard, (key, value) =>
         typeof value === "bigint" ? Number(value) : value
@@ -136,7 +134,7 @@ export async function GET() {
 
     console.log("📊 Fetching leaderboard from V1 and V2 contracts...");
 
-    // Fetch V1 leaderboard
+    // ==================== V1 LEADERBOARD ====================
     const totalParticipantsV1 = (await withRetry(() =>
       publicClient.readContract({
         address: contractAddress,
@@ -145,11 +143,14 @@ export async function GET() {
       })
     )) as bigint;
 
+    console.log(`📊 V1 Total Participants: ${totalParticipantsV1}`);
+
     const entriesV1: {
       user: Address;
       totalWinnings: bigint;
       voteCount: number;
     }[] = [];
+
     for (
       let start = 0;
       start < Number(totalParticipantsV1);
@@ -179,119 +180,119 @@ export async function GET() {
     }[] = [];
 
     try {
-      // Fetch participants in parallel batches with a reasonable limit
-      const maxParticipantsToFetch = 500; // Limit to prevent timeout
-      const batchSize = 50; // Fetch 50 participants at a time
+      const MAX_PARTICIPANTS = 500; // Safety limit
+      const addresses: Address[] = [];
 
-      let v2ParticipantIndex = 0;
+      // Step 1: Fetch participant addresses using multicall batches
+      let currentIndex = 0;
       let hasMoreParticipants = true;
 
-      while (
-        hasMoreParticipants &&
-        v2ParticipantIndex < maxParticipantsToFetch
-      ) {
-        // Fetch batch of participant addresses
-        const addressPromises: Promise<Address | null>[] = [];
-        for (let i = 0; i < batchSize; i++) {
-          const currentIndex = v2ParticipantIndex + i;
-          addressPromises.push(
-            publicClient
-              .readContract({
-                address: V2contractAddress,
-                abi: V2contractAbi,
-                functionName: "allParticipants",
-                args: [BigInt(currentIndex)],
-              })
-              .then((addr) => addr as Address)
-              .catch(() => null)
-          );
-        }
-
-        const addresses = await Promise.all(addressPromises);
-        const validAddresses = addresses.filter(
-          (addr): addr is Address => addr !== null
+      while (hasMoreParticipants && currentIndex < MAX_PARTICIPANTS) {
+        const batchContracts = Array.from(
+          { length: Math.min(V2_BATCH_SIZE, MAX_PARTICIPANTS - currentIndex) },
+          (_, i) => ({
+            address: V2contractAddress as Address,
+            abi: V2contractAbi,
+            functionName: "allParticipants" as const,
+            args: [BigInt(currentIndex + i)],
+          })
         );
+
+        const batchResults = await withRetry(() =>
+          publicClient.multicall({
+            contracts: batchContracts,
+            allowFailure: true,
+          })
+        );
+
+        const validAddresses = batchResults
+          .filter((r) => r.status === "success" && r.result)
+          .map((r) => r.result as Address);
 
         if (validAddresses.length === 0) {
           hasMoreParticipants = false;
           break;
         }
 
-        // Fetch portfolios for all valid addresses in parallel
-        const portfolioPromises = validAddresses.map((address) =>
-          publicClient
-            .readContract({
-              address: V2contractAddress,
-              abi: V2contractAbi,
-              functionName: "userPortfolios",
-              args: [address],
-            })
-            .then((portfolio) => ({
-              address,
-              portfolio: portfolio as [bigint, bigint, bigint, bigint, bigint],
-            }))
-            .catch(() => null)
-        );
+        addresses.push(...validAddresses);
+        currentIndex += V2_BATCH_SIZE;
 
-        const portfolios = await Promise.all(portfolioPromises);
-
-        // Process portfolios
-        for (const result of portfolios) {
-          if (!result) continue;
-
-          const { address, portfolio } = result;
-          const totalWinnings = portfolio[1]; // totalWinnings is at index 1
-          const tradeCount = Number(portfolio[4]); // tradeCount is at index 4
-
-          // Only add if user has winnings
-          if (totalWinnings > 0n) {
-            entriesV2.push({
-              user: address,
-              totalWinnings,
-              voteCount: tradeCount,
-            });
-          }
-        }
-
-        v2ParticipantIndex += batchSize;
-
-        // If we got fewer addresses than batch size, we've reached the end
-        if (validAddresses.length < batchSize) {
+        // If we got fewer results than batch size, we've reached the end
+        if (validAddresses.length < V2_BATCH_SIZE) {
           hasMoreParticipants = false;
         }
       }
 
+      console.log(`✅ Found ${addresses.length} V2 participant addresses`);
+
+      // Step 2: Fetch portfolios using multicall batches
+      for (let i = 0; i < addresses.length; i += V2_BATCH_SIZE) {
+        const batchAddresses = addresses.slice(i, i + V2_BATCH_SIZE);
+
+        const portfolioContracts = batchAddresses.map((addr) => ({
+          address: V2contractAddress as Address,
+          abi: V2contractAbi,
+          functionName: "userPortfolios" as const,
+          args: [addr],
+        }));
+
+        const portfolioResults = await withRetry(() =>
+          publicClient.multicall({
+            contracts: portfolioContracts,
+            allowFailure: true,
+          })
+        );
+
+        portfolioResults.forEach((result, idx) => {
+          if (result.status === "success" && result.result) {
+            const portfolio = result.result as [
+              bigint,
+              bigint,
+              bigint,
+              bigint,
+              bigint
+            ];
+            const totalWinnings = portfolio[1]; // index 1 = totalWinnings
+            const tradeCount = Number(portfolio[4]); // index 4 = tradeCount
+
+            if (totalWinnings > 0n) {
+              entriesV2.push({
+                user: batchAddresses[idx],
+                totalWinnings,
+                voteCount: tradeCount,
+              });
+            }
+          }
+        });
+      }
+
       console.log(`✅ Fetched ${entriesV2.length} V2 leaderboard entries`);
     } catch (v2Error) {
-      console.error("❌ Failed to fetch V2 leaderboard:", v2Error);
-      // Continue with V1 only if V2 fails
+      console.error("❌ V2 fetch error (continuing with V1 only):", v2Error);
+      // Continue with V1 data only
     }
 
-    // Combine V1 and V2 entries by address
+    // ==================== COMBINE V1 + V2 ====================
     const combinedEntries = new Map<
       string,
-      {
-        user: Address;
-        totalWinnings: bigint;
-        voteCount: number;
-      }
+      { user: Address; totalWinnings: bigint; voteCount: number }
     >();
 
     // Add V1 entries
     entriesV1.forEach((entry) => {
-      const addr = entry.user.toLowerCase();
-      combinedEntries.set(addr, {
+      combinedEntries.set(entry.user.toLowerCase(), {
         user: entry.user,
         totalWinnings: entry.totalWinnings,
         voteCount: entry.voteCount,
       });
     });
 
-    // Add V2 entries (combine with existing V1 data if user exists)
+    // Merge V2 entries (add to existing V1 data or create new)
     entriesV2.forEach((entry) => {
       const addr = entry.user.toLowerCase();
       const existing = combinedEntries.get(addr);
       if (existing) {
+        // User exists in both V1 and V2 - ADD the values
         combinedEntries.set(addr, {
           user: entry.user,
           totalWinnings:
@@ -299,22 +300,27 @@ export async function GET() {
           voteCount: Number(existing.voteCount) + Number(entry.voteCount),
         });
       } else {
+        // User only exists in V2
         combinedEntries.set(addr, {
           user: entry.user,
-          totalWinnings: BigInt(entry.totalWinnings),
-          voteCount: Number(entry.voteCount),
+          totalWinnings: entry.totalWinnings,
+          voteCount: entry.voteCount,
         });
       }
     });
 
     const winners = Array.from(combinedEntries.values())
-      .filter((entry) => entry.totalWinnings > 0) // Only include users with winnings
+      .filter((entry) => entry.totalWinnings > 0n)
       .map((entry) => ({
         address: entry.user.toLowerCase(),
         winnings: Number(entry.totalWinnings) / Math.pow(10, tokenDecimals),
-        voteCount: Number(entry.voteCount), // Ensure voteCount is also a number
-      }));
+        voteCount: Number(entry.voteCount),
+      }))
+      .sort((a, b) => b.winnings - a.winnings);
 
+    console.log(`📊 Combined ${winners.length} total unique winners`);
+
+    // ==================== FETCH NEYNAR DATA ====================
     console.log("📬 Fetching Farcaster users...");
     const neynarCache =
       cache.get<Record<string, NeynarUser[]>>(NEYNAR_CACHE_KEY) || {};
@@ -337,8 +343,10 @@ export async function GET() {
       );
     }
 
+    // ==================== BUILD FINAL LEADERBOARD ====================
     console.log("🧠 Building leaderboard...");
     const leaderboard: LeaderboardEntry[] = winners
+      .slice(0, 10) // Top 10 only
       .map((winner) => {
         const usersForAddress = addressToUsersMap[winner.address];
         const user =
@@ -355,9 +363,7 @@ export async function GET() {
           voteCount: winner.voteCount,
           address: winner.address,
         };
-      })
-      .sort((a, b) => b.winnings - a.winnings)
-      .slice(0, 10);
+      });
 
     console.log("🏆 Final Leaderboard:", leaderboard);
 
@@ -377,8 +383,7 @@ export async function GET() {
 
     const cachedLeaderboard = cache.get<LeaderboardEntry[]>(CACHE_KEY);
     if (cachedLeaderboard) {
-      console.log("✅ Serving cached leaderboard due to error");
-      // Ensure no BigInt values in cached data
+      console.log("✅ Serving stale cache due to error");
       const safeLeaderboard = JSON.parse(
         JSON.stringify(cachedLeaderboard, (key, value) =>
           typeof value === "bigint" ? Number(value) : value
