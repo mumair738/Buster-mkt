@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { Home, Clock, Trophy, User, Info, Settings } from "lucide-react"; // Icons for tabs and About
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { sdk } from "@farcaster/miniapp-sdk"; // Add this import
 import { useUserRoles } from "@/hooks/useUserRoles";
+import { toast } from "@/hooks/use-toast";
 
 export function Footer() {
   //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pathname = usePathname();
+  const router = useRouter();
   const [showInfo, setShowInfo] = useState(false);
   const [currentQueryTab, setCurrentQueryTab] = useState<string | null>(null);
   const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
@@ -21,7 +23,7 @@ export function Footer() {
       const params = new URLSearchParams(window.location.search);
       setCurrentQueryTab(params.get("tab"));
     }
-  }, []);
+  }, [pathname]); // Re-run when pathname changes
 
   const navItems = [
     { hrefBase: "/", tabValue: "active", icon: Home, label: "Active" },
@@ -43,10 +45,26 @@ export function Footer() {
       : []),
   ];
 
-  // Close info panel when clicking on any navigation item
-  const handleNavClick = () => {
+  // Handle navigation with client-side routing (no full page reload)
+  const handleNavClick = (hrefBase: string, tabValue: string) => {
     if (showInfo) {
       setShowInfo(false);
+    }
+
+    // For home page tabs, update URL without full reload
+    if (hrefBase === "/" && tabValue) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("tab", tabValue);
+      window.history.pushState(null, "", newUrl.toString());
+      setCurrentQueryTab(tabValue);
+
+      // Trigger a custom event that the dashboard can listen to
+      window.dispatchEvent(
+        new CustomEvent("tabChange", { detail: { tab: tabValue } })
+      );
+    } else {
+      // For non-tab navigation (profile, admin), use normal routing
+      router.push(hrefBase);
     }
   };
 
@@ -65,6 +83,12 @@ export function Footer() {
       });
     } catch (error) {
       console.error("Failed to open swap:", error);
+      // Add toast notification
+      toast({
+        title: "Swap Failed",
+        description: "Unable to open token swap. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -127,10 +151,11 @@ export function Footer() {
                 (currentQueryTab === null && item.tabValue === "active") ||
                 currentQueryTab === item.tabValue ||
                 (pathname === item.hrefBase && item.tabValue === "");
+
               return (
-                <Link
+                <button
                   key={href}
-                  href={href}
+                  onClick={() => handleNavClick(item.hrefBase, item.tabValue)}
                   className={cn(
                     "flex flex-col items-center",
                     isActive
@@ -138,11 +163,10 @@ export function Footer() {
                       : "text-muted-foreground hover:text-primary"
                   )}
                   aria-label={item.label}
-                  onClick={handleNavClick}
                 >
                   <item.icon className="h-6 w-6" />
                   <span className="text-xs mt-1">{item.label}</span>
-                </Link>
+                </button>
               );
             })}
             <button

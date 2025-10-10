@@ -45,6 +45,21 @@ export function EnhancedPredictionMarketDashboard() {
     const urlParams = new URLSearchParams(window.location.search);
     const tabFromUrl = urlParams.get("tab") || "active";
     setActiveTab(tabFromUrl);
+
+    // Listen for custom tab change events from footer
+    const handleTabChangeEvent = (event: CustomEvent) => {
+      const newTab = event.detail.tab;
+      setActiveTab(newTab);
+    };
+
+    window.addEventListener("tabChange", handleTabChangeEvent as EventListener);
+
+    return () => {
+      window.removeEventListener(
+        "tabChange",
+        handleTabChangeEvent as EventListener
+      );
+    };
   }, []); // Only run once on mount
 
   const handleTabChange = (value: string) => {
@@ -169,8 +184,6 @@ export function EnhancedPredictionMarketDashboard() {
     <div className="min-h-screen flex flex-col pb-20 md:pb-0 bg-gradient-to-br from-[#6A5ACD] via-[#E6E6FA] to-[#F0F8FF] dark:from-[#2D1B69] dark:via-[#1a1a2e] dark:to-[#16213e]">
       <Navbar />
       <div className="flex-grow container mx-auto p-4">
-     
-
         <Tabs
           value={activeTab}
           onValueChange={handleTabChange}
