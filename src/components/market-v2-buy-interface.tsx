@@ -174,7 +174,7 @@ export function MarketV2BuyInterface({
   const [isVisible, setIsVisible] = useState(true);
   const [isValidated, setIsValidated] = useState<boolean | null>(null); // null = checking, true = validated, false = not validated
 
-  // Reset function to completely reset the buying interface//
+  // Reset function to completely reset the buying interface
   const resetBuyingInterface = useCallback(() => {
     setSelectedOptionId(null);
     setAmount("");
@@ -183,6 +183,15 @@ export function MarketV2BuyInterface({
     setIsProcessing(false);
     setError(null);
   }, []);
+
+  // Helper to dispatch market update event for price refresh
+  const dispatchMarketUpdate = useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent("market-updated", {
+        detail: { marketId },
+      })
+    );
+  }, [marketId]);
 
   // EIP-5792 batch calls
   const {
@@ -944,6 +953,7 @@ export function MarketV2BuyInterface({
 
             // Refetch option data to update UI
             refetchOptionData();
+            dispatchMarketUpdate(); // Trigger global market update
           } else if (
             approvalReceipt?.status === "success" &&
             purchaseReceipt?.status !== "success"
@@ -988,6 +998,7 @@ export function MarketV2BuyInterface({
               }`,
             });
             refetchOptionData();
+            dispatchMarketUpdate(); // Trigger global market update
           } else {
             console.warn("⚠️ V2 Single receipt but not successful");
             setBuyingStep("batchPartialSuccess");
@@ -1013,6 +1024,7 @@ export function MarketV2BuyInterface({
               }`,
             });
             refetchOptionData();
+            dispatchMarketUpdate(); // Trigger global market update
           } else {
             console.warn("⚠️ V2 Some receipts failed");
             setBuyingStep("batchPartialSuccess");
@@ -1030,6 +1042,7 @@ export function MarketV2BuyInterface({
             }`,
           });
           refetchOptionData();
+          dispatchMarketUpdate(); // Trigger global market update
         }
         setIsProcessing(false);
       } else if (callsStatusData.status === "failure") {
@@ -1169,6 +1182,7 @@ export function MarketV2BuyInterface({
     selectedOptionId,
     toast,
     refetchOptionData,
+    dispatchMarketUpdate,
   ]);
 
   // Monitor regular transaction status
@@ -1210,6 +1224,7 @@ export function MarketV2BuyInterface({
         setAmount("");
         setIsBuying(false);
         refetchOptionData();
+        dispatchMarketUpdate(); // Trigger global market update
       }
     }
   }, [
@@ -1228,6 +1243,7 @@ export function MarketV2BuyInterface({
     market.options,
     toast,
     refetchOptionData,
+    dispatchMarketUpdate,
   ]);
 
   // Update container height

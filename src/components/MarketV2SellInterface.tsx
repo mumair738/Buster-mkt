@@ -306,6 +306,13 @@ export function MarketV2SellInterface({
         description: `Your shares have been sold and tokens transferred to your wallet.`,
       });
 
+      // Dispatch global market update event for immediate price refresh
+      window.dispatchEvent(
+        new CustomEvent("market-updated", {
+          detail: { marketId },
+        })
+      );
+
       // Call completion callback
       if (onSellComplete) {
         onSellComplete();
@@ -326,6 +333,7 @@ export function MarketV2SellInterface({
     hash,
     lastProcessedHash,
     toast,
+    marketId,
     onSellComplete,
     refetchOptionData,
     refetchMarketOdds,
