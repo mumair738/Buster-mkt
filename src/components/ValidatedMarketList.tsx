@@ -10,7 +10,18 @@ import {
   V2contractAbi,
   publicClient,
 } from "@/constants/contract";
+import { Input } from "./ui/input";
+import { Search, Filter, X } from "lucide-react";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { getTotalMarketCount, fetchMarketData } from "@/lib/market-migration";
+import { CATEGORY_LABELS, MarketCategory } from "@/lib/constants";
 
 interface ValidatedMarketListProps {
   filter: "active" | "pending" | "resolved";
@@ -95,6 +106,9 @@ export function ValidatedMarketList({
   const [markets, setMarkets] = useState<MarketWithVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
 
   useEffect(() => {
     const fetchMarkets = async () => {
@@ -177,13 +191,57 @@ export function ValidatedMarketList({
     fetchMarkets();
   }, []);
 
-  // Filter markets based on status and validation
-  const filteredMarkets = markets.filter(({ market, validated }) => {
-    const status = getMarketStatus(market);
-    const statusMatch = status === filter;
-    const validationMatch = showOnlyValidated ? validated : true;
-    return statusMatch && validationMatch;
-  });
+  // Filter and search markets
+  const filteredMarkets = markets
+    .filter(({ market, validated }) => {
+      const status = getMarketStatus(market);
+      const statusMatch = status === filter;
+      const validationMatch = showOnlyValidated ? validated : true;
+
+      // Search filter
+      const searchMatch = searchQuery
+        ? market.question?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ("description" in market &&
+            market.description
+              ?.toLowerCase()
+              .includes(searchQuery.toLowerCase()))
+        : true;
+
+      // Category filter for V2 markets
+      const categoryMatch =
+        categoryFilter === "all" ||
+        ("category" in market &&
+          market.category?.toString() === categoryFilter);
+
+      return statusMatch && validationMatch && searchMatch && categoryMatch;
+    })
+    .sort((a, b) => {
+      // Sorting logic
+      switch (sortBy) {
+        case "newest":
+          return b.id - a.id;
+        case "oldest":
+          return a.id - b.id;
+        case "ending-soon":
+          const aEndTime =
+            typeof a.market.endTime === "string"
+              ? parseInt(a.market.endTime)
+              : Number(a.market.endTime);
+          const bEndTime =
+            typeof b.market.endTime === "string"
+              ? parseInt(b.market.endTime)
+              : Number(b.market.endTime);
+          return aEndTime - bEndTime;
+        case "most-volume":
+          const aVolume =
+            "totalVolume" in a.market ? Number(a.market.totalVolume || 0) : 0;
+          const bVolume =
+            "totalVolume" in b.market ? Number(b.market.totalVolume || 0) : 0;
+          return bVolume - aVolume;
+        default:
+          return b.id - a.id;
+      }
+    });
 
   if (loading) {
     return (
@@ -209,47 +267,165 @@ export function ValidatedMarketList({
     );
   }
 
-  if (filteredMarkets.length === 0) {
-    const statusText = showOnlyValidated ? `validated ${filter}` : filter;
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">No {statusText} markets found.</p>
-        {showOnlyValidated && (
-          <p className="text-sm text-gray-400 mt-2">
-            Markets must be validated by an admin before appearing here.
-          </p>
-        )}
-      </div>
-    );
-  }
+  const clearFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    setSortBy("newest");
+  };
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-      {filteredMarkets.map(({ id, version, market, validated }) => {
-        if (version === "v2") {
-          return (
-            <div key={`v2-${id}`} className="relative">
-              <MarketV2Card index={id} market={market as MarketV2} />
-              {!validated && (
-                <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">
-                  Pending Validation
+    <div className="space-y-4">
+      {/* Search and Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2 md:p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 md:gap-3 overflow-x-auto flex-nowrap">
+          {/* Search Input */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search markets..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 text-sm pl-8 md:pl-10 pr-8 md:pr-10 min-w-[160px]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 md:right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter */}
+          <div className="block">
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[120px] md:w-[180px] h-9 text-sm">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value={MarketCategory.POLITICS.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.POLITICS]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.SPORTS.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.SPORTS]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.ENTERTAINMENT.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.ENTERTAINMENT]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.TECHNOLOGY.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.TECHNOLOGY]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.ECONOMICS.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.ECONOMICS]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.SCIENCE.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.SCIENCE]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.WEATHER.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.WEATHER]}
+                </SelectItem>
+                <SelectItem value={MarketCategory.OTHER.toString()}>
+                  {CATEGORY_LABELS[MarketCategory.OTHER]}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Sort By */}
+          <div className="block">
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[120px] md:w-[180px] h-9 text-sm">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest First</SelectItem>
+                <SelectItem value="oldest">Oldest First</SelectItem>
+                <SelectItem value="ending-soon">Ending Soon</SelectItem>
+                <SelectItem value="most-volume">Most Volume</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div className="block">
+            {(searchQuery ||
+              categoryFilter !== "all" ||
+              sortBy !== "newest") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearFilters}
+                className="whitespace-nowrap h-9"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="hidden md:block mt-3 text-sm text-gray-600 dark:text-gray-400">
+          Showing {filteredMarkets.length} of{" "}
+          {
+            markets.filter(({ market, validated }) => {
+              const status = getMarketStatus(market);
+              const validationMatch = showOnlyValidated ? validated : true;
+              return status === filter && validationMatch;
+            }).length
+          }{" "}
+          markets
+        </div>
+      </div>
+
+      {/* Markets Grid */}
+      {filteredMarkets.length === 0 ? (
+        <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <p className="text-gray-500">
+            {searchQuery || categoryFilter !== "all"
+              ? "No markets match your filters."
+              : `No ${
+                  showOnlyValidated ? "validated " : ""
+                }${filter} markets found.`}
+          </p>
+          {showOnlyValidated && !searchQuery && categoryFilter === "all" && (
+            <p className="text-sm text-gray-400 mt-2">
+              Markets must be validated by an admin before appearing here.
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredMarkets.map(({ id, version, market, validated }) => {
+            if (version === "v2") {
+              return (
+                <div key={`v2-${id}`} className="relative">
+                  <MarketV2Card index={id} market={market as MarketV2} />
+                  {!validated && (
+                    <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">
+                      Pending Validation
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        } else {
-          return (
-            <div key={`v1-${id}`} className="relative">
-              <MarketCard index={id} market={market as Market} />
-              {!validated && (
-                <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">
-                  Pending Validation
+              );
+            } else {
+              return (
+                <div key={`v1-${id}`} className="relative">
+                  <MarketCard index={id} market={market as Market} />
+                  {!validated && (
+                    <div className="absolute top-2 right-2 bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">
+                      Pending Validation
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          );
-        }
-      })}
+              );
+            }
+          })}
+        </div>
+      )}
     </div>
   );
 }
