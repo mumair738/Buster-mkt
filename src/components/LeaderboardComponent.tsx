@@ -1,39 +1,73 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowUpCircle, ArrowDownCircle, Info, ArrowLeft } from "lucide-react";
+import {
+  LeaderboardEntry,
+  LeaderboardType,
+  TimeFrame,
+} from "@/types/leaderboard";
 
-type LeaderboardType = "Accuracy" | "Trading Volume";
-type TimeFrame = "All-Time" | "Monthly" | "Weekly";
+// UI display types
+type UILeaderboardType = "Accuracy" | "Trading Volume";
+type UITimeFrame = "All-Time" | "Monthly" | "Weekly";
+
+// Map UI-friendly names to API values
+const typeMap: Record<UILeaderboardType, LeaderboardType> = {
+  Accuracy: "accuracy",
+  "Trading Volume": "volume",
+};
+
+const timeframeMap: Record<UITimeFrame, TimeFrame> = {
+  "All-Time": "all",
+  Monthly: "monthly",
+  Weekly: "weekly",
+};
 
 interface LeaderboardProps {
   onTabChange?: (tab: string) => void;
-  isLoading?: boolean;
-  error?: string | null;
-  data?: {
-    users: UserData[];
-    currentUser: UserData;
-  };
-}
-
-interface UserData {
-  rank: number;
-  name: string;
-  predictions?: number;
-  accuracy: number;
-  avatar: string;
-  trend?: "up" | "down";
 }
 
 export default function LeaderboardComponent({
   onTabChange,
-  isLoading,
-  error,
-  data,
 }: LeaderboardProps) {
   const [leaderboardType, setLeaderboardType] =
-    useState<LeaderboardType>("Accuracy");
-  const [timeFrame, setTimeFrame] = useState<TimeFrame>("All-Time");
+    useState<UILeaderboardType>("Accuracy");
+  const [timeFrame, setTimeFrame] = useState<UITimeFrame>("All-Time");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [data, setData] = useState<LeaderboardEntry[]>([]);
+
+  const fetchLeaderboard = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        type: typeMap[leaderboardType],
+        timeframe: timeframeMap[timeFrame],
+      });
+
+      const response = await fetch(`/api/leaderboard?${params}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard data");
+      }
+
+      const leaderboardData = await response.json();
+      setData(leaderboardData);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching the leaderboard"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [leaderboardType, timeFrame]);
 
   // State management for filters
 
@@ -120,7 +154,7 @@ export default function LeaderboardComponent({
                 value={type}
                 checked={leaderboardType === type}
                 onChange={(e) =>
-                  setLeaderboardType(e.target.value as LeaderboardType)
+                  setLeaderboardType(e.target.value as UILeaderboardType)
                 }
                 className="invisible w-0"
               />
@@ -157,54 +191,62 @@ export default function LeaderboardComponent({
       {/* Podium Section */}
       <div className="flex items-end justify-center gap-4 px-4 py-6">
         {/* Map through top users in correct order for podium (2nd, 1st, 3rd) */}
-        {[...data.users]
+        {data
           .slice(0, 3)
           .sort((a, b) => {
             const order = [2, 1, 3];
             return order.indexOf(a.rank) - order.indexOf(b.rank);
           })
-          .map((user) => (
-            <div key={user.rank} className="flex flex-col items-center gap-2">
+          .map((entry) => (
+            <div key={entry.rank} className="flex flex-col items-center gap-2">
               <div className="relative">
                 <div
                   className={`bg-center bg-no-repeat aspect-square bg-cover rounded-full ${
-                    user.rank === 1
+                    entry.rank === 1
                       ? "w-28 h-28 border-4 border-[#FFD700]"
-                      : 'w-20 h-20 border-2 border-[${user.rank === 2 ? "#C0C0C0" : "#CD7F32"}]'
+                      : `w-20 h-20 border-2 ${
+                          entry.rank === 2
+                            ? "border-[#C0C0C0]"
+                            : "border-[#CD7F32]"
+                        }`
                   }`}
-                  style={{ backgroundImage: `url("${user.avatar}")` }}
+                  style={{
+                    backgroundImage: `url("${
+                      entry.pfp_url || "/default-avatar.png"
+                    }")`,
+                  }}
                 />
                 <div
                   className={`absolute -bottom-2 -right-2 flex ${
-                    user.rank === 1 ? "h-10 w-10 text-base" : "h-8 w-8 text-sm"
+                    entry.rank === 1 ? "h-10 w-10 text-base" : "h-8 w-8 text-sm"
                   } items-center justify-center rounded-full ${
-                    user.rank === 1
+                    entry.rank === 1
                       ? "bg-[#FFD700]"
-                      : user.rank === 2
+                      : entry.rank === 2
                       ? "bg-[#C0C0C0]"
                       : "bg-[#CD7F32]"
                   } font-bold text-white shadow-md`}
                 >
-                  {user.rank}
+                  {entry.rank}
                 </div>
               </div>
               <p
                 className={`text-gray-900 dark:text-white ${
-                  user.rank === 1
+                  entry.rank === 1
                     ? "text-base font-bold"
                     : "text-sm font-semibold"
                 }`}
               >
-                {user.name}
+                {entry.username}
               </p>
               <p
                 className={`${
-                  user.rank === 1
+                  entry.rank === 1
                     ? "text-primary text-sm font-semibold"
                     : "text-gray-500 dark:text-[#ac9fbc] text-xs"
                 }`}
               >
-                {user.accuracy}%
+                {entry.accuracy}%
               </p>
             </div>
           ))}
@@ -212,33 +254,35 @@ export default function LeaderboardComponent({
 
       {/* Leaderboard List */}
       <div className="flex flex-col gap-2 px-4 pb-24">
-        {data.users.slice(3).map((user) => (
+        {data.slice(3).map((entry) => (
           <div
-            key={user.rank}
+            key={entry.rank}
             className="flex items-center rounded-lg bg-gray-100 dark:bg-[#352c3f]/50 p-3 gap-4"
           >
             <p className="w-6 text-center text-sm font-semibold text-gray-500 dark:text-gray-400">
-              {user.rank}
+              {entry.rank}
             </p>
             <img
               className="h-10 w-10 rounded-full object-cover"
-              src={user.avatar}
-              alt={`${user.name}'s avatar`}
+              src={entry.pfp_url || "/default-avatar.png"}
+              alt={`${entry.username}'s avatar`}
             />
             <div className="flex-grow">
               <p className="font-semibold text-gray-900 dark:text-white">
-                {user.name}
+                {entry.username}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                {user.predictions} predictions
+                {entry.voteCount} predictions
               </p>
             </div>
             <div className="flex items-center gap-2">
               <p className="font-bold text-gray-900 dark:text-white">
-                {user.accuracy}%
+                {leaderboardType === "Accuracy"
+                  ? `${entry.accuracy}%`
+                  : `${entry.winnings.toFixed(2)} $BUSTER`}
               </p>
-              {user.trend &&
-                (user.trend === "up" ? (
+              {entry.trend !== "none" &&
+                (entry.trend === "up" ? (
                   <ArrowUpCircle className="text-green-500 size-5" />
                 ) : (
                   <ArrowDownCircle className="text-red-500 size-5" />
@@ -249,24 +293,31 @@ export default function LeaderboardComponent({
       </div>
 
       {/* Sticky "My Rank" Banner */}
-      {data.currentUser && (
+      {data.find((entry) => entry.fid) && (
         <div className="fixed bottom-0 left-0 right-0 z-10 p-4 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
           <div className="flex items-center rounded-lg bg-primary/20 dark:bg-primary/30 p-3 gap-4 border border-primary/50">
             <p className="w-6 text-center text-sm font-bold text-primary">
-              {data.currentUser.rank}
+              {data.find((entry) => entry.fid)?.rank || "-"}
             </p>
             <img
               className="h-10 w-10 rounded-full object-cover"
-              src={data.currentUser.avatar}
+              src={
+                data.find((entry) => entry.fid)?.pfp_url ||
+                "/default-avatar.png"
+              }
               alt="Your avatar"
             />
             <div className="flex-grow">
               <p className="font-bold text-gray-900 dark:text-white">
-                {data.currentUser.name}
+                Your Rank
               </p>
             </div>
             <p className="font-bold text-gray-900 dark:text-white">
-              {data.currentUser.accuracy}% Accuracy
+              {leaderboardType === "Accuracy"
+                ? `${data.find((entry) => entry.fid)?.accuracy}%`
+                : `${data
+                    .find((entry) => entry.fid)
+                    ?.winnings.toFixed(2)} $BUSTER`}
             </p>
           </div>
         </div>
