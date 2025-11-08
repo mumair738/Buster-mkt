@@ -140,35 +140,56 @@ export function ClaimWinningsSection() {
   const totalClaimedEth = Number(totalClaimed) / 1e18;
 
   return (
-    <Card className="border-purple-200 bg-gradient-to-br from-purple-50 to-[#924db3]/10">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-[#924db3]">
-          <Trophy className="w-5 h-5" />
-          Claim Your Winnings
+    <Card className="border border-purple-100 shadow-lg bg-white">
+      <CardHeader className="border-b border-purple-100 bg-gradient-to-r from-purple-50 to-[#924db3]/5">
+        <CardTitle className="flex items-center gap-3 text-[#924db3]">
+          <Trophy className="w-6 h-6" />
+          <div>
+            <h2 className="text-xl font-semibold">Claim Your Winnings</h2>
+            {!loading && unclaimedWinnings.length > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                You have {unclaimedWinnings.length} market
+                {unclaimedWinnings.length !== 1 ? "s" : ""} to claim
+              </p>
+            )}
+          </div>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="p-6 space-y-6">
         {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-[#924db3]" />
-            <span className="ml-2 text-sm text-gray-600">
-              Checking available winnings...
-            </span>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-[#924db3] mx-auto mb-3" />
+              <span className="text-sm text-gray-600">
+                Checking available winnings...
+              </span>
+            </div>
           </div>
         ) : unclaimedWinnings.length === 0 && claimedWinnings.length === 0 ? (
-          <div className="text-center py-8">
-            <Coins className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">No winnings available to claim</p>
-            <p className="text-sm text-gray-500 mt-1">
+          <div className="text-center py-12">
+            <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Coins className="w-10 h-10 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Winnings Available
+            </h3>
+            <p className="text-sm text-gray-500">
               Check back after markets resolve
             </p>
           </div>
         ) : unclaimedWinnings.length === 0 && claimedWinnings.length > 0 ? (
           <div className="text-center py-8">
-            <Trophy className="w-12 h-12 mx-auto mb-4 text-[#924db3]" />
-            <p className="text-gray-900 font-semibold">All Winnings Claimed!</p>
-            <p className="text-sm text-gray-600 mt-1">
-              Total claimed: {totalClaimedEth.toFixed(4)} $Buster
+            <div className="bg-purple-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+              <Trophy className="w-10 h-10 text-[#924db3]" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              All Winnings Claimed!
+            </h3>
+            <p className="text-sm text-gray-600">
+              Total claimed:{" "}
+              <span className="font-medium">
+                {totalClaimedEth.toFixed(4)} $Buster
+              </span>
             </p>
             <Button
               variant="outline"
@@ -207,61 +228,68 @@ export function ClaimWinningsSection() {
         ) : (
           <>
             {/* Total Winnings Summary */}
-            <div className="bg-purple-100 p-4 rounded-lg">
+            <div className="bg-gradient-to-br from-purple-50 to-[#924db3]/5 p-6 rounded-xl border border-purple-100 mb-8">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#924db3]">
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">
                     Total Available Winnings
-                  </p>
-                  <p className="text-2xl font-bold text-[#924db3]">
-                    {totalWinningsEth.toFixed(4)} $Buster
+                  </h3>
+                  <p className="text-3xl font-bold text-[#924db3]">
+                    {totalWinningsEth.toFixed(4)}{" "}
+                    <span className="text-lg">$Buster</span>
                   </p>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-purple-200 text-[#924db3]"
-                >
-                  {unclaimedWinnings.length} Unclaimed Market
-                  {unclaimedWinnings.length !== 1 ? "s" : ""}
-                </Badge>
+                <div className="text-right">
+                  <Badge
+                    variant="secondary"
+                    className="bg-white/80 text-[#924db3] border border-purple-200 px-4 py-1.5"
+                  >
+                    {unclaimedWinnings.length} Market
+                    {unclaimedWinnings.length !== 1 ? "s" : ""}
+                  </Badge>
+                </div>
               </div>
             </div>
 
             {/* Individual Market Claims */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 flex items-center justify-between">
-                <span>Unclaimed Winnings</span>
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-base font-semibold text-gray-900">
+                  Unclaimed Markets
+                </h4>
                 {claimedWinnings.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowClaimed(!showClaimed)}
-                    className="text-xs h-auto py-1"
+                    className="text-sm text-[#924db3] hover:text-[#824099] hover:bg-purple-50"
                   >
-                    {showClaimed ? "Hide" : "Show"} Claimed (
+                    {showClaimed ? "Hide" : "View"} History (
                     {claimedWinnings.length})
                   </Button>
                 )}
-              </h4>
+              </div>
 
               {unclaimedWinnings.map((winnings) => (
                 <div
                   key={winnings.marketId}
-                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200"
+                  className="flex items-center justify-between p-4 bg-white rounded-xl border border-purple-100 shadow-sm mb-3 hover:border-purple-200 transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-gray-900">
-                      Market #{winnings.marketId}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {(Number(winnings.amount) / 1e18).toFixed(4)} $Buster
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm bg-purple-50 text-[#924db3] px-2 py-0.5 rounded">
+                        #{winnings.marketId}
+                      </span>
+                      <p className="font-medium text-gray-900">
+                        {(Number(winnings.amount) / 1e18).toFixed(4)} $Buster
+                      </p>
+                    </div>
                   </div>
                   <Button
                     onClick={() => handleClaimWinnings(winnings.marketId)}
                     disabled={isPending || isConfirming}
                     size="sm"
-                    className="bg-[#924db3] hover:bg-[#824099]"
+                    className="bg-[#924db3] hover:bg-[#824099] text-white shadow-sm hover:shadow transition-all"
                   >
                     {isPending || isConfirming ? (
                       <>
@@ -277,31 +305,34 @@ export function ClaimWinningsSection() {
 
               {/* Claimed Winnings History */}
               {showClaimed && claimedWinnings.length > 0 && (
-                <div className="mt-4 space-y-2 border-t pt-3">
-                  <h4 className="text-sm font-semibold text-gray-700">
-                    Already Claimed
+                <div className="mt-8 pt-6 border-t border-purple-100">
+                  <h4 className="text-base font-semibold text-gray-900 mb-4">
+                    Claim History
                   </h4>
-                  {claimedWinnings.map((winnings) => (
-                    <div
-                      key={winnings.marketId}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                    >
-                      <div>
-                        <p className="font-medium text-gray-700">
-                          Market #{winnings.marketId}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {(Number(winnings.amount) / 1e18).toFixed(4)} $Buster
-                        </p>
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-gray-200 text-gray-700"
+                  <div className="space-y-3">
+                    {claimedWinnings.map((winnings) => (
+                      <div
+                        key={winnings.marketId}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
                       >
-                        ✓ Claimed
-                      </Badge>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm bg-white text-gray-600 px-2 py-0.5 rounded border">
+                            #{winnings.marketId}
+                          </span>
+                          <p className="font-medium text-gray-700">
+                            {(Number(winnings.amount) / 1e18).toFixed(4)}{" "}
+                            $Buster
+                          </p>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="bg-white text-[#924db3] border border-purple-100"
+                        >
+                          ✓ Claimed
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
