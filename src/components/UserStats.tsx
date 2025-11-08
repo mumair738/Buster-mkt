@@ -658,38 +658,6 @@ export function UserStats() {
       {/* Claim Winnings inserted directly after Profile Header */}
       <ClaimWinningsSection />
 
-      {/* Quick Stats */}
-      {/* <div className="grid grid-cols-3 gap-2 md:gap-4">
-        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100">
-          <div className="text-lg md:text-2xl font-bold text-blue-700">
-            {stats.totalVotes}
-          </div>
-          <div className="text-xs font-medium text-blue-600">Total Votes</div>
-        </Card>
-
-        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-purple-50 to-purple-100">
-          <div className="text-lg md:text-2xl font-bold text-purple-700">
-            {((stats.wins / Math.max(stats.totalVotes, 1)) * 100).toFixed(0)}%
-          </div>
-          <div className="text-xs font-medium text-purple-600">
-            Success Rate
-          </div>
-        </Card>
-
-        <Card className="p-3 md:p-4 text-center border-0 shadow-md bg-gradient-to-br from-indigo-50 to-indigo-100">
-          <div className="text-lg md:text-2xl font-bold text-indigo-700">
-            {stats.totalVotes > 0
-              ? (
-                  Number(stats.totalInvested) /
-                  stats.totalVotes /
-                  10 ** tokenDecimals
-                ).toFixed(0)
-              : 0}
-          </div>
-          <div className="text-xs font-medium text-indigo-600">Avg Bet</div>
-        </Card>
-      </div> */}
-
       {/* V1 vs V2 Performance Breakdown */}
       {(stats.v1Markets > 0 || stats.v2Markets > 0) && (
         <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
