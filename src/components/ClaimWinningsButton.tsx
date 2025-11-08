@@ -143,6 +143,20 @@ export function ClaimWinningsSection() {
   const totalClaimed = claimedWinnings.reduce((sum, w) => sum + w.amount, 0n);
   const totalClaimedEth = Number(totalClaimed) / 1e18;
 
+  // Don't render anything if there are no winnings to claim and no claimed winnings
+  if (
+    !loading &&
+    unclaimedWinnings.length === 0 &&
+    claimedWinnings.length === 0
+  ) {
+    return null;
+  }
+
+  // Don't render if there are no unclaimed winnings and we're not showing claimed history
+  if (!loading && unclaimedWinnings.length === 0 && !showClaimed) {
+    return null;
+  }
+
   return (
     <Card className="border-0 shadow-xl bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 backdrop-blur-sm overflow-hidden relative">
       <div className="absolute inset-0 bg-grid-purple-500/[0.02] [mask-image:radial-gradient(white,transparent_85%)]" />
