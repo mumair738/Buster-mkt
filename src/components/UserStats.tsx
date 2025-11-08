@@ -606,236 +606,79 @@ export function UserStats() {
   };
 
   return (
-    <div className="space-y-3 md:space-y-4">
-      {/* Profile Header */}
-      <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-        <CardContent className="p-4 md:p-6">
-          <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
-            <Avatar className="w-12 h-12 md:w-16 md:h-16 ring-2 md:ring-4 ring-blue-100">
-              <AvatarImage src={farcasterUser?.pfpUrl} alt="Profile" />
-              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-lg md:text-xl font-bold">
-                {farcasterUser?.username
-                  ? farcasterUser.username.charAt(0).toUpperCase()
-                  : accountAddress
-                  ? `${accountAddress.slice(0, 2)}${accountAddress.slice(-2)}`
-                  : "?"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg md:text-2xl font-bold text-gray-900 truncate">
-                {farcasterUser?.username
-                  ? `@${farcasterUser.username}`
-                  : "Anonymous Trader"}
+    <div className="relative flex min-h-screen w-full flex-col">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-background-light dark:bg-background-dark px-4 pt-4 pb-2">
+        <h1 className="text-lg font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white flex items-center gap-2">
+          Performance Stats
+        </h1>
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-[#352c3f] px-3 py-2 text-sm font-medium text-gray-600 dark:text-[#ac9fbc] hover:bg-gray-300 dark:hover:bg-[#443a4f] transition-colors"
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </button>
+      </div>
+
+      {/* Stats Overview Cards */}
+      <div className="p-4 space-y-4">
+        {/* User Profile Card */}
+        <div className="rounded-lg bg-gradient-to-br from-gray-100 to-gray-50 dark:from-[#352c3f] dark:to-[#2a2333] p-6">
+          <div className="flex items-center gap-4">
+            {farcasterUser?.pfpUrl ? (
+              <img
+                src={farcasterUser.pfpUrl}
+                alt="Profile"
+                className="h-16 w-16 rounded-full border-2 border-primary"
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-[#443a4f]" />
+            )}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                {farcasterUser?.username || "Anonymous Trader"}
               </h2>
-              <p className="text-xs md:text-sm text-gray-500 font-mono truncate">
-                {accountAddress
-                  ? `${accountAddress.slice(0, 6)}...${accountAddress.slice(
-                      -4
-                    )}`
-                  : "Not connected"}
+              <p className="text-sm text-gray-600 dark:text-[#ac9fbc]">
+                {accountAddress}
               </p>
-              {farcasterUser?.fid && (
-                <p className="text-xs text-blue-600 font-medium">
-                  Farcaster ID: {farcasterUser.fid}
-                </p>
-              )}
-            </div>
-            <div className="flex flex-col gap-2">
-              <Button
-                onClick={handleShare}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 md:gap-2 text-blue-600 border-blue-200 hover:bg-blue-50 h-8 md:h-9 text-xs md:text-sm px-2 md:px-3"
-              >
-                <Share2 className="w-3 h-3 md:w-4 md:h-4" />
-                <span className="hidden sm:inline">Share Stats</span>
-              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Claim Winnings inserted directly after Profile Header */}
-      <ClaimWinningsSection />
-
-      {/* V1 vs V2 Performance Breakdown */}
-      {(stats.v1Markets > 0 || stats.v2Markets > 0) && (
-        <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-gray-50">
-          <CardHeader className="bg-gradient-to-r from-green-600 to-teal-600 text-white pb-3 md:pb-6">
-            <CardTitle className="text-lg md:text-xl font-bold">
-              Market Performance Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {/* V1 Binary Markets */}
-              <div className="space-y-3">
-                <h3 className="text-base md:text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <span className="w-2 h-2 md:w-3 md:h-3 bg-blue-500 rounded-full"></span>
-                  Binary Markets
-                </h3>
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <StatCard
-                    label="Markets"
-                    value={stats.v1Markets}
-                    icon="📊"
-                    color="text-blue-600"
-                    bgColor="bg-blue-50"
-                  />
-                  <StatCard
-                    label="Win Rate"
-                    value={`${
-                      stats.v1Markets > 0
-                        ? (
-                            (stats.v1Wins / (stats.v1Wins + stats.v1Losses)) *
-                            100
-                          ).toFixed(1)
-                        : 0
-                    }%`}
-                    icon="🎯"
-                    color="text-blue-600"
-                    bgColor="bg-blue-50"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <StatCard
-                    label="Wins"
-                    value={stats.v1Wins}
-                    icon="✅"
-                    color="text-green-600"
-                    bgColor="bg-green-50"
-                  />
-                  <StatCard
-                    label="Losses"
-                    value={stats.v1Losses}
-                    icon="❌"
-                    color="text-red-600"
-                    bgColor="bg-red-50"
-                  />
-                </div>
-                <div className="text-xs md:text-sm text-gray-600">
-                  Classic binary prediction markets with Yes/No options
-                </div>
-              </div>
-
-              {/* V2 Multi-Option Markets */}
-              <div className="space-y-3">
-                <h3 className="text-base md:text-lg font-semibold text-gray-800 flex items-center gap-2">
-                  <span className="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full"></span>
-                  Multi-Option Markets
-                </h3>
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <StatCard
-                    label="Markets"
-                    value={stats.v2Markets}
-                    icon="📈"
-                    color="text-green-600"
-                    bgColor="bg-green-50"
-                  />
-                  <StatCard
-                    label="Win Rate"
-                    value={`${
-                      stats.v2Markets > 0
-                        ? (
-                            (stats.v2Wins / (stats.v2Wins + stats.v2Losses)) *
-                            100
-                          ).toFixed(1)
-                        : 0
-                    }%`}
-                    icon="🎯"
-                    color="text-green-600"
-                    bgColor="bg-green-50"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                  <StatCard
-                    label="Wins"
-                    value={stats.v2Wins}
-                    icon="✅"
-                    color="text-green-600"
-                    bgColor="bg-green-50"
-                  />
-                  <StatCard
-                    label="Losses"
-                    value={stats.v2Losses}
-                    icon="❌"
-                    color="text-red-600"
-                    bgColor="bg-red-50"
-                  />
-                </div>
-                <div className="text-xs md:text-sm text-gray-600">
-                  Advanced markets with up to 10 different outcome options
-                </div>
-
-                {/* V2 Portfolio Details */}
-                {stats.v2Portfolio && (
-                  <div className="mt-4 p-3 bg-green-25 border border-green-200 rounded-lg">
-                    <h4 className="text-sm font-semibold text-green-800 mb-2">
-                      Portfolio Details
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 text-xs mb-2">
-                      <div>
-                        <span className="text-gray-600">Total Trades:</span>
-                        <span className="ml-1 font-medium">
-                          {stats.v2TradeCount}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Contract Trades:</span>
-                        <span className="ml-1 font-medium">
-                          {stats.v2Portfolio.tradeCount}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-gray-600">Invested:</span>
-                        <span className="ml-1 font-medium">
-                          {formatAmount(stats.v2Portfolio.totalInvested)}{" "}
-                          {tokenSymbol}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Winnings:</span>
-                        <span className="ml-1 font-medium">
-                          {formatAmount(stats.v2Portfolio.totalWinnings)}{" "}
-                          {tokenSymbol}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Realized P&L:</span>
-                        <span
-                          className={`ml-1 font-medium ${
-                            Number(stats.v2Portfolio.realizedPnL) >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {formatSignedAmount(stats.v2Portfolio.realizedPnL)}{" "}
-                          {tokenSymbol}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Unrealized P&L:</span>
-                        <span
-                          className={`ml-1 font-medium ${
-                            Number(stats.v2Portfolio.unrealizedPnL) >= 0
-                              ? "text-green-600"
-                              : "text-red-600"
-                          }`}
-                        >
-                          {formatSignedAmount(stats.v2Portfolio.unrealizedPnL)}{" "}
-                          {tokenSymbol}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            { title: "Total Votes", value: stats.totalVotes },
+            { title: "Wins", value: stats.wins },
+            { title: "Losses", value: stats.losses },
+            { title: "Win Rate", value: `${stats.winRate.toFixed(2)}%` },
+            {
+              title: `Total Invested (${tokenSymbol})`,
+              value: formatAmount(stats.totalInvested),
+            },
+            {
+              title: `Net Winnings (${tokenSymbol})`,
+              value: formatSignedAmount(stats.netWinnings),
+            },
+            { title: "V1 Markets", value: stats.v1Markets },
+            { title: "V2 Markets", value: stats.v2Markets },
+            { title: "V2 Trade Count", value: stats.v2TradeCount },
+          ].map((stat) => (
+            <div
+              key={stat.title}
+              className="rounded-lg bg-gray-100 dark:bg-[#352c3f]/50 p-4 hover:bg-gray-200 dark:hover:bg-[#443a4f] transition-colors"
+            >
+              <p className="text-sm text-gray-600 dark:text-[#ac9fbc] mb-2">
+                {stat.title}
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {stat.value}
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
