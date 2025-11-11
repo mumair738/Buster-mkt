@@ -87,16 +87,16 @@ export function Footer() {
     <div className="relative">
       {/* About Panel - Compact & Modern */}
       {showInfo && (
-        <div className="md:hidden bg-gradient-to-br from-white to-gray-50 backdrop-blur-xl shadow-2xl rounded-t-2xl border-t-2 border-purple-500 w-full fixed bottom-14 left-0 z-40 animate-slide-up">
+        <div className="md:hidden bg-gradient-to-br from-[#433952] to-[#352c3f] backdrop-blur-xl shadow-2xl rounded-t-2xl border-t-2 border-purple-500 w-full fixed bottom-14 left-0 z-40 animate-slide-up">
           <div className="p-4">
-            <div className="bg-gradient-to-br from-purple-50 to-blue-50 p-3 rounded-xl border border-purple-100">
-              <h3 className="font-bold text-gray-900 text-base mb-1.5 flex items-center gap-2">
-                <span className="text-purple-600">👋</span> Welcome to Policast!
+            <div className="bg-gradient-to-br from-[#544863] to-[#433952] p-3 rounded-xl border border-purple-500/30">
+              <h3 className="font-bold text-gray-100 text-base mb-1.5 flex items-center gap-2">
+                <span className="text-purple-400">👋</span> Welcome to Policast!
               </h3>
-              <p className="text-xs text-gray-600 mb-2 leading-relaxed">
+              <p className="text-xs text-gray-300 mb-2 leading-relaxed">
                 Predict public sentiments and win rewards!
               </p>
-              <div className="flex flex-col gap-1.5 text-xs text-gray-700 mb-3">
+              <div className="flex flex-col gap-1.5 text-xs text-gray-200 mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">1</span>
                   <span>Sign in with your wallet</span>
@@ -129,7 +129,7 @@ export function Footer() {
         </div>
       )}
 
-      <footer className="w-full bg-white/80 backdrop-blur-xl border-t border-gray-200/60 fixed bottom-0 left-0 z-50 md:static shadow-lg md:shadow-none">
+      <footer className="w-full bg-[#433952]/90 backdrop-blur-xl border-t border-[#544863] fixed bottom-0 left-0 z-50 md:static shadow-lg md:shadow-none">
         <div className="container max-w-7xl mx-auto flex flex-col items-center justify-between gap-4 md:flex-row md:py-6">
           {/* Mobile Navigation - Compact & Modern */}
           <div className="flex w-full justify-around md:hidden py-2">
@@ -150,13 +150,13 @@ export function Footer() {
                   className={cn(
                     "flex flex-col items-center justify-center gap-1 transition-all duration-200 relative px-3 py-1",
                     isActive
-                      ? "text-purple-600"
-                      : "text-gray-500 hover:text-purple-600"
+                      ? "text-purple-400"
+                      : "text-gray-400 hover:text-purple-400"
                   )}
                   aria-label={item.label}
                 >
                   {isActive && (
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full" />
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full" />
                   )}
                   <item.icon className={cn(
                     "h-5 w-5 transition-all duration-200",
@@ -176,13 +176,13 @@ export function Footer() {
               className={cn(
                 "flex flex-col items-center justify-center gap-1 transition-all duration-200 relative px-3 py-1",
                 showInfo
-                  ? "text-purple-600"
-                  : "text-gray-500 hover:text-purple-600"
+                  ? "text-purple-400"
+                  : "text-gray-400 hover:text-purple-400"
               )}
               aria-label="About"
             >
               {showInfo && (
-                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full" />
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full" />
               )}
               <Info className={cn(
                 "h-5 w-5 transition-all duration-200",
@@ -199,13 +199,13 @@ export function Footer() {
 
           {/* Desktop Footer Content */}
           <div className="hidden md:flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-            <p className="text-center text-sm leading-loose text-gray-600 md:text-left">
+            <p className="text-center text-sm leading-loose text-gray-300 md:text-left">
               Built by{" "}
               <Link
                 href="https://farcaster.xyz/~/channel/politics"
                 target="_blank"
                 rel="noreferrer"
-                className="font-semibold text-purple-600 hover:text-purple-700 underline-offset-4 transition-colors"
+                className="font-semibold text-purple-400 hover:text-purple-300 underline-offset-4 transition-colors"
               >
                 Politics
               </Link>
