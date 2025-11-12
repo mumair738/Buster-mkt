@@ -95,6 +95,7 @@ export function InteractiveTradingInterface({
     null
   );
   const inputRef = useRef<HTMLInputElement>(null);
+  const processedStatusRef = useRef<Set<string>>(new Set());
 
   // Token information
   const { data: tokenSymbol } = useReadContract({
@@ -368,6 +369,8 @@ export function InteractiveTradingInterface({
       return;
     }
 
+    processedStatusRef.current.clear();
+
     if (parseFloat(amount) > MAX_SHARES) {
       setError(`Maximum ${MAX_SHARES} shares per purchase`);
       return;
@@ -408,25 +411,64 @@ export function InteractiveTradingInterface({
 
   // Monitor batch status
   useEffect(() => {
-    if (callsStatusData?.status === "success") {
+    if (!callsStatusData) return;
+
+    const stringifyWithBigInt = (value: unknown) =>
+      JSON.stringify(value, (_, nestedValue) =>
+        typeof nestedValue === "bigint" ? nestedValue.toString() : nestedValue
+      );
+
+    const statusKey = (() => {
+      const receiptsKey = stringifyWithBigInt(callsStatusData.receipts ?? []);
+      const statusLabel = callsStatusData.status ?? "unknown";
+      const base = `${statusLabel}-${receiptsKey}`;
+      if (callsData && typeof callsData === "object" && "id" in callsData) {
+        return `${String(callsData.id)}-${base}`;
+      }
+      return base;
+    })();
+
+    if (processedStatusRef.current.has(statusKey)) {
+      return;
+    }
+
+    processedStatusRef.current.add(statusKey);
+
+    const successStatuses = new Set([
+      "success",
+      "completed",
+      "complete",
+      "confirmed",
+      "finalized",
+    ]);
+
+    const statusValue = callsStatusData.status ?? "";
+
+    if (successStatuses.has(statusValue)) {
       setBuyingStep("success");
       toast({
         title: "Purchase Successful!",
         description: `Bought shares in ${options[selectedOptionId || 0]?.name}`,
       });
       setAmount("");
+      setIsProcessing(false);
       dispatchMarketUpdate();
       onTradeComplete?.();
-    } else if (callsStatusData?.status === "failure") {
+      return;
+    }
+
+    if (statusValue === "failure") {
       toast({
         title: "Purchase Failed",
         description: "Transaction failed. Please try again.",
         variant: "destructive",
       });
       setBuyingStep("initial");
+      setIsProcessing(false);
     }
   }, [
     callsStatusData,
+    callsData,
     options,
     selectedOptionId,
     toast,
@@ -448,6 +490,7 @@ export function InteractiveTradingInterface({
           description: `Bought shares in ${options[selectedOptionId!]?.name}`,
         });
         setAmount("");
+        setIsProcessing(false);
         dispatchMarketUpdate();
         onTradeComplete?.();
       }

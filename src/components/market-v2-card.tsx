@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -175,6 +175,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   const [options, setOptions] = useState<MarketOption[]>([]);
   const [totalVolume, setTotalVolume] = useState<bigint>(0n);
   const [activeInterface, setActiveInterface] = useState<"buy" | "sell">("buy");
+  const [isRefetching, setIsRefetching] = useState(false);
   // Derived displayOptions: prefer detailed `options` (from /api) but fall back
   // to a lightweight representation built from the passed-in `market` so the
   // progress UI and other consumers can render immediately.
@@ -480,7 +481,8 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
       mounted = false;
       window.removeEventListener("market-updated", handler);
     };
-  }, [index, market]); // re-run when market prop changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]); // Only depend on index, not market object to prevent infinite loops
 
   // Calculate probabilities from prices (pass to MultiOptionProgress)
   const probabilities = displayOptions.map((option) =>
@@ -756,14 +758,21 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 totalVolume={totalVolume}
                 userShares={userShares}
                 onTradeComplete={() => {
-                  // Trigger event to refresh market data
-                  window.dispatchEvent(
-                    new CustomEvent("market-updated", {
-                      detail: { marketId: index },
-                    })
-                  );
-                  // Refetch user shares
-                  userSharesQueries.forEach((query) => query.refetch?.());
+                  if (isRefetching) return; // Prevent multiple simultaneous refetches
+                  setIsRefetching(true);
+                  
+                  // Debounce the refetch
+                  setTimeout(() => {
+                    // Trigger event to refresh market data
+                    window.dispatchEvent(
+                      new CustomEvent("market-updated", {
+                        detail: { marketId: index },
+                      })
+                    );
+                    // Refetch user shares
+                    userSharesQueries.forEach((query) => query.refetch?.());
+                    setIsRefetching(false);
+                  }, 500);
                 }}
               />
             ) : (
@@ -772,14 +781,21 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 market={market}
                 userShares={userShares}
                 onSellComplete={() => {
-                  // Trigger event to refresh market data
-                  window.dispatchEvent(
-                    new CustomEvent("market-updated", {
-                      detail: { marketId: index },
-                    })
-                  );
-                  // Refetch user shares
-                  userSharesQueries.forEach((query) => query.refetch?.());
+                  if (isRefetching) return; // Prevent multiple simultaneous refetches
+                  setIsRefetching(true);
+                  
+                  // Debounce the refetch
+                  setTimeout(() => {
+                    // Trigger event to refresh market data
+                    window.dispatchEvent(
+                      new CustomEvent("market-updated", {
+                        detail: { marketId: index },
+                      })
+                    );
+                    // Refetch user shares
+                    userSharesQueries.forEach((query) => query.refetch?.());
+                    setIsRefetching(false);
+                  }, 500);
                 }}
               />
             )}

@@ -162,6 +162,7 @@ export function MarketV2BuyInterface({
   const [containerHeight, setContainerHeight] = useState("auto");
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const processedCallsRef = useRef<Set<string>>(new Set());
 
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [amount, setAmount] = useState<string>("");
@@ -822,6 +823,12 @@ export function MarketV2BuyInterface({
       return;
     }
 
+    // Ensure an option is selected
+    if (selectedOptionId === null) {
+      setError("Please select an option before confirming.");
+      return;
+    }
+
     // Check maximum shares limit per purchase
     if (parseFloat(amount) > MAX_SHARES) {
       setError(`Maximum ${MAX_SHARES} shares allowed per purchase`);
@@ -888,6 +895,9 @@ export function MarketV2BuyInterface({
     console.log("Connector:", connector?.name, connector?.id);
     console.log("Supports batch transactions:", supportseBatchTransactions);
 
+    // Reset processed transaction tracking before kicking off a new flow
+    processedCallsRef.current.clear();
+
     setBuyingStep("confirm");
 
     // Only use batch transactions for wallets that support EIP-5792
@@ -905,7 +915,8 @@ export function MarketV2BuyInterface({
     tokenDecimals,
     tokenSymbol,
     estimatedCost,
-    optionData,
+    optionTuple,
+    optionIsActive,
     marketInfo,
     connector,
     supportseBatchTransactions,
@@ -916,6 +927,20 @@ export function MarketV2BuyInterface({
   // Monitor batch transaction status
   useEffect(() => {
     if (callsStatusSuccess && callsStatusData) {
+      const txId =
+        callsData && typeof callsData === "object" && "id" in callsData
+          ? `status-${String(callsData.id)}-${callsStatusData.status}`
+          : `status-${callsStatusData.status}-${JSON.stringify(
+              callsStatusData.receipts
+            )}`;
+
+      if (processedCallsRef.current.has(txId)) {
+        console.log("=== V2 BATCH STATUS ALREADY HANDLED ===", txId);
+        return;
+      }
+
+      processedCallsRef.current.add(txId);
+
       console.log("=== V2 BATCH CALLS STATUS SUCCESS ===");
       console.log("Status:", callsStatusData.status);
       console.log("Receipts:", callsStatusData.receipts);
@@ -1157,9 +1182,22 @@ export function MarketV2BuyInterface({
         console.log("⏳ V2 Batch calls still pending...");
         // Keep waiting, the hook will refetch
       }
+      return;
     }
 
     if (callsStatusError && callsStatusErrorMsg) {
+      const errorId =
+        callsData && typeof callsData === "object" && "id" in callsData
+          ? `error-${String(callsData.id)}`
+          : `error-${callsStatusErrorMsg.message ?? "unknown"}`;
+
+      if (processedCallsRef.current.has(errorId)) {
+        console.log("=== V2 BATCH ERROR ALREADY HANDLED ===", errorId);
+        return;
+      }
+
+      processedCallsRef.current.add(errorId);
+
       console.error("=== V2 BATCH CALLS STATUS ERROR ===");
       console.error("Status error:", callsStatusErrorMsg);
 
@@ -1178,6 +1216,7 @@ export function MarketV2BuyInterface({
     callsStatusError,
     callsStatusData,
     callsStatusErrorMsg,
+    callsData,
     market.options,
     selectedOptionId,
     toast,
@@ -1241,6 +1280,7 @@ export function MarketV2BuyInterface({
     marketId,
     writeContractAsync,
     market.options,
+    currentOptionPrice,
     toast,
     refetchOptionData,
     dispatchMarketUpdate,
@@ -1386,6 +1426,10 @@ export function MarketV2BuyInterface({
                         <p className="font-medium text-gray-100 text-xs truncate">
                           {option.name}
                         </p>
+                        <span className="sr-only">
+                          Probability {probability.toFixed(1)}% and{" "}
+                          {oddsFormatted.toFixed(2)}x odds
+                        </span>
                         {/* <p className="text-xs text-gray-400">
                           {probability.toFixed(1)}% •{" "}
                           {odds.length > 0
