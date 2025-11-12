@@ -469,8 +469,8 @@ export function VoteHistory() {
 
   if (!isConnected || !accountAddress) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-        <div className="text-sm text-gray-500 font-medium">
+      <div className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl border-0 shadow-lg">
+        <div className="text-sm text-white/80 font-medium">
           Your market history will appear here
         </div>
       </div>
@@ -479,19 +479,19 @@ export function VoteHistory() {
 
   if (isLoading) {
     return (
-      <div className="border-0 rounded-xl overflow-hidden shadow-md bg-white">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-3 border-b">
-          <div className="h-5 bg-gray-200/60 rounded w-1/3 animate-pulse"></div>
+      <div className="border-0 rounded-xl overflow-hidden shadow-md bg-gradient-to-br from-[#433952]/10 to-[#544863]/10">
+        <div className="bg-gradient-to-r from-[#433952]/20 to-[#544863]/20 p-3 border-b border-[#433952]/20">
+          <div className="h-5 bg-white/20 rounded w-1/3 animate-pulse"></div>
         </div>
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-[#433952]/10">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-3 animate-pulse">
               <div className="flex justify-between gap-3">
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                  <div className="h-4 bg-white/20 rounded w-3/4"></div>
+                  <div className="h-3 bg-white/10 rounded w-1/2"></div>
                 </div>
-                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                <div className="h-4 bg-white/20 rounded w-16"></div>
               </div>
             </div>
           ))}
@@ -503,15 +503,15 @@ export function VoteHistory() {
   return (
     <div className="space-y-3">
       {/* Compact Search Bar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+      <div className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl shadow-md border-0 p-3">
         <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
           <div className="relative flex-1 w-full">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
             <Input
               placeholder="Search markets or options..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm border-gray-200 focus:border-blue-300"
+              className="pl-8 h-9 text-sm bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-white/40 focus:bg-white/15"
               aria-label="Search vote history"
             />
           </div>
@@ -520,8 +520,8 @@ export function VoteHistory() {
               onClick={() => handleSort("timestamp")}
               className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 sortKey === "timestamp"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/15"
               }`}
             >
               Date <ArrowUpDown className="h-3 w-3" />
@@ -530,8 +530,8 @@ export function VoteHistory() {
               onClick={() => handleSort("amount")}
               className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
                 sortKey === "amount"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/15"
               }`}
             >
               Amount <ArrowUpDown className="h-3 w-3" />
@@ -545,14 +545,14 @@ export function VoteHistory() {
           {filteredVotes.map((vote, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 hover:shadow-md hover:border-blue-200 transition-all"
+              className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl shadow-md border-0 p-3 hover:shadow-lg transition-all"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                     <Link
                       href={`/market/${vote.marketId}`}
-                      className="inline-flex items-center text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md"
+                      className="inline-flex items-center text-xs font-semibold text-white hover:text-white/90 bg-white/20 px-2 py-0.5 rounded-md"
                     >
                       #{vote.marketId}
                     </Link>
@@ -574,13 +574,13 @@ export function VoteHistory() {
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                         vote.version === "v1"
-                          ? "bg-gray-100 text-gray-600"
-                          : "bg-purple-100 text-purple-600"
+                          ? "bg-white/20 text-white/90"
+                          : "bg-white/20 text-white/90"
                       }`}
                     >
                       {vote.version.toUpperCase()}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-white/70">
                       {new Date(
                         Number(vote.timestamp) * 1000
                       ).toLocaleDateString(undefined, {
@@ -594,38 +594,38 @@ export function VoteHistory() {
                     href={`/market/${vote.marketId}`}
                     className="block group mb-1.5"
                   >
-                    <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-1">
+                    <h3 className="text-sm font-medium text-white group-hover:text-white/90 transition-colors line-clamp-1">
                       {vote.marketName}
                     </h3>
                   </Link>
 
-                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                    <span className="text-xs font-medium text-blue-700">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/10 border border-white/20">
+                    <span className="text-xs font-medium text-white">
                       {vote.option}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col items-end gap-0.5 shrink-0">
-                  <div className="text-sm font-bold text-gray-900">
+                  <div className="text-sm font-bold text-white">
                     {(
                       Number(vote.amount) / Math.pow(10, tokenDecimals)
                     ).toLocaleString(undefined, {
                       maximumFractionDigits: 2,
                     })}
                   </div>
-                  <div className="text-xs text-gray-500">shares</div>
+                  <div className="text-xs text-white/70">shares</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-8">
+        <div className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl border-0 shadow-lg p-8">
           <div className="flex flex-col items-center justify-center text-center">
-            <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
+            <div className="w-14 h-14 mx-auto mb-3 bg-white/10 rounded-full flex items-center justify-center">
               <svg
-                className="w-7 h-7 text-gray-500"
+                className="w-7 h-7 text-white/60"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -640,10 +640,10 @@ export function VoteHistory() {
                 />
               </svg>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">
+            <h3 className="text-base font-semibold text-white mb-1">
               {search ? "No matching transactions" : "No transactions yet"}
             </h3>
-            <p className="text-xs text-gray-500 max-w-sm">
+            <p className="text-xs text-white/70 max-w-sm">
               {search
                 ? "Try different search terms"
                 : "Start trading to see your history here"}
