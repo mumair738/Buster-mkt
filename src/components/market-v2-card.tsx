@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Card,
@@ -760,7 +760,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 onTradeComplete={() => {
                   if (isRefetching) return; // Prevent multiple simultaneous refetches
                   setIsRefetching(true);
-                  
+
                   // Debounce the refetch
                   setTimeout(() => {
                     // Trigger event to refresh market data
@@ -783,7 +783,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 onSellComplete={() => {
                   if (isRefetching) return; // Prevent multiple simultaneous refetches
                   setIsRefetching(true);
-                  
+
                   // Debounce the refetch
                   setTimeout(() => {
                     // Trigger event to refresh market data
