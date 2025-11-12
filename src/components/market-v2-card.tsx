@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "./ui/card";
 import { Button } from "./ui/button";
-import { Slot } from "@radix-ui/react-slot";
+// import { Slot } from "@radix-ui/react-slot";
 import { useAccount, useReadContract } from "wagmi";
 import {
   V2contractAddress,
@@ -59,7 +59,7 @@ const LinkifiedText = ({ text }: { text: string }) => {
             href={part}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 bg-blue-50 border border-blue-200 rounded text-blue-700 hover:bg-blue-100 transition-colors text-xs"
+            className="inline-flex items-center gap-1 mx-1 px-1.5 py-0.5 bg-blue-500/20 border border-blue-400/30 rounded text-blue-300 hover:bg-blue-500/30 transition-colors text-xs"
             title={part}
           >
             <svg
@@ -97,14 +97,22 @@ const CategoryBadge = ({ category }: { category: MarketCategory }) => {
   };
 
   const categoryColors = {
-    [MarketCategory.POLITICS]: "bg-red-100 text-red-700",
-    [MarketCategory.SPORTS]: "bg-green-100 text-green-700",
-    [MarketCategory.ENTERTAINMENT]: "bg-purple-100 text-purple-700",
-    [MarketCategory.TECHNOLOGY]: "bg-blue-100 text-blue-700",
-    [MarketCategory.ECONOMICS]: "bg-yellow-100 text-yellow-700",
-    [MarketCategory.SCIENCE]: "bg-teal-100 text-teal-700",
-    [MarketCategory.WEATHER]: "bg-gray-100 text-gray-700",
-    [MarketCategory.OTHER]: "bg-gray-100 text-gray-700",
+    [MarketCategory.POLITICS]:
+      "bg-red-500/20 text-red-300 border border-red-400/30",
+    [MarketCategory.SPORTS]:
+      "bg-green-500/20 text-green-300 border border-green-400/30",
+    [MarketCategory.ENTERTAINMENT]:
+      "bg-purple-500/20 text-purple-300 border border-purple-400/30",
+    [MarketCategory.TECHNOLOGY]:
+      "bg-blue-500/20 text-blue-300 border border-blue-400/30",
+    [MarketCategory.ECONOMICS]:
+      "bg-yellow-500/20 text-yellow-300 border border-yellow-400/30",
+    [MarketCategory.SCIENCE]:
+      "bg-teal-500/20 text-teal-300 border border-teal-400/30",
+    [MarketCategory.WEATHER]:
+      "bg-gray-500/20 text-gray-300 border border-gray-400/30",
+    [MarketCategory.OTHER]:
+      "bg-gray-500/20 text-gray-300 border border-gray-400/30",
   };
 
   return (
@@ -119,7 +127,7 @@ const CategoryBadge = ({ category }: { category: MarketCategory }) => {
 // Invalidation badge component
 const InvalidatedBadge = () => {
   return (
-    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+    <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-300 border border-red-400/30">
       Invalidated
     </span>
   );
@@ -128,7 +136,7 @@ const InvalidatedBadge = () => {
 // Free market badge component
 const FreeMarketBadge = () => {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200 shadow-sm">
+    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 border border-green-400/30 shadow-sm">
       <Gift className="h-3 w-3" />
       Free
     </span>
@@ -138,7 +146,7 @@ const FreeMarketBadge = () => {
 // Event-based market badge component
 const EventBasedBadge = () => {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-amber-100 text-orange-700 border border-orange-200 shadow-sm">
+    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-300 border border-orange-400/30 shadow-sm">
       <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
         <path
           fillRule="evenodd"
@@ -533,7 +541,10 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
   // If market is invalidated, show special message instead of normal UI
   if (isInvalidated) {
     return (
-      <Card key={index} className="flex flex-col border-red-200 bg-red-50">
+      <Card
+        key={index}
+        className="flex flex-col border-red-400/30 bg-[#433952]/50 backdrop-blur-sm"
+      >
         <CardHeader>
           <div className="flex items-center justify-between mb-2">
             <MarketTime
@@ -549,11 +560,11 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
               {showEventBadge && <EventBasedBadge />}
             </div>
           </div>
-          <CardTitle className="text-base leading-relaxed">
+          <CardTitle className="text-base leading-relaxed text-gray-100">
             <LinkifiedText text={market.question} />
           </CardTitle>
           {market.description && (
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-300 mt-1">
               <LinkifiedText text={market.description} />
             </p>
           )}
@@ -567,9 +578,9 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
         </CardHeader>
         <CardContent className="pb-4">
           <div className="text-center py-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-3">
+            <div className="inline-flex items-center justify-center w-12 h-12 bg-red-500/20 rounded-full mb-3 border border-red-400/30">
               <svg
-                className="w-6 h-6 text-red-600"
+                className="w-6 h-6 text-red-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -582,10 +593,10 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-red-800 mb-2">
+            <h3 className="text-lg font-medium text-red-300 mb-2">
               Market Invalidated
             </h3>
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-gray-300">
               This market has been invalidated due to issues with the question
               or resolution criteria. All participants have been automatically
               refunded.
@@ -618,7 +629,10 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
     typedUserShares && typedUserShares.some((shares) => shares > 0n);
 
   return (
-    <Card key={index} className="flex flex-col">
+    <Card
+      key={index}
+      className="flex flex-col bg-[#433952]/50 backdrop-blur-sm border-[#544863]"
+    >
       <CardHeader>
         <div className="flex flex-col gap-2 mb-2">
           <div className="flex justify-between items-center">
@@ -636,11 +650,11 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
             {showEventBadge && <EventBasedBadge />}
           </div>
         </div>
-        <CardTitle className="text-base leading-relaxed">
+        <CardTitle className="text-base leading-relaxed text-gray-100">
           <LinkifiedText text={market.question} />
         </CardTitle>
         {market.description && (
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-300 mt-1">
             <LinkifiedText text={market.description} />
           </p>
         )}
@@ -695,14 +709,14 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
         ) : (
           <div className="space-y-3">
             {/* Tab-style Buy/Sell Toggle */}
-            <div className="border-b border-slate-200 dark:border-slate-800 -mx-1.5">
+            <div className="border-b border-[#544863] -mx-1.5">
               <nav className="flex -mb-px">
                 <button
                   onClick={() => setActiveInterface("buy")}
                   className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeInterface === "buy"
-                      ? "border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-500"
-                      : "border-transparent text-slate-500 hover:border-slate-300 dark:text-slate-400 dark:hover:border-slate-700"
+                      ? "border-purple-500 text-purple-400"
+                      : "border-transparent text-gray-400 hover:border-[#544863] hover:text-gray-300"
                   }`}
                 >
                   <TrendingUp className="h-3.5 w-3.5" /> Buy
@@ -711,8 +725,8 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
                   onClick={() => setActiveInterface("sell")}
                   className={`inline-flex items-center justify-center gap-1.5 whitespace-nowrap px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                     activeInterface === "sell"
-                      ? "border-red-600 text-red-600 dark:border-red-500 dark:text-red-500"
-                      : "border-transparent text-slate-500 hover:border-slate-300 dark:text-slate-400 dark:hover:border-slate-700"
+                      ? "border-red-500 text-red-400"
+                      : "border-transparent text-gray-400 hover:border-[#544863] hover:text-gray-300"
                   }`}
                 >
                   <TrendingDown className="h-3.5 w-3.5" /> Sell
@@ -743,7 +757,7 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
 
             {/* Dedicated Position Card */}
             {hasShares && (
-              <div className="mt-4 p-3 bg-white dark:bg-slate-900/50 rounded-lg border border-slate-200 dark:border-slate-800">
+              <div className="mt-4 p-3 bg-[#352c3f]/80 backdrop-blur-sm rounded-lg border border-[#544863]">
                 <MarketV2SharesDisplay
                   market={market}
                   userShares={userShares || []}
@@ -764,21 +778,21 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="pt-4 border-t border-slate-200 dark:border-slate-800">
+      <CardFooter className="pt-4 border-t border-[#544863]">
         <div className="grid grid-cols-3 gap-4 w-full">
           {/* Comments Button */}
           <div className="flex flex-col items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
-              className="flex flex-col items-center justify-center h-auto p-2 w-full"
+              className="flex flex-col items-center justify-center h-auto p-2 w-full hover:bg-[#544863]/50"
               asChild
             >
               <Link href={`/market/${index}/details#comments`}>
-                <div className="flex items-center justify-center size-9 rounded-full bg-slate-100 dark:bg-slate-800/50 mb-1">
-                  <MessageCircle className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                <div className="flex items-center justify-center size-9 rounded-full bg-[#544863]/50 mb-1 border border-[#544863]">
+                  <MessageCircle className="h-4 w-4 text-gray-300" />
                 </div>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                <span className="text-xs font-medium text-gray-300">
                   {commentCount > 0 ? `${commentCount} comments` : "Comments"}
                 </span>
               </Link>
@@ -791,17 +805,15 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
               variant="ghost"
               size="sm"
               onClick={handleShare}
-              className="flex flex-col items-center justify-center h-auto p-2 w-full"
+              className="flex flex-col items-center justify-center h-auto p-2 w-full hover:bg-[#544863]/50"
             >
-              <div className="flex items-center justify-center size-9 rounded-full bg-slate-100 dark:bg-slate-800/50 mb-1">
+              <div className="flex items-center justify-center size-9 rounded-full bg-[#544863]/50 mb-1 border border-[#544863]">
                 <FontAwesomeIcon
                   icon={faShareFromSquare}
-                  className="h-4 w-4 text-slate-600 dark:text-slate-400"
+                  className="h-4 w-4 text-gray-300"
                 />
               </div>
-              <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                Share
-              </span>
+              <span className="text-xs font-medium text-gray-300">Share</span>
             </Button>
           </div>
 
@@ -810,17 +822,17 @@ export function MarketV2Card({ index, market }: MarketV2CardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="flex flex-col items-center justify-center h-auto p-2 w-full"
+              className="flex flex-col items-center justify-center h-auto p-2 w-full hover:bg-[#544863]/50"
               asChild
             >
               <Link href={`/market/${index}/details`}>
-                <div className="flex items-center justify-center size-9 rounded-full bg-slate-100 dark:bg-slate-800/50 mb-1">
+                <div className="flex items-center justify-center size-9 rounded-full bg-[#544863]/50 mb-1 border border-[#544863]">
                   <FontAwesomeIcon
                     icon={faUpRightAndDownLeftFromCenter}
-                    className="h-4 w-4 text-slate-600 dark:text-slate-400"
+                    className="h-4 w-4 text-gray-300"
                   />
                 </div>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                <span className="text-xs font-medium text-gray-300">
                   Details
                 </span>
               </Link>
