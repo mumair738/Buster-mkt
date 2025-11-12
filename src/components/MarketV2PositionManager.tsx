@@ -410,10 +410,10 @@ export function MarketV2PositionManager({
   };
 
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-[#433952]/50 backdrop-blur-sm border-[#544863]">
       <CardHeader className="pb-3 md:pb-6">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl text-gray-100">
             <Wallet className="h-4 w-4 md:h-5 md:w-5" />
             Your Positions
           </CardTitle>
@@ -423,7 +423,7 @@ export function MarketV2PositionManager({
               size="sm"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="h-8 w-8 p-0 md:h-9 md:w-auto md:p-2"
+              className="h-8 w-8 p-0 md:h-9 md:w-auto md:p-2 border-[#544863] text-gray-300 hover:bg-[#544863]/50"
             >
               <RefreshCw
                 className={cn(
@@ -436,7 +436,7 @@ export function MarketV2PositionManager({
               variant="outline"
               size="sm"
               onClick={() => setShowZeroPositions(!showZeroPositions)}
-              className="h-8 px-2 md:h-9 md:px-3 text-xs md:text-sm"
+              className="h-8 px-2 md:h-9 md:px-3 text-xs md:text-sm border-[#544863] text-gray-300 hover:bg-[#544863]/50"
             >
               {showZeroPositions ? (
                 <EyeOff className="h-3 w-3 md:h-4 md:w-4" />
@@ -453,11 +453,11 @@ export function MarketV2PositionManager({
 
       <CardContent>
         {!accountAddress ? (
-          <div className="text-center py-6 md:py-8 text-gray-500 text-sm md:text-base">
+          <div className="text-center py-6 md:py-8 text-gray-400 text-sm md:text-base">
             Connect your wallet to view positions
           </div>
         ) : !hasPositions ? (
-          <div className="text-center py-6 md:py-8 text-gray-500 text-sm md:text-base">
+          <div className="text-center py-6 md:py-8 text-gray-400 text-sm md:text-base">
             You don&apos;t have any positions in this market
           </div>
         ) : (
@@ -487,34 +487,34 @@ export function MarketV2PositionManager({
             >
               {/* Portfolio Summary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
-                <Card>
+                <Card className="bg-[#352c3f]/80 border-[#544863]">
                   <CardContent className="pt-3 md:pt-4 px-3 md:px-6">
-                    <div className="text-xs md:text-sm text-gray-600 flex items-center gap-2">
+                    <div className="text-xs md:text-sm text-gray-400 flex items-center gap-2">
                       Total Value
                       {optionQueries.some((q) => q.isRefetching) && (
-                        <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />
+                        <RefreshCw className="h-3 w-3 animate-spin text-blue-400" />
                       )}
                     </div>
-                    <div className="text-base md:text-lg font-semibold">
+                    <div className="text-base md:text-lg font-semibold text-gray-200">
                       {formatPrice(totalValue)} {tokenSymbol || "TOKENS"}
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-[#352c3f]/80 border-[#544863]">
                   <CardContent className="pt-3 md:pt-4 px-3 md:px-6">
-                    <div className="text-xs md:text-sm text-gray-600 flex items-center gap-2">
+                    <div className="text-xs md:text-sm text-gray-400 flex items-center gap-2">
                       Unrealized P&L
                       {optionQueries.some((q) => q.isRefetching) && (
-                        <RefreshCw className="h-3 w-3 animate-spin text-blue-500" />
+                        <RefreshCw className="h-3 w-3 animate-spin text-blue-400" />
                       )}
                     </div>
                     <div
                       className={cn(
                         "text-base md:text-lg font-semibold",
                         totalUnrealizedPnL >= 0n
-                          ? "text-green-600"
-                          : "text-red-600"
+                          ? "text-green-400"
+                          : "text-red-400"
                       )}
                     >
                       {totalUnrealizedPnL >= 0n ? "+" : ""}
@@ -524,12 +524,12 @@ export function MarketV2PositionManager({
                   </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="bg-[#352c3f]/80 border-[#544863]">
                   <CardContent className="pt-3 md:pt-4 px-3 md:px-6">
-                    <div className="text-xs md:text-sm text-gray-600">
+                    <div className="text-xs md:text-sm text-gray-400">
                       Active Positions
                     </div>
-                    <div className="text-base md:text-lg font-semibold">
+                    <div className="text-base md:text-lg font-semibold text-gray-200">
                       {positions.filter((pos) => pos.shares > 0n).length} /{" "}
                       {positions.length}
                     </div>
@@ -539,53 +539,53 @@ export function MarketV2PositionManager({
 
               {/* Individual Positions */}
               <div className="space-y-2 md:space-y-3">
-                <h3 className="font-medium text-gray-900 text-sm md:text-base">
+                <h3 className="font-medium text-gray-100 text-sm md:text-base">
                   Position Details
                 </h3>
                 {filteredPositions.map((position) => (
                   <Card
                     key={position.optionId}
-                    className="border-l-4 border-l-blue-500"
+                    className="border-l-4 border-l-blue-400 bg-[#352c3f]/80 border-[#544863]"
                   >
                     <CardContent className="pt-3 md:pt-4 px-3 md:px-6">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <h4 className="font-medium text-sm md:text-base">
+                          <h4 className="font-medium text-sm md:text-base text-gray-100">
                             {position.optionName}
                           </h4>
-                          <div className="text-xs md:text-sm text-gray-600">
+                          <div className="text-xs md:text-sm text-gray-400">
                             {formatShares(position.shares)} shares
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-sm md:text-base">
+                          <div className="font-medium text-sm md:text-base text-gray-200">
                             {formatPrice(position.currentValue)}{" "}
                             {tokenSymbol || "TOKENS"}
                           </div>
-                          <div className="text-xs md:text-sm text-gray-600">
+                          <div className="text-xs md:text-sm text-gray-400">
                             @ {formatPrice(position.currentPrice * 100n)} per
                             share
                             {optionQueries[position.optionId]?.isRefetching && (
-                              <RefreshCw className="inline ml-1 h-3 w-3 animate-spin text-blue-500" />
+                              <RefreshCw className="inline ml-1 h-3 w-3 animate-spin text-blue-400" />
                             )}
                           </div>
                         </div>
                       </div>
 
                       {position.shares > 0n && (
-                        <div className="flex items-center justify-between pt-2 border-t">
+                        <div className="flex items-center justify-between pt-2 border-t border-[#544863]">
                           <div className="flex items-center gap-1 md:gap-2">
                             {position.unrealizedPnL >= 0n ? (
-                              <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
+                              <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
                             ) : (
-                              <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-600" />
+                              <TrendingDown className="h-3 w-3 md:h-4 md:w-4 text-red-400" />
                             )}
                             <span
                               className={cn(
                                 "text-xs md:text-sm font-medium",
                                 position.unrealizedPnL >= 0n
-                                  ? "text-green-600"
-                                  : "text-red-600"
+                                  ? "text-green-400"
+                                  : "text-red-400"
                               )}
                             >
                               {formatPercent(position.unrealizedPnLPercent)}

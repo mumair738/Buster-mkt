@@ -483,11 +483,13 @@ export function MultiOptionPositions() {
 
   if (!isConnected) {
     return (
-      <Card>
+      <Card className="bg-[#433952]/50 backdrop-blur-sm border-[#544863]">
         <CardContent className="p-6 text-center">
-          <Target className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Connect Your Wallet</h3>
-          <p className="text-gray-600">
+          <Target className="h-16 w-16 mx-auto text-gray-500 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-gray-100">
+            Connect Your Wallet
+          </h3>
+          <p className="text-gray-400">
             Connect your wallet to view your multi-option positions and
             portfolio performance.
           </p>
@@ -513,9 +515,9 @@ export function MultiOptionPositions() {
     <div className="space-y-6">
       {/* Portfolio Summary */}
       {portfolioSummary && (
-        <Card>
+        <Card className="bg-[#433952]/50 backdrop-blur-sm border-[#544863]">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-gray-100">
               <PieChart className="h-5 w-5" />
               Portfolio Summary
             </CardTitle>
@@ -523,7 +525,7 @@ export function MultiOptionPositions() {
               variant="outline"
               size="sm"
               onClick={fetchPositions}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-[#544863] text-gray-300 hover:bg-[#544863]/50"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -532,17 +534,17 @@ export function MultiOptionPositions() {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-blue-400">
                   {portfolioSummary.totalPositions}
                 </div>
-                <div className="text-sm text-gray-600">Total Positions</div>
+                <div className="text-sm text-gray-400">Total Positions</div>
               </div>
 
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-green-400">
                   {portfolioSummary.activePositions}
                 </div>
-                <div className="text-sm text-gray-600">Active</div>
+                <div className="text-sm text-gray-400">Active</div>
               </div>
 
               <div className="text-center">
@@ -553,33 +555,33 @@ export function MultiOptionPositions() {
                 >
                   {formatCurrency(portfolioSummary.totalPnL)}
                 </div>
-                <div className="text-sm text-gray-600">Total P&L</div>
+                <div className="text-sm text-gray-400">Total P&L</div>
               </div>
 
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
+                <div className="text-2xl font-bold text-purple-400">
                   {portfolioSummary.winRate.toFixed(1)}%
                 </div>
-                <div className="text-sm text-gray-600">Win Rate</div>
+                <div className="text-sm text-gray-400">Win Rate</div>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Total Invested</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Total Invested</span>
+                  <span className="font-medium text-gray-200">
                     {formatCurrency(portfolioSummary.totalInvested)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Current Value</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Current Value</span>
+                  <span className="font-medium text-gray-200">
                     {formatCurrency(portfolioSummary.totalCurrentValue)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>P&L Percentage</span>
+                  <span className="text-gray-300">P&L Percentage</span>
                   <span
                     className={`font-medium ${getPnLColor(
                       portfolioSummary.totalPnL
@@ -592,20 +594,20 @@ export function MultiOptionPositions() {
 
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Winning Positions</span>
-                  <span className="font-medium text-green-600">
+                  <span className="text-gray-300">Winning Positions</span>
+                  <span className="font-medium text-green-400">
                     {portfolioSummary.winningPositions}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Losing Positions</span>
-                  <span className="font-medium text-red-600">
+                  <span className="text-gray-300">Losing Positions</span>
+                  <span className="font-medium text-red-400">
                     {portfolioSummary.losingPositions}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Resolved Markets</span>
-                  <span className="font-medium">
+                  <span className="text-gray-300">Resolved Markets</span>
+                  <span className="font-medium text-gray-200">
                     {portfolioSummary.resolvedPositions}
                   </span>
                 </div>
@@ -616,9 +618,9 @@ export function MultiOptionPositions() {
       )}
 
       {/* Position List */}
-      <Card>
+      <Card className="bg-[#433952]/50 backdrop-blur-sm border-[#544863]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-100">
             <BarChart3 className="h-5 w-5" />
             Your Positions
           </CardTitle>
@@ -641,11 +643,11 @@ export function MultiOptionPositions() {
             <TabsContent value={selectedTab} className="mt-6">
               {filteredPositions.length === 0 ? (
                 <div className="text-center py-8">
-                  <Activity className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">
+                  <Activity className="h-16 w-16 mx-auto text-gray-500 mb-4" />
+                  <h3 className="text-lg font-medium mb-2 text-gray-100">
                     No Positions Found
                   </h3>
-                  <p className="text-gray-600">
+                  <p className="text-gray-400">
                     {selectedTab === "all"
                       ? "You don't have any positions in V2 markets yet."
                       : `You don't have any ${selectedTab} positions.`}
@@ -656,18 +658,18 @@ export function MultiOptionPositions() {
                   {filteredPositions.map((position) => (
                     <Card
                       key={position.marketId}
-                      className="border border-gray-200"
+                      className="border border-[#544863] bg-[#352c3f]/80"
                     >
                       <CardContent className="p-6">
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex-1">
                             <Link href={`/market/${position.marketId}`}>
-                              <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">
+                              <h3 className="font-medium text-lg hover:text-blue-400 transition-colors line-clamp-2 text-gray-100">
                                 {position.marketName}
                               </h3>
                             </Link>
                             {position.description && (
-                              <p className="text-sm text-gray-600 mt-1 line-clamp-1">
+                              <p className="text-sm text-gray-400 mt-1 line-clamp-1">
                                 {position.description}
                               </p>
                             )}
@@ -686,25 +688,25 @@ export function MultiOptionPositions() {
                         </div>
 
                         {/* Position Summary */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-4 bg-[#433952]/30 rounded-lg border border-[#544863]">
                           <div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-400">
                               Invested
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-gray-200">
                               {formatCurrency(position.totalInvested)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-400">
                               Current Value
                             </div>
-                            <div className="font-medium">
+                            <div className="font-medium text-gray-200">
                               {formatCurrency(position.currentValue)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-600">P&L</div>
+                            <div className="text-sm text-gray-400">P&L</div>
                             <div
                               className={`font-medium ${getPnLColor(
                                 position.pnl
@@ -714,7 +716,7 @@ export function MultiOptionPositions() {
                             </div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-600">P&L %</div>
+                            <div className="text-sm text-gray-400">P&L %</div>
                             <div
                               className={`font-medium ${getPnLColor(
                                 position.pnl
@@ -727,17 +729,17 @@ export function MultiOptionPositions() {
 
                         {/* Options Breakdown */}
                         <div className="space-y-3">
-                          <h4 className="font-medium text-sm">
+                          <h4 className="font-medium text-sm text-gray-200">
                             Option Positions:
                           </h4>
                           {position.options.map((option) => (
                             <div
                               key={option.optionId}
-                              className="flex items-center justify-between p-3 border rounded-lg"
+                              className="flex items-center justify-between p-3 border border-[#544863] rounded-lg bg-[#433952]/30"
                             >
                               <div className="flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">
+                                  <span className="font-medium text-gray-200">
                                     {option.optionName}
                                   </span>
                                   {option.isWinning === true && (
@@ -755,17 +757,17 @@ export function MultiOptionPositions() {
                                     </Badge>
                                   )}
                                 </div>
-                                <div className="text-sm text-gray-600 mt-1">
+                                <div className="text-sm text-gray-400 mt-1">
                                   {Number(option.shares).toLocaleString()}{" "}
                                   shares ({option.percentageHeld.toFixed(2)}% of
                                   supply)
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-medium">
+                                <div className="font-medium text-gray-200">
                                   {formatCurrency(option.marketValue)}
                                 </div>
-                                <div className="text-sm text-gray-600">
+                                <div className="text-sm text-gray-400">
                                   @ {formatCurrency(option.currentPrice)}/share
                                 </div>
                               </div>
@@ -776,8 +778,8 @@ export function MultiOptionPositions() {
                         {/* Time Remaining */}
                         {position.timeRemaining &&
                           position.timeRemaining > 0 && (
-                            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                              <div className="flex items-center gap-2 text-blue-700">
+                            <div className="mt-4 p-3 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                              <div className="flex items-center gap-2 text-blue-300">
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm font-medium">
                                   {position.timeRemaining < 60 * 60

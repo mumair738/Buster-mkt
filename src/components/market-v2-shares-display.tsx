@@ -17,7 +17,6 @@ function formatShares(shares: bigint, decimals: number = 18): string {
 }
 
 export function MarketV2SharesDisplay({
-  market,
   userShares,
   options,
 }: MarketV2SharesDisplayProps) {
@@ -36,14 +35,14 @@ export function MarketV2SharesDisplay({
 
   return (
     <div className="flex flex-col space-y-1">
-      <p className="text-xs text-gray-500 font-medium">Your positions:</p>
+      <p className="text-xs text-gray-400 font-medium">Your positions:</p>
       <div className="space-y-1">
         {userPositions.map(({ optionId, shares, option }) => (
           <div key={optionId} className="flex items-center justify-between">
-            <span className="text-xs text-gray-700 truncate max-w-[120px]">
+            <span className="text-xs text-gray-300 truncate max-w-[120px]">
               {option?.name || `Option ${optionId + 1}`}
             </span>
-            <span className="text-xs font-medium text-gray-900">
+            <span className="text-xs font-medium text-gray-100">
               {formatShares(shares)} shares
             </span>
           </div>
@@ -51,7 +50,7 @@ export function MarketV2SharesDisplay({
       </div>
 
       {userPositions.length > 3 && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           +{userPositions.length - 3} more positions
         </p>
       )}
