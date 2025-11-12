@@ -3,9 +3,8 @@
 import { useAccount } from "wagmi";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Footer } from "./footer";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { UserStats } from "./UserStats";
 import { useRouter, usePathname } from "next/navigation";
@@ -14,18 +13,13 @@ import { UnifiedMarketList } from "./unified-market-list";
 import { ValidatedMarketList } from "./ValidatedMarketList";
 import { useUserRoles } from "@/hooks/useUserRoles";
 // import { MarketValidationBanner } from "./ValidationNotice";//
-import {
-  Wallet,
-} from "lucide-react";
+import { Wallet } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
+
 import { VoteHistory } from "./VoteHistory";
 import { useFarcasterUser } from "@/hooks/useFarcasterUser";
-import { Badge } from "./ui/badge";
+
 import { ModernAdminDashboard } from "./ModernAdminDashboard";
-
-import { LeaderboardEntry } from "@/types/leaderboard";
-
 import LeaderboardComponent from "./LeaderboardComponent";
 
 export function EnhancedPredictionMarketDashboard() {
@@ -38,9 +32,6 @@ export function EnhancedPredictionMarketDashboard() {
   // Initialize with a fixed default. Will be updated from URL after client mount.
   const [activeTab, setActiveTab] = useState("active");
   const [isClient, setIsClient] = useState(false);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(true);
-  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
 
   useEffect(() => {
     // This effect runs only on the client, after the initial render
@@ -73,97 +64,6 @@ export function EnhancedPredictionMarketDashboard() {
     newUrl.searchParams.set("tab", value);
     window.history.replaceState(null, "", newUrl.toString());
   };
-
-  const hasFetchedInitially = useRef(false);
-
-  const fetchLeaderboardData = async (setLoading = false) => {
-    if (setLoading) {
-      setIsLoadingLeaderboard(true);
-      setLeaderboardError(null);
-    }
-    try {
-      const res = await fetch("/api/leaderboard");
-
-      if (!res.ok) {
-        let errorDetails = `HTTP error! status: ${res.status}`;
-        try {
-          const errorText = await res.text();
-          if (
-            errorText &&
-            !errorText.toLowerCase().includes("<html") &&
-            !errorText.toLowerCase().includes("<!doctype html")
-          ) {
-            errorDetails =
-              errorText.length > 150
-                ? errorText.substring(0, 147) + "..."
-                : errorText;
-          }
-        } catch {
-          // Ignore if reading text fails
-        }
-        throw new Error(errorDetails);
-      }
-
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        const transformedData: LeaderboardEntry[] = data.map(
-          (entry, index) => ({
-            rank: index + 1,
-            username: entry.username || "",
-            fid: entry.fid,
-            pfp_url: entry.pfp_url,
-            winnings: entry.winnings || 0,
-            voteCount: entry.voteCount,
-            accuracy: entry.winnings ? Math.round(entry.winnings * 100) : 0,
-            trend: "none", // You can implement trend logic here if needed
-            address: entry.address,
-          })
-        );
-        setLeaderboard(transformedData);
-      } else {
-        throw new Error(
-          "Received non-array data for leaderboard. Expected an array."
-        );
-      }
-    } catch (err) {
-      console.error("Leaderboard fetch error:", err);
-      let displayError =
-        (err as Error).message ||
-        "Failed to load leaderboard. Please try again later.";
-
-      if (displayError.includes("NEYNAR_API_KEY")) {
-        displayError = "Server configuration error. Please try again later.";
-      } else if (displayError.includes("eth_getLogs")) {
-        displayError =
-          "Unable to fetch leaderboard data due to blockchain query limits. Please try again later.";
-      } else if (err instanceof SyntaxError) {
-        displayError =
-          "Received malformed data from the server. Please try again later.";
-      }
-      setLeaderboardError(displayError);
-      setLeaderboard([]);
-    } finally {
-      if (setLoading) {
-        setIsLoadingLeaderboard(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    if (!hasFetchedInitially.current) {
-      fetchLeaderboardData(true);
-      hasFetchedInitially.current = true;
-    }
-  }, []);
-
-  useEffect(() => {
-    const refreshInterval = 5 * 60 * 1000;
-    const intervalId = setInterval(() => {
-      fetchLeaderboardData(false);
-    }, refreshInterval);
-    return () => clearInterval(intervalId);
-  }, []);
 
   useEffect(() => {
     sdk.actions.ready();
@@ -211,41 +111,41 @@ export function EnhancedPredictionMarketDashboard() {
               actualShowVoteHistory ? "grid-cols-5" : "grid-cols-4"
             } overflow-x-auto whitespace-nowrap hidden md:grid bg-[#433952]/50 border border-[#544863]`}
           >
-            <TabsTrigger 
-              value="active" 
+            <TabsTrigger
+              value="active"
               className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Active
             </TabsTrigger>
-            <TabsTrigger 
-              value="ended" 
+            <TabsTrigger
+              value="ended"
               className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Ended
             </TabsTrigger>
-            <TabsTrigger 
-              value="leaderboard" 
+            <TabsTrigger
+              value="leaderboard"
               className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Leaderboard
             </TabsTrigger>
-            <TabsTrigger 
-              value="profile" 
+            <TabsTrigger
+              value="profile"
               className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
             >
               Profile
             </TabsTrigger>
             {actualShowVoteHistory && (
-              <TabsTrigger 
-                value="myvotes" 
+              <TabsTrigger
+                value="myvotes"
                 className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
               >
                 My Shares
               </TabsTrigger>
             )}
             {(hasCreatorAccess || hasResolverAccess || isAdmin) && (
-              <TabsTrigger 
-                value="admin" 
+              <TabsTrigger
+                value="admin"
                 className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
               >
                 Admin
@@ -263,14 +163,14 @@ export function EnhancedPredictionMarketDashboard() {
           <TabsContent value="ended" className="mt-6">
             <Tabs defaultValue="pending" className="w-full">
               <TabsList className="grid w-full grid-cols-2 bg-[#433952]/50 border border-[#544863]">
-                <TabsTrigger 
-                  value="pending" 
+                <TabsTrigger
+                  value="pending"
                   className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
                 >
                   Pending
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="resolved" 
+                <TabsTrigger
+                  value="resolved"
                   className="text-xs px-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white"
                 >
                   Results
@@ -293,12 +193,7 @@ export function EnhancedPredictionMarketDashboard() {
 
           <TabsContent value="leaderboard" className="mt-6">
             <div className="bg-[#433952]/50 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden border border-[#544863]">
-              <LeaderboardComponent
-                onTabChange={handleTabChange}
-                leaderboard={leaderboard}
-                isLoading={isLoadingLeaderboard}
-                error={leaderboardError}
-              />
+              <LeaderboardComponent onTabChange={handleTabChange} />
             </div>
           </TabsContent>
 

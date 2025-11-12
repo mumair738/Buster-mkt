@@ -17,8 +17,8 @@ import {
 import { Address } from "viem";
 
 const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1-hour TTL
-const CACHE_KEY_PREFIX = "leaderboard_v10_"; // Updated version - fixed ROI calculation
-const NEYNAR_CACHE_KEY = "neynar_users_v10";
+const CACHE_KEY_PREFIX = "leaderboard_v12_"; // Updated version - Pure winnings leaderboard
+const NEYNAR_CACHE_KEY = "neynar_users_v12";
 const PAGE_SIZE = 100; // Users per V1 contract call
 const V2_BATCH_SIZE = 50; // Addresses per V2 multicall batch
 
@@ -41,7 +41,6 @@ interface LeaderboardEntry {
   pfp_url: string | null;
   winnings: number;
   voteCount: number;
-  accuracy: number;
   trend: "up" | "down" | "none";
   address: string;
 }
@@ -106,41 +105,6 @@ function getCacheKey(type: LeaderboardType, timeframe: TimeFrame) {
   return `${CACHE_KEY_PREFIX}${type}_${timeframe}`;
 }
 
-function calculateAccuracy(totalWinnings: bigint, totalInvested: bigint, totalTrades: number): number {
-  // Calculate a normalized success score (0-100%)
-  // Since we don't have win/loss counts, we derive it from profitability
-  if (totalTrades === 0) return 0;
-  
-  const normalizedWinnings = Number(totalWinnings) / 1e18;
-  const normalizedInvested = Number(totalInvested) / 1e18;
-  
-  // If invested amount is tracked and valid
-  if (normalizedInvested > 0) {
-    // Calculate net profit
-    const netProfit = normalizedWinnings - normalizedInvested;
-    const profitRatio = netProfit / normalizedInvested;
-    
-    // Convert to 0-100 scale where:
-    // -100% loss = 0% accuracy
-    // 0% profit = 50% accuracy  
-    // +100% profit = 100% accuracy
-    const accuracyScore = Math.min(100, Math.max(0, (profitRatio + 1) * 50));
-    
-    return Math.round(accuracyScore);
-  }
-  
-  // For users without investment tracking (V1 or edge cases)
-  // Estimate based on average performance per trade
-  const avgWinPerTrade = normalizedWinnings / totalTrades;
-  
-  // Assume typical trade size is 50 tokens
-  // If someone wins 50 tokens per trade on average = 50% accuracy
-  // If they win 100 tokens per trade = 100% accuracy
-  const estimatedAccuracy = Math.min(100, (avgWinPerTrade / 100) * 100);
-  
-  return Math.max(0, Math.round(estimatedAccuracy));
-}
-
 function calculateTrend(
   currentRank: number,
   previousRank: number
@@ -157,13 +121,75 @@ export async function GET(request: Request) {
     (searchParams.get("type") as LeaderboardType) || "accuracy";
   const timeframe: TimeFrame =
     (searchParams.get("timeframe") as TimeFrame) || "all";
+  const forceRefresh = searchParams.get("refresh") === "true";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
+  const userAddress = searchParams.get("userAddress")?.toLowerCase(); // Optional: get user's rank
 
   const cacheKey = getCacheKey(type, timeframe);
   const cachedLeaderboard = cache.get<LeaderboardEntry[]>(cacheKey);
 
-  if (cachedLeaderboard) {
+  if (cachedLeaderboard && !forceRefresh) {
     console.log("✅ Serving from cache");
-    return NextResponse.json(cachedLeaderboard);
+
+    // Calculate pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = cachedLeaderboard.slice(startIndex, endIndex);
+
+    // Get user's rank if address provided
+    let userRank = null;
+    if (userAddress) {
+      const userEntry = cachedLeaderboard.find(
+        (entry) => entry.address.toLowerCase() === userAddress
+      );
+      if (userEntry) {
+        userRank = userEntry.rank;
+      }
+    }
+
+    // Only fetch Neynar data for current page
+    const addressesToFetch = paginatedData
+      .filter((entry) => !entry.fid || entry.fid === "nil")
+      .map((entry) => entry.address);
+
+    if (addressesToFetch.length > 0) {
+      const neynarApiKey = process.env.NEYNAR_API_KEY;
+      if (neynarApiKey) {
+        const neynar = new NeynarAPIClient({ apiKey: neynarApiKey });
+        const newUsersMap = await batchFetchNeynarUsers(
+          neynar,
+          addressesToFetch
+        );
+
+        // Update entries with Neynar data
+        paginatedData.forEach((entry) => {
+          const usersForAddress = newUsersMap[entry.address];
+          if (usersForAddress && usersForAddress.length > 0) {
+            const user = usersForAddress[0];
+            entry.username = user.username;
+            entry.fid = user.fid;
+            entry.pfp_url = user.pfp_url;
+          }
+        });
+      }
+    }
+
+    return NextResponse.json({
+      data: paginatedData,
+      pagination: {
+        page,
+        pageSize,
+        total: cachedLeaderboard.length,
+        totalPages: Math.ceil(cachedLeaderboard.length / pageSize),
+      },
+      userRank,
+    });
+  }
+
+  if (forceRefresh) {
+    console.log("🔄 Force refresh requested, clearing cache");
+    cache.flushAll();
   }
 
   try {
@@ -352,7 +378,12 @@ export async function GET(request: Request) {
     // ==================== COMBINE V1 + V2 ====================
     const combinedEntries = new Map<
       string,
-      { user: Address; totalWinnings: bigint; voteCount: number; totalInvested: bigint }
+      {
+        user: Address;
+        totalWinnings: bigint;
+        voteCount: number;
+        totalInvested: bigint;
+      }
     >();
 
     // Add V1 entries
@@ -390,29 +421,36 @@ export async function GET(request: Request) {
       }
     });
 
-    const winners = Array.from(combinedEntries.values())
+    // First: Calculate all metrics (just winnings, no accuracy)
+    const winnersWithMetrics = Array.from(combinedEntries.values())
       .filter((entry) => entry.totalWinnings > 0n)
-      .map((entry, index) => {
+      .map((entry) => {
         // Convert BigInt values to numbers before calculations
         const normalizedWinnings =
           Number(entry.totalWinnings) / Math.pow(10, tokenDecimals);
         const voteCount = Number(entry.voteCount);
-        // Calculate accuracy/ROI using totalInvested
-        const accuracy = calculateAccuracy(entry.totalWinnings, entry.totalInvested, voteCount);
 
         return {
           address: entry.user.toLowerCase(),
           winnings: normalizedWinnings,
           voteCount: voteCount,
-          accuracy: accuracy,
-          rank: index + 1,
-          trend: calculateTrend(index + 1, 0), // For proper trend implementation, you'd need to store previous ranks
         };
+      });
+
+    // Second: Sort by winnings (total volume)
+    const sortedWinners = winnersWithMetrics
+      .sort((a, b) => {
+        // Sort by winnings - highest to lowest
+        return b.winnings - a.winnings;
       })
-      .sort((a, b) =>
-        type === "accuracy" ? b.accuracy - a.accuracy : b.winnings - a.winnings
-      )
       .slice(0, 100); // Get top 100 users
+
+    // Third: Assign ranks AFTER sorting
+    const winners = sortedWinners.map((winner, index) => ({
+      ...winner,
+      rank: index + 1,
+      trend: calculateTrend(index + 1, 0), // For proper trend implementation, you'd need to store previous ranks
+    }));
 
     console.log(`📊 Combined ${winners.length} total unique winners`);
 
@@ -457,7 +495,6 @@ export async function GET(request: Request) {
         pfp_url: user?.pfp_url || null,
         winnings: winner.winnings,
         voteCount: winner.voteCount,
-        accuracy: winner.accuracy,
         trend: winner.trend,
         address: winner.address,
       };
@@ -475,7 +512,32 @@ export async function GET(request: Request) {
     cache.set(cacheKey, safeLeaderboard);
     console.log("✅ Cached leaderboard");
 
-    return NextResponse.json(safeLeaderboard);
+    // Calculate pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = safeLeaderboard.slice(startIndex, endIndex);
+
+    // Get user's rank if address provided
+    let userRank = null;
+    if (userAddress) {
+      const userEntry = safeLeaderboard.find(
+        (entry: LeaderboardEntry) => entry.address.toLowerCase() === userAddress
+      );
+      if (userEntry) {
+        userRank = userEntry.rank;
+      }
+    }
+
+    return NextResponse.json({
+      data: paginatedData,
+      pagination: {
+        page,
+        pageSize,
+        total: safeLeaderboard.length,
+        totalPages: Math.ceil(safeLeaderboard.length / pageSize),
+      },
+      userRank,
+    });
   } catch (error) {
     console.error("❌ Leaderboard fetch error:", error);
 
@@ -487,7 +549,34 @@ export async function GET(request: Request) {
           typeof value === "bigint" ? Number(value) : value
         )
       );
-      return NextResponse.json(safeLeaderboard);
+
+      // Calculate pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = safeLeaderboard.slice(startIndex, endIndex);
+
+      // Get user's rank if address provided
+      let userRank = null;
+      if (userAddress) {
+        const userEntry = safeLeaderboard.find(
+          (entry: LeaderboardEntry) =>
+            entry.address.toLowerCase() === userAddress
+        );
+        if (userEntry) {
+          userRank = userEntry.rank;
+        }
+      }
+
+      return NextResponse.json({
+        data: paginatedData,
+        pagination: {
+          page,
+          pageSize,
+          total: safeLeaderboard.length,
+          totalPages: Math.ceil(safeLeaderboard.length / pageSize),
+        },
+        userRank,
+      });
     }
 
     return NextResponse.json(

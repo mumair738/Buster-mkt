@@ -111,9 +111,22 @@ export function VoteHistory() {
   const loadCache = useCallback((): CacheData => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      return cached
-        ? JSON.parse(cached)
-        : { votes: [], marketInfo: {}, timestamp: 0 };
+      if (!cached) {
+        return { votes: [], marketInfo: {}, timestamp: 0 };
+      }
+      
+      const parsed = JSON.parse(cached);
+      
+      // Convert string values back to BigInt for amount and timestamp
+      if (parsed.votes && Array.isArray(parsed.votes)) {
+        parsed.votes = parsed.votes.map((vote: any) => ({
+          ...vote,
+          amount: BigInt(vote.amount),
+          timestamp: BigInt(vote.timestamp),
+        }));
+      }
+      
+      return parsed;
     } catch {
       return { votes: [], marketInfo: {}, timestamp: 0 };
     }
@@ -121,7 +134,11 @@ export function VoteHistory() {
 
   const saveCache = useCallback((data: CacheData) => {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      // Convert BigInt values to strings before saving
+      const serializedData = JSON.stringify(data, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      );
+      localStorage.setItem(CACHE_KEY, serializedData);
     } catch (error) {
       console.error("Cache save error:", error);
     }
