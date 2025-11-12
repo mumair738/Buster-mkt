@@ -572,13 +572,13 @@ export function UserStats() {
   return (
     <div className="space-y-3">
       {/* Compact Profile Header */}
-      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] via-[#352c3f] to-[#544863] text-white overflow-hidden relative">
-        <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:radial-gradient(white,transparent_85%)]" />
-        <CardContent className="p-4 relative">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-12 h-12 ring-2 ring-white/30">
+      <div className="flex flex-col items-center gap-3 py-4">
+        {/* Avatar Circle with Share Button Beside */}
+        <div className="flex items-center gap-3">
+          <div className="w-20 h-20 rounded-full ring-4 ring-white/30 bg-gradient-to-br from-[#433952] to-[#544863] p-1 shadow-lg">
+            <Avatar className="w-full h-full">
               <AvatarImage src={farcasterUser?.pfpUrl} alt="Profile" />
-              <AvatarFallback className="bg-gradient-to-br from-[#433952] to-[#544863] text-white font-bold">
+              <AvatarFallback className="bg-gradient-to-br from-[#433952] to-[#544863] text-white font-bold text-xl">
                 {farcasterUser?.username
                   ? farcasterUser.username.charAt(0).toUpperCase()
                   : accountAddress
@@ -586,30 +586,32 @@ export function UserStats() {
                   : "?"}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-bold truncate text-white">
-                {farcasterUser?.username
-                  ? `@${farcasterUser.username}`
-                  : "Anonymous Trader"}
-              </h2>
-              <p className="text-xs text-white/70 font-mono truncate">
-                {accountAddress
-                  ? `${accountAddress.slice(0, 6)}...${accountAddress.slice(
-                      -4
-                    )}`
-                  : "Not connected"}
-              </p>
-            </div>
-            <Button
-              onClick={handleShare}
-              size="sm"
-              className="h-8 px-3 bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
-            >
-              <Share2 className="w-3.5 h-3.5" />
-            </Button>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Share Button Beside Circle */}
+          <Button
+            onClick={handleShare}
+            size="sm"
+            className="h-10 w-10 p-0 rounded-full bg-gradient-to-br from-[#433952] to-[#544863] hover:from-[#544863] hover:to-[#433952] text-white border-0 shadow-lg ring-2 ring-white/30"
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* User Info */}
+        <div className="text-center">
+          <h2 className="text-base font-bold text-white">
+            {farcasterUser?.username
+              ? `@${farcasterUser.username}`
+              : "Anonymous Trader"}
+          </h2>
+          <p className="text-xs text-white/70 font-mono">
+            {accountAddress
+              ? `${accountAddress.slice(0, 6)}...${accountAddress.slice(-4)}`
+              : "Not connected"}
+          </p>
+        </div>
+      </div>
 
       {/* Claim Winnings */}
       <ClaimWinningsSection />
