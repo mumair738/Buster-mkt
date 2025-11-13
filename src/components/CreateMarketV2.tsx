@@ -102,17 +102,16 @@ export function CreateMarketV2() {
 
   // Handle transaction success - detect when sendCalls returns data
   useEffect(() => {
-    if (sendCallsData && !sendCallsError && isSubmitting) {
-      console.log("🎉 Market creation transaction sent successfully!");
-      setIsSubmitting(false);
-      setMarketCreated(true);
-      toast({
-        title: "Success",
-        description:
-          "Market created successfully! It may take a moment to appear.",
-      });
-    }
-  }, [sendCallsData, sendCallsError, isSubmitting, toast]);
+    if (!sendCallsData || sendCallsError) return;
+
+    console.log("🎉 Market creation transaction sent successfully!");
+    setMarketCreated(true);
+    toast({
+      title: "Success",
+      description:
+        "Market created successfully! It may take a moment to appear.",
+    });
+  }, [sendCallsData, sendCallsError, toast]);
 
   // Check token allowance
   const { data: allowanceData } = useReadContract({
@@ -223,11 +222,11 @@ export function CreateMarketV2() {
     if (!question.trim()) return false;
     if (question.length > 200) return false;
     if (!description.trim()) return false;
-    if (description.length > 500) return false;
+    if (description.length > 1000) return false;
     if (options.length < 2) return false;
     if (options.some((opt) => !opt.name.trim())) return false;
     if (options.some((opt) => opt.name.length > 50)) return false;
-    if (options.some((opt) => opt.description.length > 100)) return false;
+    if (options.some((opt) => opt.description.length > 500)) return false;
     if (isNaN(parseFloat(duration)) || parseFloat(duration) < 1) return false;
     if (
       isNaN(parseFloat(initialLiquidity)) ||
@@ -300,10 +299,10 @@ export function CreateMarketV2() {
       });
       return false;
     }
-    if (description.length > 500) {
+    if (description.length > 1000) {
       toast({
         title: "Error",
-        description: "Description must be 500 characters or less",
+        description: "Description must be 1000 characters or less",
         variant: "destructive",
       });
       return false;
@@ -332,10 +331,10 @@ export function CreateMarketV2() {
       });
       return false;
     }
-    if (options.some((opt) => opt.description.length > 100)) {
+    if (options.some((opt) => opt.description.length > 500)) {
       toast({
         title: "Error",
-        description: "Option descriptions must be 100 characters or less",
+        description: "Option descriptions must be 500 characters or less",
         variant: "destructive",
       });
       return false;
@@ -488,10 +487,7 @@ export function CreateMarketV2() {
 
     try {
       console.log("📐 Calculating transaction parameters...");
-      const durationInSeconds = Math.floor(parseFloat(duration) * 24 * 60 * 60);
       const liquidityWei = parseEther(initialLiquidity);
-      const optionNames = options.map((opt) => opt.name);
-      const optionDescriptions = options.map((opt) => opt.description);
 
       // Calculate required approval amount based on market type
       let requiredApproval = liquidityWei;
@@ -500,7 +496,6 @@ export function CreateMarketV2() {
         console.log("🎁 Processing free market configuration...");
         if (!freeSharesPerUser.trim() || !maxFreeParticipants.trim()) {
           console.error("❌ Empty free market fields during submission");
-          setIsSubmitting(false);
           toast({
             title: "Error",
             description: "Please fill in all free market fields",
@@ -518,7 +513,6 @@ export function CreateMarketV2() {
       // Check if user has sufficient balance
       if (userBalance < requiredApproval) {
         console.error("❌ Insufficient balance");
-        setIsSubmitting(false);
         const requiredTokens = Number(requiredApproval) / 1e18;
         const currentTokens = Number(userBalance) / 1e18;
         toast({
@@ -602,6 +596,7 @@ export function CreateMarketV2() {
         }`,
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
