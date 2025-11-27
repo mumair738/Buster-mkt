@@ -80,6 +80,16 @@ const nextConfig: NextConfig = {
   },
   webpack: (config: any) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
+
+    // Ignore React Native dependencies that aren't needed in web
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@react-native-async-storage/async-storage": false,
+    };
+
+    // Suppress the warning for optional dependencies
+    config.ignoreWarnings = [{ module: /node_modules\/@metamask\/sdk/ }];
+
     return config;
   },
 };

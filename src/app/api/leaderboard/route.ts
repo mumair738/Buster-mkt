@@ -17,8 +17,8 @@ import {
 import { Address } from "viem";
 
 const cache = new NodeCache({ stdTTL: 3600, checkperiod: 120 }); // 1-hour TTL
-const CACHE_KEY = "leaderboard_v8"; // Updated version
-const NEYNAR_CACHE_KEY = "neynar_users_v8";
+const CACHE_KEY_PREFIX = "leaderboard_v12_"; // Updated version - Pure winnings leaderboard
+const NEYNAR_CACHE_KEY = "neynar_users_v12";
 const PAGE_SIZE = 100; // Users per V1 contract call
 const V2_BATCH_SIZE = 50; // Addresses per V2 multicall batch
 
@@ -35,13 +35,18 @@ interface NeynarUser {
 }
 
 interface LeaderboardEntry {
+  rank: number;
   username: string;
   fid: string;
   pfp_url: string | null;
   winnings: number;
   voteCount: number;
+  trend: "up" | "down" | "none";
   address: string;
 }
+
+type TimeFrame = "all" | "monthly" | "weekly";
+type LeaderboardType = "accuracy" | "volume";
 
 async function withRetry<T>(
   fn: () => Promise<T>,
@@ -96,26 +101,116 @@ async function batchFetchNeynarUsers(
   return result;
 }
 
-export async function GET() {
-  const cachedLeaderboard = cache.get<LeaderboardEntry[]>(CACHE_KEY);
-  if (cachedLeaderboard) {
+function getCacheKey(type: LeaderboardType, timeframe: TimeFrame) {
+  return `${CACHE_KEY_PREFIX}${type}_${timeframe}`;
+}
+
+function calculateTrend(
+  currentRank: number,
+  previousRank: number
+): "up" | "down" | "none" {
+  if (previousRank === 0) return "none";
+  if (currentRank < previousRank) return "up";
+  if (currentRank > previousRank) return "down";
+  return "none";
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const type: LeaderboardType =
+    (searchParams.get("type") as LeaderboardType) || "accuracy";
+  const timeframe: TimeFrame =
+    (searchParams.get("timeframe") as TimeFrame) || "all";
+  const forceRefresh = searchParams.get("refresh") === "true";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = parseInt(searchParams.get("pageSize") || "10", 10);
+  const userAddress = searchParams.get("userAddress")?.toLowerCase(); // Optional: get user's rank
+
+  const cacheKey = getCacheKey(type, timeframe);
+  const cachedLeaderboard = cache.get<LeaderboardEntry[]>(cacheKey);
+
+  if (cachedLeaderboard && !forceRefresh) {
     console.log("✅ Serving from cache");
-    const safeLeaderboard = JSON.parse(
-      JSON.stringify(cachedLeaderboard, (key, value) =>
-        typeof value === "bigint" ? Number(value) : value
-      )
-    );
-    return NextResponse.json(safeLeaderboard);
+
+    // Calculate pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = cachedLeaderboard.slice(startIndex, endIndex);
+
+    // Get user's rank if address provided
+    let userRank = null;
+    if (userAddress) {
+      const userEntry = cachedLeaderboard.find(
+        (entry) => entry.address.toLowerCase() === userAddress
+      );
+      if (userEntry) {
+        userRank = userEntry.rank;
+      }
+    }
+
+    // Only fetch Neynar data for current page
+    const addressesToFetch = paginatedData
+      .filter((entry) => !entry.fid || entry.fid === "nil")
+      .map((entry) => entry.address);
+
+    if (addressesToFetch.length > 0) {
+      const neynarApiKey = process.env.NEYNAR_API_KEY;
+      if (neynarApiKey) {
+        const neynar = new NeynarAPIClient({ apiKey: neynarApiKey });
+        const newUsersMap = await batchFetchNeynarUsers(
+          neynar,
+          addressesToFetch
+        );
+
+        // Update entries with Neynar data
+        paginatedData.forEach((entry) => {
+          const usersForAddress = newUsersMap[entry.address];
+          if (usersForAddress && usersForAddress.length > 0) {
+            const user = usersForAddress[0];
+            entry.username = user.username;
+            entry.fid = user.fid;
+            entry.pfp_url = user.pfp_url;
+          }
+        });
+      }
+    }
+
+    return NextResponse.json({
+      data: paginatedData,
+      pagination: {
+        page,
+        pageSize,
+        total: cachedLeaderboard.length,
+        totalPages: Math.ceil(cachedLeaderboard.length / pageSize),
+      },
+      userRank,
+    });
+  }
+
+  if (forceRefresh) {
+    console.log("🔄 Force refresh requested, clearing cache");
+    cache.flushAll();
   }
 
   try {
     console.log("🚀 Starting leaderboard fetch...");
 
+    // Check for required environment variables
     const neynarApiKey = process.env.NEYNAR_API_KEY;
+    const alchemyRpcUrl = process.env.NEXT_PUBLIC_ALCHEMY_RPC_URL;
+
     if (!neynarApiKey) {
       console.error("❌ NEYNAR_API_KEY is not set");
       return NextResponse.json(
         { error: "Server configuration error: Missing NEYNAR_API_KEY" },
+        { status: 500 }
+      );
+    }
+
+    if (!alchemyRpcUrl) {
+      console.error("❌ NEXT_PUBLIC_ALCHEMY_RPC_URL is not set");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing RPC URL" },
         { status: 500 }
       );
     }
@@ -153,6 +248,7 @@ export async function GET() {
       user: Address;
       totalWinnings: bigint;
       voteCount: number;
+      totalInvested?: bigint;
     }[] = [];
 
     for (
@@ -181,6 +277,7 @@ export async function GET() {
       user: Address;
       totalWinnings: bigint;
       voteCount: number;
+      totalInvested: bigint;
     }[] = [];
 
     try {
@@ -256,6 +353,7 @@ export async function GET() {
               bigint,
               bigint
             ];
+            const totalInvested = portfolio[0]; // index 0 = totalInvested
             const totalWinnings = portfolio[1]; // index 1 = totalWinnings
             const tradeCount = Number(portfolio[4]); // index 4 = tradeCount
 
@@ -264,6 +362,7 @@ export async function GET() {
                 user: batchAddresses[idx],
                 totalWinnings,
                 voteCount: tradeCount,
+                totalInvested,
               });
             }
           }
@@ -279,7 +378,12 @@ export async function GET() {
     // ==================== COMBINE V1 + V2 ====================
     const combinedEntries = new Map<
       string,
-      { user: Address; totalWinnings: bigint; voteCount: number }
+      {
+        user: Address;
+        totalWinnings: bigint;
+        voteCount: number;
+        totalInvested: bigint;
+      }
     >();
 
     // Add V1 entries
@@ -288,6 +392,7 @@ export async function GET() {
         user: entry.user,
         totalWinnings: entry.totalWinnings,
         voteCount: entry.voteCount,
+        totalInvested: 0n, // V1 doesn't track totalInvested
       });
     });
 
@@ -302,6 +407,8 @@ export async function GET() {
           totalWinnings:
             BigInt(existing.totalWinnings) + BigInt(entry.totalWinnings),
           voteCount: Number(existing.voteCount) + Number(entry.voteCount),
+          totalInvested:
+            BigInt(existing.totalInvested) + BigInt(entry.totalInvested),
         });
       } else {
         // User only exists in V2
@@ -309,18 +416,41 @@ export async function GET() {
           user: entry.user,
           totalWinnings: entry.totalWinnings,
           voteCount: entry.voteCount,
+          totalInvested: entry.totalInvested,
         });
       }
     });
 
-    const winners = Array.from(combinedEntries.values())
+    // First: Calculate all metrics (just winnings, no accuracy)
+    const winnersWithMetrics = Array.from(combinedEntries.values())
       .filter((entry) => entry.totalWinnings > 0n)
-      .map((entry) => ({
-        address: entry.user.toLowerCase(),
-        winnings: Number(entry.totalWinnings) / Math.pow(10, tokenDecimals),
-        voteCount: Number(entry.voteCount),
-      }))
-      .sort((a, b) => b.winnings - a.winnings);
+      .map((entry) => {
+        // Convert BigInt values to numbers before calculations
+        const normalizedWinnings =
+          Number(entry.totalWinnings) / Math.pow(10, tokenDecimals);
+        const voteCount = Number(entry.voteCount);
+
+        return {
+          address: entry.user.toLowerCase(),
+          winnings: normalizedWinnings,
+          voteCount: voteCount,
+        };
+      });
+
+    // Second: Sort by winnings (total volume)
+    const sortedWinners = winnersWithMetrics
+      .sort((a, b) => {
+        // Sort by winnings - highest to lowest
+        return b.winnings - a.winnings;
+      })
+      .slice(0, 100); // Get top 100 users
+
+    // Third: Assign ranks AFTER sorting
+    const winners = sortedWinners.map((winner, index) => ({
+      ...winner,
+      rank: index + 1,
+      trend: calculateTrend(index + 1, 0), // For proper trend implementation, you'd need to store previous ranks
+    }));
 
     console.log(`📊 Combined ${winners.length} total unique winners`);
 
@@ -349,25 +479,26 @@ export async function GET() {
 
     // ==================== BUILD FINAL LEADERBOARD ====================
     console.log("🧠 Building leaderboard...");
-    const leaderboard: LeaderboardEntry[] = winners
-      .slice(0, 10) // Top 10 only
-      .map((winner) => {
-        const usersForAddress = addressToUsersMap[winner.address];
-        const user =
-          usersForAddress && usersForAddress.length > 0
-            ? usersForAddress[0]
-            : undefined;
-        return {
-          username:
-            user?.username ||
-            `${winner.address.slice(0, 6)}...${winner.address.slice(-4)}`,
-          fid: user?.fid || "nil",
-          pfp_url: user?.pfp_url || null,
-          winnings: winner.winnings,
-          voteCount: winner.voteCount,
-          address: winner.address,
-        };
-      });
+    const leaderboard: LeaderboardEntry[] = winners.map((winner) => {
+      const usersForAddress = addressToUsersMap[winner.address];
+      const user =
+        usersForAddress && usersForAddress.length > 0
+          ? usersForAddress[0]
+          : undefined;
+
+      return {
+        rank: winner.rank,
+        username:
+          user?.username ||
+          `${winner.address.slice(0, 6)}...${winner.address.slice(-4)}`,
+        fid: user?.fid || "nil",
+        pfp_url: user?.pfp_url || null,
+        winnings: winner.winnings,
+        voteCount: winner.voteCount,
+        trend: winner.trend,
+        address: winner.address,
+      };
+    });
 
     console.log("🏆 Final Leaderboard:", leaderboard);
 
@@ -378,14 +509,39 @@ export async function GET() {
       )
     );
 
-    cache.set(CACHE_KEY, safeLeaderboard);
+    cache.set(cacheKey, safeLeaderboard);
     console.log("✅ Cached leaderboard");
 
-    return NextResponse.json(safeLeaderboard);
+    // Calculate pagination
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedData = safeLeaderboard.slice(startIndex, endIndex);
+
+    // Get user's rank if address provided
+    let userRank = null;
+    if (userAddress) {
+      const userEntry = safeLeaderboard.find(
+        (entry: LeaderboardEntry) => entry.address.toLowerCase() === userAddress
+      );
+      if (userEntry) {
+        userRank = userEntry.rank;
+      }
+    }
+
+    return NextResponse.json({
+      data: paginatedData,
+      pagination: {
+        page,
+        pageSize,
+        total: safeLeaderboard.length,
+        totalPages: Math.ceil(safeLeaderboard.length / pageSize),
+      },
+      userRank,
+    });
   } catch (error) {
     console.error("❌ Leaderboard fetch error:", error);
 
-    const cachedLeaderboard = cache.get<LeaderboardEntry[]>(CACHE_KEY);
+    const cachedLeaderboard = cache.get<LeaderboardEntry[]>(cacheKey);
     if (cachedLeaderboard) {
       console.log("✅ Serving stale cache due to error");
       const safeLeaderboard = JSON.parse(
@@ -393,7 +549,34 @@ export async function GET() {
           typeof value === "bigint" ? Number(value) : value
         )
       );
-      return NextResponse.json(safeLeaderboard);
+
+      // Calculate pagination
+      const startIndex = (page - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = safeLeaderboard.slice(startIndex, endIndex);
+
+      // Get user's rank if address provided
+      let userRank = null;
+      if (userAddress) {
+        const userEntry = safeLeaderboard.find(
+          (entry: LeaderboardEntry) =>
+            entry.address.toLowerCase() === userAddress
+        );
+        if (userEntry) {
+          userRank = userEntry.rank;
+        }
+      }
+
+      return NextResponse.json({
+        data: paginatedData,
+        pagination: {
+          page,
+          pageSize,
+          total: safeLeaderboard.length,
+          totalPages: Math.ceil(safeLeaderboard.length / pageSize),
+        },
+        userRank,
+      });
     }
 
     return NextResponse.json(

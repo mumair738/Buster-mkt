@@ -45,7 +45,7 @@ export function MarketProgress({
     if (totalShares === 0n) {
       return (
         <div className="mb-3 md:mb-4">
-          <div className="text-center text-gray-500 text-xs md:text-sm">
+          <div className="text-center text-gray-400 text-xs md:text-sm">
             No bets yet
           </div>
         </div>
@@ -65,8 +65,8 @@ export function MarketProgress({
             return (
               <div key={index} className="space-y-1">
                 <div className="flex justify-between text-xs md:text-sm">
-                  <span className="font-medium truncate pr-2">{option}</span>
-                  <span className="text-gray-500 text-xs whitespace-nowrap">
+                  <span className="font-medium truncate pr-2 text-gray-200">{option}</span>
+                  <span className="text-gray-400 text-xs whitespace-nowrap">
                     {formattedShares} ({percentage.toFixed(1)}% •{" "}
                     {odds.toFixed(2)}x)
                   </span>
@@ -107,34 +107,34 @@ export function MarketProgress({
   return (
     <div className="mb-3 md:mb-4">
       {totalShares === 0n ? (
-        <div className="text-center text-gray-500 text-xs md:text-sm">
+        <div className="text-center text-gray-400 text-xs md:text-sm">
           No bets yet
         </div>
       ) : (
         <>
           <div className="flex justify-between mb-2">
             <span className="flex items-center gap-1">
-              <span className="font-bold text-xs md:text-sm text-green-600">
+              <span className="font-bold text-xs md:text-sm text-green-400">
                 {optionA || "Option A"}: {yesShares}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-400">
                 {yesPercentage.toFixed(1)}% ({yesOdds.toFixed(2)}x)
               </span>
             </span>
             <span className="flex items-center gap-1">
-              <span className="font-bold text-xs md:text-sm text-red-600">
+              <span className="font-bold text-xs md:text-sm text-red-400">
                 {optionB || "Option B"}: {noShares}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-400">
                 {noPercentage.toFixed(1)}% ({noOdds.toFixed(2)}x)
               </span>
             </span>
           </div>
           <Progress
             value={yesPercentage}
-            className="h-2 bg-red-100"
+            className="h-2 bg-red-900/30"
             style={{
-              background: `linear-gradient(to right, #16a34a ${yesPercentage}%, #dc2626 ${yesPercentage}%)`,
+              background: `linear-gradient(to right, #4ade80 ${yesPercentage}%, #f87171 ${yesPercentage}%)`,
             }}
           />
         </>

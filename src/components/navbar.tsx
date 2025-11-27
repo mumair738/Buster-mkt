@@ -32,11 +32,9 @@ export function Navbar() {
 
   const navigationItems = [
     { name: "Markets", href: "/", icon: Home },
-    // { name: "Free Markets", href: "/free-markets", icon: Gift },
     { name: "Profile", href: "/profile", icon: User },
   ];
 
-  // Add admin link only for authorized users
   const allNavigationItems = [
     ...navigationItems,
     ...(hasCreatorAccess || hasResolverAccess || isAdmin
@@ -82,8 +80,8 @@ export function Navbar() {
 
     if (!isClient) {
       return (
-        <div className="px-3 py-1 rounded-full text-sm font-medium text-coolGray-900 animate-pulse">
-          Connecting...
+        <div className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 animate-pulse">
+          Loading...
         </div>
       );
     }
@@ -104,31 +102,26 @@ export function Navbar() {
     };
 
     const availableConnectors = wallet.connectors.filter(
-      (c) => c.id !== "miniAppConnector" // Hide farcaster connector in normal browser
+      (c) => c.id !== "miniAppConnector"
     );
 
     if (wallet.isConnected && wallet.address) {
-      // Connected state - Single button for both desktop and mobile
       return (
         <button
           onClick={() => wallet.disconnect()}
-          style={{ backgroundColor: "#7A42B9" }}
-          className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
         >
-          {/* Desktop: Show more characters */}
           <span className="hidden md:inline">
             {`${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`}
           </span>
-          {/* Mobile: Show fewer characters */}
           <span className="md:hidden">
             {`${wallet.address.slice(0, 4)}...${wallet.address.slice(-3)}`}
           </span>
         </button>
       );
     } else if (wallet.isConnecting) {
-      // Connecting state
       return (
-        <div className="px-3 py-1 rounded-full text-sm font-medium text-gray-400 animate-pulse">
+        <div className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-400 animate-pulse">
           Connecting...
         </div>
       );
@@ -136,27 +129,23 @@ export function Navbar() {
       return (
         <div className="relative">
           {availableConnectors.length === 1 ? (
-            // Single connector - direct connect
             <button
               onClick={() => wallet.connect(availableConnectors[0].id)}
-              style={{ backgroundColor: "#7A42B9" }}
-              className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
             >
-              Connect Wallet
+              Connect
             </button>
           ) : availableConnectors.length > 1 ? (
-            // Multiple connectors - show dropdown
             <>
               <button
                 onClick={() => setShowWalletOptions(!showWalletOptions)}
-                style={{ backgroundColor: "#7A42B9" }}
-                className="hover:bg-opacity-90 text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 whitespace-nowrap"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 shadow-md hover:shadow-lg whitespace-nowrap"
               >
-                Connect Wallet
+                Connect
               </button>
 
               {showWalletOptions && (
-                <div className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 min-w-[150px]">
+                <div className="absolute top-full right-0 mt-2 bg-[#352c3f]/95 backdrop-blur-xl border border-[#544863] rounded-xl shadow-xl z-[100] min-w-[160px] overflow-hidden">
                   {availableConnectors.map((connector) => (
                     <button
                       key={connector.id}
@@ -168,7 +157,7 @@ export function Navbar() {
                           console.error("Error connecting to wallet:", error);
                         }
                       }}
-                      className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg text-sm"
+                      className="w-full px-4 py-2.5 text-left text-gray-200 hover:bg-[#433952]/80 transition-colors duration-200 text-xs font-medium"
                     >
                       {getConnectorName(connector.id)}
                     </button>
@@ -178,10 +167,9 @@ export function Navbar() {
             </>
           ) : null}
 
-          {/* Click outside to close dropdown */}
           {showWalletOptions && (
             <div
-              className="fixed inset-0 z-40"
+              className="fixed inset-0 z-[90]"
               onClick={() => setShowWalletOptions(false)}
             />
           )}
@@ -192,99 +180,99 @@ export function Navbar() {
 
   return (
     <>
-      {/* Desktop View */}
-      <div className="hidden md:flex justify-between items-center mb-6 px-4 py-3 bg-gradient-to-r from-[#7A42B9] to-gray-100 dark:from-[#5A2C8A] dark:to-gray-800 rounded-lg shadow-sm">
+      {/* Desktop View - Sleek & Compact */}
+      <div className="hidden md:flex justify-between items-center mb-4 px-4 py-2.5 bg-[#433952]/50 backdrop-blur-xl border border-[#544863] rounded-xl shadow-lg">
         <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            {pfpUrl && !pfpError ? (
-              <Image
-                src={pfpUrl}
-                alt="Profile Picture"
-                width={40}
-                height={40}
-                className="rounded-full"
-                onError={() => setPfpError(true)}
-              />
-            ) : (
-              <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-sm font-medium">
-                {username?.charAt(0)?.toUpperCase() || "P"}
-              </div>
-            )}
-            <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-              POLICAST
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="flex items-center gap-4">
-            {allNavigationItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link key={item.name} href={item.href}>
-                  <Button
-                    variant={isActive ? "default" : "ghost"}
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.name}
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <WalletButton />
-        </div>
-      </div>
-
-      {/* Mobile View */}
-      <div className="md:hidden">
-        <div className="flex justify-between items-center mb-4 px-3 py-2 bg-gradient-to-r from-[#7A42B9] to-gray-100 dark:from-[#5A2C8A] dark:to-gray-800 rounded-lg shadow-sm">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {pfpUrl && !pfpError ? (
               <Image
                 src={pfpUrl}
                 alt="Profile Picture"
                 width={32}
                 height={32}
-                className="rounded-full"
+                className="rounded-full ring-2 ring-[#544863]"
                 onError={() => setPfpError(true)}
               />
             ) : (
-              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md">
                 {username?.charAt(0)?.toUpperCase() || "P"}
               </div>
             )}
-            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
+            <div className="text-lg font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
               POLICAST
             </div>
           </div>
+
+          <nav className="flex items-center gap-2">
+            {allNavigationItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = pathname === item.href;
+              return (
+                <Link key={item.name} href={item.href}>
+                  <button
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                      isActive
+                        ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md"
+                        : "text-gray-300 hover:bg-[#352c3f]/80"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.name}
+                  </button>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <WalletButton />
+        </div>
+      </div>
+
+      {/* Mobile View - Ultra Compact */}
+      <div className="md:hidden">
+        <div className="flex justify-between items-center mb-3 px-3 py-2 bg-[#433952]/50 backdrop-blur-xl border border-[#544863] rounded-xl shadow-lg">
           <div className="flex items-center gap-2">
+            {pfpUrl && !pfpError ? (
+              <Image
+                src={pfpUrl}
+                alt="Profile Picture"
+                width={28}
+                height={28}
+                className="rounded-full ring-2 ring-[#544863]"
+                onError={() => setPfpError(true)}
+              />
+            ) : (
+              <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
+                {username?.charAt(0)?.toUpperCase() || "P"}
+              </div>
+            )}
+            <div className="text-sm font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+              POLICAST
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 rounded-lg hover:bg-[#352c3f]/80 transition-colors"
             >
               {mobileMenuOpen ? (
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 text-gray-300" />
               ) : (
-                <Menu className="h-4 w-4" />
+                <Menu className="h-4 w-4 text-gray-300" />
               )}
-            </Button>
+            </button>
             <WalletButton />
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Sleek Dropdown */}
         {mobileMenuOpen && (
-          <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-lg border">
-            <nav className="flex flex-col gap-2">
+          <div className="mb-3 p-2 bg-[#433952]/50 backdrop-blur-xl rounded-xl shadow-lg border border-[#544863]">
+            <nav className="flex flex-col gap-1">
               {allNavigationItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
@@ -294,14 +282,16 @@ export function Navbar() {
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      size="sm"
-                      className="w-full justify-start gap-2"
+                    <button
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
+                        isActive
+                          ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md"
+                          : "text-gray-300 hover:bg-[#352c3f]/80"
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
                       {item.name}
-                    </Button>
+                    </button>
                   </Link>
                 );
               })}

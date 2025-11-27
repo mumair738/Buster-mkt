@@ -502,11 +502,13 @@ export function MarketResolver() {
 
   if (!isConnected) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <Gavel className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Connect Your Wallet</h3>
-          <p className="text-gray-600">
+          <Gavel className="h-16 w-16 mx-auto text-white/60 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">
+            Connect Your Wallet
+          </h3>
+          <p className="text-white/80">
             Please connect your wallet to access market resolution functions.
           </p>
         </CardContent>
@@ -516,11 +518,11 @@ export function MarketResolver() {
 
   if (!hasResolverAccess) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto text-red-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Access Denied</h3>
-          <p className="text-gray-600">
+          <AlertTriangle className="h-16 w-16 mx-auto text-red-300 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">Access Denied</h3>
+          <p className="text-white/80">
             You don&apos;t have permission to resolve markets. Only admins and
             users with resolver role can resolve markets.
           </p>
@@ -531,14 +533,19 @@ export function MarketResolver() {
 
   if (isConfirmed) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-lg font-medium mb-2">
+          <CheckCircle className="h-16 w-16 mx-auto text-green-300 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">
             Action Completed Successfully!
           </h3>
-          <p className="text-gray-600 mb-4">The market has been updated.</p>
-          <Button onClick={() => window.location.reload()}>Refresh Page</Button>
+          <p className="text-white/80 mb-4">The market has been updated.</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-white/20 hover:bg-white/30 text-white"
+          >
+            Refresh Page
+          </Button>
         </CardContent>
       </Card>
     );
@@ -546,9 +553,9 @@ export function MarketResolver() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Gavel className="h-5 w-5" />
             Market Resolution
           </CardTitle>
@@ -557,26 +564,30 @@ export function MarketResolver() {
           {/* Filters */}
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-              <Label htmlFor="search">Search Markets</Label>
+              <Label htmlFor="search" className="text-white/80">
+                Search Markets
+              </Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
                 <Input
                   id="search"
                   placeholder="Search by question..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/60"
                 />
               </div>
             </div>
 
             <div className="md:w-48">
-              <Label htmlFor="filter">Filter by Status</Label>
+              <Label htmlFor="filter" className="text-white/80">
+                Filter by Status
+              </Label>
               <Select
                 value={filter}
                 onValueChange={(value: any) => setFilter(value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/10 border-white/20 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -592,38 +603,48 @@ export function MarketResolver() {
           {/* Markets List */}
           {marketsError ? (
             <div className="text-center py-8">
-              <AlertTriangle className="h-16 w-16 mx-auto text-red-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2">
+              <AlertTriangle className="h-16 w-16 mx-auto text-red-300 mb-4" />
+              <h3 className="text-lg font-medium mb-2 text-white">
                 Error Loading Markets
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-white/80 mb-4">
                 Failed to load markets from contract: {marketsError.message}
               </p>
-              <Button onClick={() => refetchMarkets()}>Retry</Button>
+              <Button
+                onClick={() => refetchMarkets()}
+                className="bg-white/20 hover:bg-white/30 text-white"
+              >
+                Retry
+              </Button>
             </div>
           ) : isLoading || isLoadingMarkets ? (
             <div className="space-y-4">
               <div className="text-center py-4">
-                <Loader2 className="h-8 w-8 mx-auto animate-spin text-gray-400 mb-2" />
-                <p className="text-gray-600">Loading markets...</p>
+                <Loader2 className="h-8 w-8 mx-auto animate-spin text-white/60 mb-2" />
+                <p className="text-white/80">Loading markets...</p>
               </div>
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="border rounded-lg p-4 animate-pulse">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div
+                  key={i}
+                  className="border border-white/20 rounded-lg p-4 animate-pulse bg-white/5"
+                >
+                  <div className="h-4 bg-white/20 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-white/20 rounded w-1/2"></div>
                 </div>
               ))}
             </div>
           ) : filteredMarkets.length === 0 ? (
             <div className="text-center py-8">
-              <Clock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Markets Found</h3>
-              <p className="text-gray-600 mb-4">
+              <Clock className="h-16 w-16 mx-auto text-white/60 mb-4" />
+              <h3 className="text-lg font-medium mb-2 text-white">
+                No Markets Found
+              </h3>
+              <p className="text-white/80 mb-4">
                 No markets match your current filter criteria.
                 {filter === "ready" &&
                   " Try changing the filter to 'All Markets' to see all available markets."}
               </p>
-              <div className="text-xs text-gray-500 mt-4">
+              <div className="text-xs text-white/60 mt-4">
                 <p>Debug info:</p>
                 <p>Total markets loaded: {markets.length}</p>
                 <p>Current filter: {filter}</p>
@@ -634,16 +655,16 @@ export function MarketResolver() {
           ) : (
             <div className="space-y-4">
               {filteredMarkets.map((market) => (
-                <Card key={market.marketId} className="border border-gray-200">
+                <Card key={market.marketId} className="border-0 bg-white/10">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <Link href={`/market/${market.marketId}`}>
-                          <h3 className="font-medium text-lg hover:text-blue-600 transition-colors line-clamp-2">
+                          <h3 className="font-medium text-lg text-white hover:text-white/80 transition-colors line-clamp-2">
                             {market.question}
                           </h3>
                         </Link>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                        <p className="text-sm text-white/70 mt-1 line-clamp-2">
                           {market.description}
                         </p>
                       </div>
@@ -662,26 +683,28 @@ export function MarketResolver() {
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
                       <div>
-                        <span className="text-gray-500">Market ID:</span>
-                        <p className="font-medium">#{market.marketId}</p>
+                        <span className="text-white/60">Market ID:</span>
+                        <p className="font-medium text-white">
+                          #{market.marketId}
+                        </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">End Date:</span>
-                        <p className="font-medium">
+                        <span className="text-white/60">End Date:</span>
+                        <p className="font-medium text-white">
                           {formatDate(market.endTime)}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">Options:</span>
-                        <p className="font-medium">
+                        <span className="text-white/60">Options:</span>
+                        <p className="font-medium text-white">
                           {Number(market.optionCount)}
                         </p>
                       </div>
                       <div>
-                        <span className="text-gray-500">
+                        <span className="text-white/60">
                           Total Participants:
                         </span>
-                        <p className="font-medium">
+                        <p className="font-medium text-white">
                           {market.totalShares.reduce(
                             (sum, shares) => sum + Number(formatPrice(shares)),
                             0
@@ -692,19 +715,21 @@ export function MarketResolver() {
 
                     {/* Options Display */}
                     <div className="mb-4">
-                      <h4 className="text-sm font-medium mb-2">Options:</h4>
+                      <h4 className="text-sm font-medium mb-2 text-white">
+                        Options:
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {market.options.map((option, index) => (
                           <div
                             key={index}
-                            className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                            className="flex items-center justify-between p-2 bg-white/10 rounded border border-white/20"
                           >
-                            <span className="text-sm">{option}</span>
-                            <div className="text-xs text-gray-500">
+                            <span className="text-sm text-white">{option}</span>
+                            <div className="text-xs text-white/70">
                               {formatPrice(market.totalShares[index])} shares
                               {market.resolved &&
                                 Number(market.winningOptionId) === index && (
-                                  <CheckCircle className="inline h-3 w-3 ml-1 text-green-500" />
+                                  <CheckCircle className="inline h-3 w-3 ml-1 text-green-300" />
                                 )}
                             </div>
                           </div>
@@ -720,7 +745,7 @@ export function MarketResolver() {
                           <Button
                             size="sm"
                             onClick={() => setSelectedMarket(market)}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white"
                           >
                             <Gavel className="h-4 w-4" />
                             {market.earlyResolutionAllowed &&
@@ -735,7 +760,7 @@ export function MarketResolver() {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedMarket(market)}
-                          className="flex items-center gap-2"
+                          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white border-white/20"
                         >
                           <AlertTriangle className="h-4 w-4" />
                           Dispute Resolution
@@ -743,7 +768,11 @@ export function MarketResolver() {
                       )}
 
                       <Link href={`/market/${market.marketId}`}>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-white hover:bg-white/10"
+                        >
                           View Details
                         </Button>
                       </Link>
@@ -758,17 +787,19 @@ export function MarketResolver() {
 
       {/* Resolution Modal */}
       {selectedMarket && (
-        <Card>
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-white">
               {selectedMarket.resolved ? "Dispute Market" : "Resolve Market"} #
               {selectedMarket.marketId}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium mb-2">{selectedMarket.question}</h3>
-              <p className="text-sm text-gray-600">
+            <div className="p-4 bg-white/10 rounded-lg border border-white/20">
+              <h3 className="font-medium mb-2 text-white">
+                {selectedMarket.question}
+              </h3>
+              <p className="text-sm text-white/80">
                 {selectedMarket.description}
               </p>
             </div>
@@ -776,12 +807,14 @@ export function MarketResolver() {
             {!selectedMarket.resolved ? (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="winningOption">Select Winning Option *</Label>
+                  <Label htmlFor="winningOption" className="text-white/80">
+                    Select Winning Option *
+                  </Label>
                   <Select
                     value={winningOptionId}
                     onValueChange={setWinningOptionId}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue placeholder="Choose the winning option" />
                     </SelectTrigger>
                     <SelectContent>
@@ -800,7 +833,7 @@ export function MarketResolver() {
                   <Button
                     onClick={handleResolveMarket}
                     disabled={!winningOptionId || isPending || isConfirming}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white"
                   >
                     {isPending || isConfirming ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -812,6 +845,7 @@ export function MarketResolver() {
                   <Button
                     variant="outline"
                     onClick={() => setSelectedMarket(null)}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     Cancel
                   </Button>
@@ -820,13 +854,16 @@ export function MarketResolver() {
             ) : (
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="disputeReason">Dispute Reason *</Label>
+                  <Label htmlFor="disputeReason" className="text-white/80">
+                    Dispute Reason *
+                  </Label>
                   <Textarea
                     id="disputeReason"
                     placeholder="Explain why this resolution should be disputed..."
                     value={disputeReason}
                     onChange={(e) => setDisputeReason(e.target.value)}
                     rows={3}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                   />
                 </div>
 
@@ -837,7 +874,7 @@ export function MarketResolver() {
                     disabled={
                       !disputeReason.trim() || isPending || isConfirming
                     }
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-red-500/80 hover:bg-red-500 text-white"
                   >
                     {isPending || isConfirming ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -849,6 +886,7 @@ export function MarketResolver() {
                   <Button
                     variant="outline"
                     onClick={() => setSelectedMarket(null)}
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                   >
                     Cancel
                   </Button>
@@ -857,8 +895,8 @@ export function MarketResolver() {
             )}
 
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-red-700 text-sm">Error: {error.message}</p>
+              <div className="p-4 bg-red-900/30 border border-red-400/30 rounded-lg">
+                <p className="text-red-200 text-sm">Error: {error.message}</p>
               </div>
             )}
           </CardContent>

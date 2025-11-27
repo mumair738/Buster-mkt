@@ -162,6 +162,7 @@ export function MarketV2BuyInterface({
   const [containerHeight, setContainerHeight] = useState("auto");
   const contentRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const processedCallsRef = useRef<Set<string>>(new Set());
 
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [amount, setAmount] = useState<string>("");
@@ -822,6 +823,12 @@ export function MarketV2BuyInterface({
       return;
     }
 
+    // Ensure an option is selected
+    if (selectedOptionId === null) {
+      setError("Please select an option before confirming.");
+      return;
+    }
+
     // Check maximum shares limit per purchase
     if (parseFloat(amount) > MAX_SHARES) {
       setError(`Maximum ${MAX_SHARES} shares allowed per purchase`);
@@ -888,6 +895,9 @@ export function MarketV2BuyInterface({
     console.log("Connector:", connector?.name, connector?.id);
     console.log("Supports batch transactions:", supportseBatchTransactions);
 
+    // Reset processed transaction tracking before kicking off a new flow
+    processedCallsRef.current.clear();
+
     setBuyingStep("confirm");
 
     // Only use batch transactions for wallets that support EIP-5792
@@ -905,7 +915,8 @@ export function MarketV2BuyInterface({
     tokenDecimals,
     tokenSymbol,
     estimatedCost,
-    optionData,
+    optionTuple,
+    optionIsActive,
     marketInfo,
     connector,
     supportseBatchTransactions,
@@ -916,6 +927,20 @@ export function MarketV2BuyInterface({
   // Monitor batch transaction status
   useEffect(() => {
     if (callsStatusSuccess && callsStatusData) {
+      const txId =
+        callsData && typeof callsData === "object" && "id" in callsData
+          ? `status-${String(callsData.id)}-${callsStatusData.status}`
+          : `status-${callsStatusData.status}-${JSON.stringify(
+              callsStatusData.receipts
+            )}`;
+
+      if (processedCallsRef.current.has(txId)) {
+        console.log("=== V2 BATCH STATUS ALREADY HANDLED ===", txId);
+        return;
+      }
+
+      processedCallsRef.current.add(txId);
+
       console.log("=== V2 BATCH CALLS STATUS SUCCESS ===");
       console.log("Status:", callsStatusData.status);
       console.log("Receipts:", callsStatusData.receipts);
@@ -1157,9 +1182,22 @@ export function MarketV2BuyInterface({
         console.log("⏳ V2 Batch calls still pending...");
         // Keep waiting, the hook will refetch
       }
+      return;
     }
 
     if (callsStatusError && callsStatusErrorMsg) {
+      const errorId =
+        callsData && typeof callsData === "object" && "id" in callsData
+          ? `error-${String(callsData.id)}`
+          : `error-${callsStatusErrorMsg.message ?? "unknown"}`;
+
+      if (processedCallsRef.current.has(errorId)) {
+        console.log("=== V2 BATCH ERROR ALREADY HANDLED ===", errorId);
+        return;
+      }
+
+      processedCallsRef.current.add(errorId);
+
       console.error("=== V2 BATCH CALLS STATUS ERROR ===");
       console.error("Status error:", callsStatusErrorMsg);
 
@@ -1178,6 +1216,7 @@ export function MarketV2BuyInterface({
     callsStatusError,
     callsStatusData,
     callsStatusErrorMsg,
+    callsData,
     market.options,
     selectedOptionId,
     toast,
@@ -1241,6 +1280,7 @@ export function MarketV2BuyInterface({
     marketId,
     writeContractAsync,
     market.options,
+    currentOptionPrice,
     toast,
     refetchOptionData,
     dispatchMarketUpdate,
@@ -1270,12 +1310,12 @@ export function MarketV2BuyInterface({
   // Show validation notice if market is not validated
   if (isValidated === false) {
     return (
-      <div className="w-full p-4 text-center bg-yellow-50 dark:bg-yellow-900/20 rounded-md border border-yellow-200 dark:border-yellow-700">
-        <div className="text-yellow-800 dark:text-yellow-200">
+      <div className="w-full p-4 text-center bg-yellow-500/20 backdrop-blur-sm rounded-md border border-yellow-400/30">
+        <div className="text-yellow-300">
           <h3 className="font-medium text-sm mb-2">
             Market Pending Validation
           </h3>
-          <p className="text-xs">
+          <p className="text-xs text-gray-300">
             This market is waiting for admin validation before accepting
             predictions. Please check back later.
           </p>
@@ -1287,11 +1327,9 @@ export function MarketV2BuyInterface({
   // Show loading state while checking validation
   if (isValidated === null) {
     return (
-      <div className="w-full p-3 text-center bg-gray-50 dark:bg-gray-800/50 rounded-md border border-gray-200 dark:border-gray-700">
-        <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1 text-blue-500" />
-        <p className="text-xs text-gray-600 dark:text-gray-300">
-          Checking market status...
-        </p>
+      <div className="w-full p-3 text-center bg-[#433952]/50 backdrop-blur-sm rounded-md border border-[#544863]">
+        <Loader2 className="h-4 w-4 animate-spin mx-auto mb-1 text-purple-400" />
+        <p className="text-xs text-gray-300">Checking market status...</p>
       </div>
     );
   }
@@ -1324,7 +1362,7 @@ export function MarketV2BuyInterface({
 
         {/* User's current shares display */}
         {isConnected && userShares && (
-          <div className="mb-3 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-md border">
+          <div className="mb-3 px-3 py-2 bg-[#352c3f]/80 backdrop-blur-sm rounded-md border border-[#544863]">
             <MarketV2SharesDisplay
               market={market}
               userShares={userShares as readonly bigint[]}
@@ -1347,7 +1385,7 @@ export function MarketV2BuyInterface({
           // Initial state - option selection
           <div className="space-y-1">
             <div className="px-1">
-              <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+              <h4 className="text-xs font-medium text-gray-300 mb-0.5">
                 Select an option:
               </h4>
             </div>
@@ -1377,18 +1415,22 @@ export function MarketV2BuyInterface({
                     }}
                     className={cn(
                       "w-full p-1.5 rounded-md border text-left transition-all duration-200",
-                      "focus:outline-none focus:ring-1 focus:ring-blue-500",
+                      "focus:outline-none focus:ring-1 focus:ring-purple-500",
                       isSelected
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400"
-                        : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
+                        ? "border-purple-500 bg-purple-500/20 backdrop-blur-sm"
+                        : "border-[#544863] bg-[#352c3f]/80 backdrop-blur-sm hover:border-purple-400/50"
                     )}
                   >
                     <div className="flex justify-between items-center gap-1">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-gray-900 dark:text-gray-100 text-xs truncate">
+                        <p className="font-medium text-gray-100 text-xs truncate">
                           {option.name}
                         </p>
-                        {/* <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <span className="sr-only">
+                          Probability {probability.toFixed(1)}% and{" "}
+                          {oddsFormatted.toFixed(2)}x odds
+                        </span>
+                        {/* <p className="text-xs text-gray-400">
                           {probability.toFixed(1)}% •{" "}
                           {odds.length > 0
                             ? (Number(odds[index] || 0n) / 1e18 / 100).toFixed(
@@ -1401,7 +1443,7 @@ export function MarketV2BuyInterface({
                         </p> */}
                       </div>
                       {/* <div className="text-right flex-shrink-0">
-                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                        <p className="text-xs font-semibold text-gray-100 whitespace-nowrap">
                           {probability.toFixed(1)}buster
                         </p>
                       </div> */}
@@ -1427,11 +1469,11 @@ export function MarketV2BuyInterface({
           <div className="space-y-2 max-h-[70vh] flex flex-col">
             {buyingStep === "amount" && (
               <>
-                <div className="bg-gray-50 dark:bg-gray-800/50 rounded-md p-1.5 text-center border border-gray-200 dark:border-gray-700">
-                  <h4 className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                <div className="bg-[#352c3f]/80 backdrop-blur-sm rounded-md p-1.5 text-center border border-[#544863]">
+                  <h4 className="text-xs font-medium text-gray-200">
                     Buying: {market.options[selectedOptionId!]?.name}
                   </h4>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-300">
                     Current price:{" "}
                     <span className="font-medium">
                       {(
@@ -1448,7 +1490,7 @@ export function MarketV2BuyInterface({
 
                 <div className="flex-grow overflow-y-auto space-y-1.5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                    <label className="block text-xs font-medium text-gray-300 mb-0.5">
                       Number of shares
                     </label>
                     <Input
@@ -1499,28 +1541,26 @@ export function MarketV2BuyInterface({
                         setAmount(value);
                       }}
                       max={MAX_SHARES}
-                      className="w-full h-8 text-xs bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
+                      className="w-full h-8 text-xs bg-[#352c3f]/80 border-[#544863] text-gray-100 placeholder:text-gray-400"
                       style={{ fontSize: "16px" }}
                     />
                   </div>
 
                   {userBalance && tokenDecimals && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-md p-1.5 space-y-0.5 border border-blue-200 dark:border-blue-800">
+                    <div className="bg-purple-500/20 backdrop-blur-sm rounded-md p-1.5 space-y-0.5 border border-purple-400/30">
                       <div className="text-xs space-y-0.5">
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Your balance:
-                          </span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-gray-300">Your balance:</span>
+                          <span className="font-medium text-gray-100">
                             {formatPrice(userBalance, tokenDecimals)}{" "}
                             {tokenSymbol}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">
+                          <span className="text-gray-300">
                             Max per purchase:
                           </span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="font-medium text-gray-100">
                             {MAX_SHARES} shares
                           </span>
                         </div>
@@ -1543,32 +1583,28 @@ export function MarketV2BuyInterface({
                   )}
 
                   {estimatedCost && amount && parseFloat(amount) > 0 && (
-                    <div className="bg-gray-50 dark:bg-gray-800/80 rounded-md p-1.5 border border-gray-200 dark:border-gray-700">
-                      <h5 className="text-xs font-medium text-gray-800 dark:text-gray-200 mb-0.5">
+                    <div className="bg-[#352c3f]/80 backdrop-blur-sm rounded-md p-1.5 border border-[#544863]">
+                      <h5 className="text-xs font-medium text-gray-200 mb-0.5">
                         Purchase Summary
                       </h5>
                       <div className="space-y-0.5">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 dark:text-gray-400">
-                            Shares:
-                          </span>
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                          <span className="text-gray-300">Shares:</span>
+                          <span className="font-medium text-gray-100">
                             {amount}
                           </span>
                         </div>
-                        <div className="flex justify-between text-xs font-semibold border-t border-gray-200 dark:border-gray-600 pt-0.5">
-                          <span className="text-gray-800 dark:text-gray-200">
-                            Total Cost:
-                          </span>
-                          <span className="text-gray-900 dark:text-gray-100">
+                        <div className="flex justify-between text-xs font-semibold border-t border-[#544863] pt-0.5">
+                          <span className="text-gray-200">Total Cost:</span>
+                          <span className="text-gray-100">
                             {formatPrice(estimatedCost)} {tokenSymbol}
                           </span>
                         </div>
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-500 dark:text-gray-400">
+                          <span className="text-gray-400">
                             Avg Price/Share:
                           </span>
-                          <span className="text-gray-700 dark:text-gray-300">
+                          <span className="text-gray-300">
                             {(() => {
                               const amountInUnits = BigInt(
                                 Math.floor(
@@ -1591,14 +1627,12 @@ export function MarketV2BuyInterface({
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-1.5">
-                    <p className="text-xs text-red-700 dark:text-red-400">
-                      {error}
-                    </p>
+                  <div className="bg-red-500/20 backdrop-blur-sm border border-red-400/30 rounded-md p-1.5">
+                    <p className="text-xs text-red-300">{error}</p>
                   </div>
                 )}
 
-                <div className="flex gap-2 pt-1 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 sticky bottom-0">
+                <div className="flex gap-2 pt-1 border-t border-[#544863] bg-[#433952]/50 backdrop-blur-sm sticky bottom-0">
                   <Button
                     onClick={() => {
                       setIsBuying(false);
@@ -1606,7 +1640,7 @@ export function MarketV2BuyInterface({
                       setError(null);
                     }}
                     variant="outline"
-                    className="flex-1 h-8 text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
+                    className="flex-1 h-8 text-xs border-[#544863] text-gray-300 hover:bg-[#544863]/50"
                   >
                     Cancel
                   </Button>
@@ -1627,15 +1661,15 @@ export function MarketV2BuyInterface({
             )}
 
             {(buyingStep === "allowance" || buyingStep === "confirm") && (
-              <div className="text-center py-4 space-y-2 bg-gray-50 dark:bg-gray-800/50 rounded-md border border-gray-200 dark:border-gray-700">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-blue-500" />
+              <div className="text-center py-4 space-y-2 bg-[#352c3f]/80 backdrop-blur-sm rounded-md border border-[#544863]">
+                <Loader2 className="h-6 w-6 animate-spin mx-auto text-purple-400" />
                 <div>
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                  <p className="text-sm font-medium text-gray-200">
                     {buyingStep === "allowance"
                       ? "Approving tokens..."
                       : "Processing purchase..."}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-gray-300 mt-1">
                     {market.options[selectedOptionId!]?.name} • {amount} shares
                   </p>
                 </div>
@@ -1643,8 +1677,8 @@ export function MarketV2BuyInterface({
             )}
 
             {buyingStep === "batchPartialSuccess" && (
-              <div className="text-center py-3 space-y-2 bg-amber-50 dark:bg-amber-900/20 rounded-md border border-amber-200 dark:border-amber-800">
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+              <div className="text-center py-3 space-y-2 bg-amber-500/20 backdrop-blur-sm rounded-md border border-amber-400/30">
+                <p className="text-sm font-medium text-amber-300">
                   Approval successful, but purchase failed.
                 </p>
                 <Button
@@ -1661,10 +1695,10 @@ export function MarketV2BuyInterface({
             )}
 
             {buyingStep === "purchaseSuccess" && (
-              <div className="text-center py-3 space-y-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800">
-                <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center mx-auto">
+              <div className="text-center py-3 space-y-2 bg-green-500/20 backdrop-blur-sm rounded-md border border-green-400/30">
+                <div className="w-8 h-8 bg-green-500/30 rounded-full flex items-center justify-center mx-auto border border-green-400/30">
                   <svg
-                    className="w-4 h-4 text-green-600 dark:text-green-400"
+                    className="w-4 h-4 text-green-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -1677,7 +1711,7 @@ export function MarketV2BuyInterface({
                     />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                <p className="text-sm font-medium text-green-300">
                   Purchase successful!
                 </p>
                 <Button

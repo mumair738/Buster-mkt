@@ -1,29 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Home, Clock, Trophy, User, Info, Settings } from "lucide-react"; // Icons for tabs and About
+import { Home, Clock, Trophy, User, Info, Settings } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { sdk } from "@farcaster/miniapp-sdk"; // Add this import
+import { sdk } from "@farcaster/miniapp-sdk";
 import { useUserRoles } from "@/hooks/useUserRoles";
 import { toast } from "@/hooks/use-toast";
 
 export function Footer() {
-  //eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pathname = usePathname();
   const router = useRouter();
   const [showInfo, setShowInfo] = useState(false);
   const [currentQueryTab, setCurrentQueryTab] = useState<string | null>(null);
   const { hasCreatorAccess, hasResolverAccess, isAdmin } = useUserRoles();
 
-  // Safely get search params on client side only
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       setCurrentQueryTab(params.get("tab"));
     }
-  }, [pathname]); // Re-run when pathname changes
+  }, [pathname]);
 
   const navItems = [
     { hrefBase: "/", tabValue: "active", icon: Home, label: "Active" },
@@ -37,7 +35,6 @@ export function Footer() {
     { hrefBase: "/", tabValue: "profile", icon: User, label: "Profile" },
   ];
 
-  // Add admin item only for authorized users
   const allNavItems = [
     ...navItems,
     ...(hasCreatorAccess || hasResolverAccess || isAdmin
@@ -45,30 +42,25 @@ export function Footer() {
       : []),
   ];
 
-  // Handle navigation with client-side routing (no full page reload)
   const handleNavClick = (hrefBase: string, tabValue: string) => {
     if (showInfo) {
       setShowInfo(false);
     }
 
-    // For all home page tabs (active, ended, leaderboard, profile, admin), update URL without full reload
     if (hrefBase === "/" && tabValue) {
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set("tab", tabValue);
       window.history.pushState(null, "", newUrl.toString());
       setCurrentQueryTab(tabValue);
 
-      // Trigger a custom event that the dashboard can listen to
       window.dispatchEvent(
         new CustomEvent("tabChange", { detail: { tab: tabValue } })
       );
     } else {
-      // For any other navigation, use normal routing
       router.push(hrefBase);
     }
   };
 
-  // Add the buy handler and token constants
   const USDC_CAIP19 =
     "eip155:8453/erc20:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
   const CAIP_ETH = "eip155:8453/native";
@@ -83,7 +75,6 @@ export function Footer() {
       });
     } catch (error) {
       console.error("Failed to open swap:", error);
-      // Add toast notification
       toast({
         title: "Swap Failed",
         description: "Unable to open token swap. Please try again.",
@@ -94,59 +85,59 @@ export function Footer() {
 
   return (
     <div className="relative">
-      {/* About Panel for Mobile - positioned absolutely above the footer */}
+      {/* About Panel - Compact & Modern */}
       {showInfo && (
-        <div className="md:hidden bg-white shadow-lg rounded-t-lg p-4 border-l-4 border-gray-500 w-full fixed bottom-16 left-0 z-40 animate-slide-up">
-          <div className="flex flex-col gap-3">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="font-bold text-gray-800 text-lg mb-2">
-                Welcome to Policast!
+        <div className="md:hidden bg-gradient-to-br from-[#433952] to-[#352c3f] backdrop-blur-xl shadow-2xl rounded-t-2xl border-t-2 border-purple-500 w-full fixed bottom-14 left-0 z-40 animate-slide-up">
+          <div className="p-4">
+            <div className="bg-gradient-to-br from-[#544863] to-[#433952] p-3 rounded-xl border border-purple-500/30">
+              <h3 className="font-bold text-gray-100 text-base mb-1.5 flex items-center gap-2">
+                <span className="text-purple-400">👋</span> Welcome to Policast!
               </h3>
-              <p className="mb-3 text-gray-700">
-                Policast is a prediction game where users can predict public
-                sentiments.
+              <p className="text-xs text-gray-300 mb-2 leading-relaxed">
+                Predict public sentiments and win rewards!
               </p>
-              <p className="mb-2 font-medium text-gray-800">
-                To start playing:
-              </p>
-              <ol className="list-decimal pl-5 mb-3 space-y-1 text-gray-700">
-                <li>Sign in with your wallet</li>
-                <li>Browse available predictions</li>
-                <li>Place your bets!</li>
-              </ol>
-              {/* --- Add Buy $Buster Buttons Here --- */}
-              <div className="flex gap-2 mt-4">
+              <div className="flex flex-col gap-1.5 text-xs text-gray-200 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">1</span>
+                  <span>Sign in with your wallet</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">2</span>
+                  <span>Browse predictions</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-5 h-5 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">3</span>
+                  <span>Place your bets!</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
                 <button
                   onClick={() => handleBuyBuster(USDC_CAIP19)}
-                  className="bg-[#7A42B9] text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
                 >
-                  Buy $Buster with USDC
+                  Buy with USDC
                 </button>
                 <button
                   onClick={() => handleBuyBuster(CAIP_ETH)}
-                  className="bg-[#7A42B9] text-white px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
                 >
-                  Buy $Buster with ETH
+                  Buy with ETH
                 </button>
               </div>
-              {/* --- End Buy $Buster Buttons --- */}
             </div>
           </div>
         </div>
       )}
 
-      <footer className="w-full border-t bg-background fixed bottom-0 left-0 z-50 md:static">
-        <div className="container max-w-7xl mx-auto flex flex-col items-center justify-between gap-4 py-4 md:flex-row md:py-8">
-          {/* Mobile Navigation with Icons */}
-          <div className="flex w-full justify-around md:hidden">
+      <footer className="w-full bg-[#433952]/90 backdrop-blur-xl border-t border-[#544863] fixed bottom-0 left-0 z-50 md:static shadow-lg md:shadow-none">
+        <div className="container max-w-7xl mx-auto flex flex-col items-center justify-between gap-4 md:flex-row md:py-6">
+          {/* Mobile Navigation - Compact & Modern */}
+          <div className="flex w-full justify-around md:hidden py-2">
             {allNavItems.map((item) => {
               const href =
                 item.hrefBase === "/"
                   ? `${item.hrefBase}?tab=${item.tabValue}`
                   : item.hrefBase;
-              // An item is active if its tabValue matches the currentQueryTab.
-              // If currentQueryTab is null (no tab in URL), 'active' is the default active tab.
-              // For Profile, check if we're on the /profile page
               const isActive =
                 (currentQueryTab === null && item.tabValue === "active") ||
                 currentQueryTab === item.tabValue ||
@@ -157,46 +148,67 @@ export function Footer() {
                   key={href}
                   onClick={() => handleNavClick(item.hrefBase, item.tabValue)}
                   className={cn(
-                    "flex flex-col items-center",
+                    "flex flex-col items-center justify-center gap-1 transition-all duration-200 relative px-3 py-1",
                     isActive
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-primary"
+                      ? "text-purple-400"
+                      : "text-gray-400 hover:text-purple-400"
                   )}
                   aria-label={item.label}
                 >
-                  <item.icon className="h-6 w-6" />
-                  <span className="text-xs mt-1">{item.label}</span>
+                  {isActive && (
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full" />
+                  )}
+                  <item.icon className={cn(
+                    "h-5 w-5 transition-all duration-200",
+                    isActive && "scale-110"
+                  )} />
+                  <span className={cn(
+                    "text-[10px] font-medium transition-all duration-200",
+                    isActive && "font-semibold"
+                  )}>
+                    {item.label}
+                  </span>
                 </button>
               );
             })}
             <button
               onClick={() => setShowInfo(!showInfo)}
               className={cn(
-                "flex flex-col items-center",
+                "flex flex-col items-center justify-center gap-1 transition-all duration-200 relative px-3 py-1",
                 showInfo
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-primary"
+                  ? "text-purple-400"
+                  : "text-gray-400 hover:text-purple-400"
               )}
               aria-label="About"
             >
-              <Info className="h-6 w-6" />
-              <span className="text-xs mt-1">About</span>
+              {showInfo && (
+                <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full" />
+              )}
+              <Info className={cn(
+                "h-5 w-5 transition-all duration-200",
+                showInfo && "scale-110"
+              )} />
+              <span className={cn(
+                "text-[10px] font-medium transition-all duration-200",
+                showInfo && "font-semibold"
+              )}>
+                About
+              </span>
             </button>
           </div>
 
           {/* Desktop Footer Content */}
           <div className="hidden md:flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-            <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
+            <p className="text-center text-sm leading-loose text-gray-300 md:text-left">
               Built by{" "}
               <Link
                 href="https://farcaster.xyz/~/channel/politics"
                 target="_blank"
                 rel="noreferrer"
-                className="font-medium underline underline-offset-4"
+                className="font-semibold text-purple-400 hover:text-purple-300 underline-offset-4 transition-colors"
               >
                 Politics
               </Link>
-              .
             </p>
           </div>
         </div>

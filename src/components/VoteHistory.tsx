@@ -6,7 +6,7 @@ import { type Address } from "viem";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Search } from "lucide-react";
 import {
   publicClient,
   contractAddress,
@@ -19,11 +19,10 @@ import {
   PolicastViewsAbi,
 } from "@/constants/contract";
 
-const CACHE_KEY = "vote_history_cache_v6"; // Updated for V2 support
-const CACHE_TTL = 60 * 60; // 1 hour in seconds
-const PAGE_SIZE = 50; // Votes per contract call
+const CACHE_KEY = "vote_history_cache_v6";
+const CACHE_TTL = 60 * 60;
+const PAGE_SIZE = 50;
 
-// V1 Vote interface (legacy))
 interface Vote {
   marketId: number;
   isOptionA: boolean;
@@ -31,7 +30,6 @@ interface Vote {
   timestamp: bigint;
 }
 
-// V2 Trade interface
 interface V2Trade {
   marketId: bigint;
   optionId: bigint;
@@ -42,7 +40,6 @@ interface V2Trade {
   timestamp: bigint;
 }
 
-// Unified transaction interface
 type TransactionType = "vote" | "buy" | "sell" | "swap";
 
 interface DisplayVote {
@@ -55,13 +52,12 @@ interface DisplayVote {
   version: "v1" | "v2";
 }
 
-// Enhanced market info for V1/V2 compatibility
 interface MarketInfo {
   marketId: number;
   question: string;
-  optionA?: string; // V1
-  optionB?: string; // V1
-  options?: string[]; // V2
+  optionA?: string;
+  optionB?: string;
+  options?: string[];
   version: "v1" | "v2";
 }
 
@@ -79,13 +75,12 @@ export function VoteHistory() {
   const { toast } = useToast();
   const [votes, setVotes] = useState<DisplayVote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [tokenSymbol, setTokenSymbol] = useState<string>("buster");
+  const [, setTokenSymbol] = useState<string>("buster");
   const [tokenDecimals, setTokenDecimals] = useState<number>(18);
   const [search, setSearch] = useState<string>("");
   const [sortKey, setSortKey] = useState<SortKey>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  // Fetch betting token address
   const { data: bettingTokenAddr } = useReadContract({
     address: contractAddress,
     abi: contractAbi,
@@ -94,7 +89,6 @@ export function VoteHistory() {
 
   const tokenAddress = (bettingTokenAddr as Address) || defaultTokenAddress;
 
-  // Fetch token metadata
   const { data: symbolData } = useReadContract({
     address: tokenAddress,
     abi: defaultTokenAbi,
@@ -114,28 +108,42 @@ export function VoteHistory() {
     if (decimalsData) setTokenDecimals(Number(decimalsData));
   }, [symbolData, decimalsData]);
 
-  // Load cache
   const loadCache = useCallback((): CacheData => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
-      return cached
-        ? JSON.parse(cached)
-        : { votes: [], marketInfo: {}, timestamp: 0 };
+      if (!cached) {
+        return { votes: [], marketInfo: {}, timestamp: 0 };
+      }
+
+      const parsed = JSON.parse(cached);
+
+      // Convert string values back to BigInt for amount and timestamp
+      if (parsed.votes && Array.isArray(parsed.votes)) {
+        parsed.votes = parsed.votes.map((vote: any) => ({
+          ...vote,
+          amount: BigInt(vote.amount),
+          timestamp: BigInt(vote.timestamp),
+        }));
+      }
+
+      return parsed;
     } catch {
       return { votes: [], marketInfo: {}, timestamp: 0 };
     }
   }, []);
 
-  // Save cache
   const saveCache = useCallback((data: CacheData) => {
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      // Convert BigInt values to strings before saving
+      const serializedData = JSON.stringify(data, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      );
+      localStorage.setItem(CACHE_KEY, serializedData);
     } catch (error) {
       console.error("Cache save error:", error);
     }
   }, []);
 
-  // Fetch V1 votes
   const fetchV1Votes = async (address: Address): Promise<Vote[]> => {
     const voteCount = (await publicClient.readContract({
       address: contractAddress,
@@ -165,10 +173,8 @@ export function VoteHistory() {
     return allVotes;
   };
 
-  // Fetch V2 trades
   const fetchV2Trades = async (address: Address): Promise<V2Trade[]> => {
     try {
-      // Get user portfolio to find trade count
       const portfolioParams: any = {
         address: PolicastViews,
         abi: PolicastViewsAbi,
@@ -190,7 +196,6 @@ export function VoteHistory() {
 
       if (tradeCount === 0) return [];
 
-      // Fetch all trades by iterating through indices
       const trades: V2Trade[] = [];
       for (let i = 0; i < tradeCount; i++) {
         try {
@@ -216,7 +221,6 @@ export function VoteHistory() {
           });
         } catch (error) {
           console.error(`Failed to fetch trade ${i}:`, error);
-          // If we get a contract revert, it likely means we've reached the end of available trades
           if (
             (error as any)?.message?.includes("reverted") ||
             (error as any)?.message?.includes("ContractFunctionRevertedError")
@@ -233,7 +237,6 @@ export function VoteHistory() {
     }
   };
 
-  // Fetch market info for V1 and V2
   const fetchMarketInfo = async (
     v1MarketIds: number[],
     v2MarketIds: number[],
@@ -241,7 +244,6 @@ export function VoteHistory() {
   ) => {
     const marketInfoCache = { ...cache.marketInfo };
 
-    // V1 markets
     const uncachedV1Ids = v1MarketIds.filter(
       (id) => !marketInfoCache[`v1_${id}`]
     );
@@ -274,7 +276,6 @@ export function VoteHistory() {
       });
     }
 
-    // V2 markets
     const uncachedV2Ids = v2MarketIds.filter(
       (id) => !marketInfoCache[`v2_${id}`]
     );
@@ -287,21 +288,19 @@ export function VoteHistory() {
             functionName: "getMarketBasicInfo",
             args: [BigInt(marketId)],
           })) as [
-            string, // question
-            string, // description
-            bigint, // endTime
-            number, // category
-            bigint, // optionCount
-            boolean, // resolved
-            number, // marketType
-            boolean, // invalidated
-            bigint // totalVolume
+            string,
+            string,
+            bigint,
+            number,
+            bigint,
+            boolean,
+            number,
+            boolean,
+            bigint
           ];
 
           const [question, , , , optionCount] = marketBasicInfo;
 
-          // We need to get the options separately since getMarketBasicInfo doesn't return them
-          // Let's get the option count first, then fetch each option
           const options: string[] = [];
 
           for (let optionId = 0; optionId < Number(optionCount); optionId++) {
@@ -313,10 +312,10 @@ export function VoteHistory() {
                 args: [BigInt(marketId), BigInt(optionId)],
               })) as [string, string, bigint, bigint, bigint, boolean];
 
-              options.push(optionInfo[0]); // option name
+              options.push(optionInfo[0]);
             } catch (error) {
               console.error(`Failed to fetch option ${optionId}:`, error);
-              options.push(`Option ${optionId + 1}`); // fallback
+              options.push(`Option ${optionId + 1}`);
             }
           }
 
@@ -335,7 +334,6 @@ export function VoteHistory() {
     return marketInfoCache;
   };
 
-  // Main fetch function
   const fetchVotes = useCallback(
     async (address: Address | undefined) => {
       if (!address) {
@@ -349,20 +347,17 @@ export function VoteHistory() {
         const cache = loadCache();
         const now = Math.floor(Date.now() / 1000);
 
-        // Use cache if fresh
         if (cache.votes.length > 0 && now - cache.timestamp < CACHE_TTL) {
           setVotes(cache.votes);
           setIsLoading(false);
           return;
         }
 
-        // Fetch both V1 votes and V2 trades in parallel
         const [v1Votes, v2Trades] = await Promise.all([
           fetchV1Votes(address),
           fetchV2Trades(address),
         ]);
 
-        // Extract market IDs
         const v1MarketIds = [
           ...new Set(v1Votes.map((v) => Number(v.marketId))),
         ];
@@ -370,14 +365,12 @@ export function VoteHistory() {
           ...new Set(v2Trades.map((t) => Number(t.marketId))),
         ];
 
-        // Fetch market info
         const marketInfoCache = await fetchMarketInfo(
           v1MarketIds,
           v2MarketIds,
           cache
         );
 
-        // Convert V1 votes to display format
         const displayV1Votes: DisplayVote[] = v1Votes.map((vote) => {
           const marketInfo = marketInfoCache[`v1_${Number(vote.marketId)}`];
           return {
@@ -391,7 +384,6 @@ export function VoteHistory() {
           };
         });
 
-        // Convert V2 trades to display format
         const displayV2Trades: DisplayVote[] = v2Trades.map((trade) => {
           const marketInfo = marketInfoCache[`v2_${Number(trade.marketId)}`];
           const isBuy =
@@ -403,7 +395,7 @@ export function VoteHistory() {
             option:
               marketInfo?.options?.[Number(trade.optionId)] ||
               `Option ${Number(trade.optionId) + 1}`,
-            amount: trade.quantity, // Use quantity instead of amount
+            amount: trade.quantity,
             marketName:
               marketInfo?.question || `Market ${Number(trade.marketId)}`,
             timestamp: trade.timestamp,
@@ -412,12 +404,10 @@ export function VoteHistory() {
           };
         });
 
-        // Combine and sort by timestamp
         const allTransactions = [...displayV1Votes, ...displayV2Trades].sort(
           (a, b) => Number(b.timestamp - a.timestamp)
         );
 
-        // Update cache
         const newCache = {
           votes: allTransactions,
           marketInfo: marketInfoCache,
@@ -444,7 +434,6 @@ export function VoteHistory() {
     fetchVotes(accountAddress);
   }, [accountAddress, fetchVotes]);
 
-  // Handle sorting
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -454,7 +443,6 @@ export function VoteHistory() {
     }
   };
 
-  // Sort and filter votes
   const filteredVotes = votes
     .filter(
       (vote) =>
@@ -481,8 +469,8 @@ export function VoteHistory() {
 
   if (!isConnected || !accountAddress) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
-        <div className="text-gray-500 font-medium">
+      <div className="flex flex-col items-center justify-center p-8 bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl border-0 shadow-lg">
+        <div className="text-sm text-white/80 font-medium">
           Your market history will appear here
         </div>
       </div>
@@ -491,18 +479,20 @@ export function VoteHistory() {
 
   if (isLoading) {
     return (
-      <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-        <div className="bg-gray-50 p-3 border-b border-gray-200">
-          <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+      <div className="border-0 rounded-xl overflow-hidden shadow-md bg-gradient-to-br from-[#433952]/10 to-[#544863]/10">
+        <div className="bg-gradient-to-r from-[#433952]/20 to-[#544863]/20 p-3 border-b border-[#433952]/20">
+          <div className="h-5 bg-white/20 rounded w-1/3 animate-pulse"></div>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-[#433952]/10">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 animate-pulse">
-              <div className="flex justify-between">
-                <div className="h-5 bg-gray-200 rounded w-2/3"></div>
-                <div className="h-5 bg-gray-200 rounded w-1/5"></div>
+            <div key={i} className="p-3 animate-pulse">
+              <div className="flex justify-between gap-3">
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-white/20 rounded w-3/4"></div>
+                  <div className="h-3 bg-white/10 rounded w-1/2"></div>
+                </div>
+                <div className="h-4 bg-white/20 rounded w-16"></div>
               </div>
-              <div className="mt-2 h-4 bg-gray-100 rounded w-1/2"></div>
             </div>
           ))}
         </div>
@@ -511,27 +501,38 @@ export function VoteHistory() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search and Sort Controls */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <Input
-            placeholder="Search by market or option..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-            aria-label="Search vote history"
-          />
-          <div className="flex gap-2 flex-wrap">
+    <div className="space-y-3">
+      {/* Compact Search Bar */}
+      <div className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl shadow-md border-0 p-3">
+        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <Input
+              placeholder="Search markets or options..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-sm bg-white/10 border-white/20 text-white placeholder:text-white/60 focus:border-white/40 focus:bg-white/15"
+              aria-label="Search vote history"
+            />
+          </div>
+          <div className="flex gap-2">
             <button
               onClick={() => handleSort("timestamp")}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                sortKey === "timestamp"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/15"
+              }`}
             >
               Date <ArrowUpDown className="h-3 w-3" />
             </button>
             <button
               onClick={() => handleSort("amount")}
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                sortKey === "amount"
+                  ? "bg-white/20 text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/15"
+              }`}
             >
               Amount <ArrowUpDown className="h-3 w-3" />
             </button>
@@ -540,106 +541,91 @@ export function VoteHistory() {
       </div>
 
       {filteredVotes.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredVotes.map((vote, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 hover:border-blue-200"
+              className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl shadow-md border-0 p-3 hover:shadow-lg transition-all"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-1.5 mb-2 flex-wrap">
                     <Link
                       href={`/market/${vote.marketId}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded-md"
+                      className="inline-flex items-center text-xs font-semibold text-white hover:text-white/90 bg-white/20 px-2 py-0.5 rounded-md"
                     >
                       #{vote.marketId}
                     </Link>
                     <span
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-medium ${
                         vote.type === "vote"
-                          ? "bg-green-100 text-green-800 border border-green-200"
+                          ? "bg-green-100 text-green-700"
                           : vote.type === "buy"
-                          ? "bg-blue-100 text-blue-800 border border-blue-200"
-                          : "bg-red-100 text-red-800 border border-red-200"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-red-100 text-red-700"
                       }`}
                     >
                       {vote.type === "vote"
-                        ? "🗳️ Vote"
+                        ? "🗳️"
                         : vote.type === "buy"
-                        ? "📈 Buy"
-                        : "📉 Sell"}
+                        ? "📈"
+                        : "📉"}
                     </span>
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded font-medium ${
                         vote.version === "v1"
-                          ? "bg-gray-100 text-gray-600"
-                          : "bg-purple-100 text-purple-600"
+                          ? "bg-white/20 text-white/90"
+                          : "bg-white/20 text-white/90"
                       }`}
                     >
                       {vote.version.toUpperCase()}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-white/70">
                       {new Date(
                         Number(vote.timestamp) * 1000
                       ).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",
-                        year: "numeric",
                       })}
                     </span>
                   </div>
 
                   <Link
                     href={`/market/${vote.marketId}`}
-                    className="block group"
+                    className="block group mb-1.5"
                   >
-                    <h3 className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors mb-2 line-clamp-2">
+                    <h3 className="text-sm font-medium text-white group-hover:text-white/90 transition-colors line-clamp-1">
                       {vote.marketName}
                     </h3>
                   </Link>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      {vote.type === "vote" ? "Voted for:" : "Option:"}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200">
+                  <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/10 border border-white/20">
+                    <span className="text-xs font-medium text-white">
                       {vote.option}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                  <div className="text-sm font-semibold text-gray-900">
+                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                  <div className="text-sm font-bold text-white">
                     {(
                       Number(vote.amount) / Math.pow(10, tokenDecimals)
                     ).toLocaleString(undefined, {
                       maximumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-xs font-medium text-gray-600">
-                      shares
-                    </span>
+                    })}
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(Number(vote.timestamp) * 1000).toLocaleTimeString(
-                      undefined,
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </div>
+                  <div className="text-xs text-white/70">shares</div>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+        <div className="bg-gradient-to-br from-[#433952] to-[#544863] rounded-xl border-0 shadow-lg p-8">
           <div className="flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+            <div className="w-14 h-14 mx-auto mb-3 bg-white/10 rounded-full flex items-center justify-center">
               <svg
-                className="w-8 h-8 text-gray-400"
+                className="w-7 h-7 text-white/60"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -654,15 +640,13 @@ export function VoteHistory() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {search
-                ? "No matching transactions found"
-                : "No transactions yet"}
+            <h3 className="text-base font-semibold text-white mb-1">
+              {search ? "No matching transactions" : "No transactions yet"}
             </h3>
-            <p className="text-sm text-gray-500 max-w-sm">
+            <p className="text-xs text-white/70 max-w-sm">
               {search
-                ? "Try adjusting your search terms to find different transactions."
-                : "Start making predictions and trades on markets to see your transaction history here."}
+                ? "Try different search terms"
+                : "Start trading to see your history here"}
             </p>
           </div>
         </div>

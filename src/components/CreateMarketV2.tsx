@@ -102,17 +102,16 @@ export function CreateMarketV2() {
 
   // Handle transaction success - detect when sendCalls returns data
   useEffect(() => {
-    if (sendCallsData && !sendCallsError && isSubmitting) {
-      console.log("🎉 Market creation transaction sent successfully!");
-      setIsSubmitting(false);
-      setMarketCreated(true);
-      toast({
-        title: "Success",
-        description:
-          "Market created successfully! It may take a moment to appear.",
-      });
-    }
-  }, [sendCallsData, sendCallsError, isSubmitting, toast]);
+    if (!sendCallsData || sendCallsError) return;
+
+    console.log("🎉 Market creation transaction sent successfully!");
+    setMarketCreated(true);
+    toast({
+      title: "Success",
+      description:
+        "Market created successfully! It may take a moment to appear.",
+    });
+  }, [sendCallsData, sendCallsError, toast]);
 
   // Check token allowance
   const { data: allowanceData } = useReadContract({
@@ -223,11 +222,11 @@ export function CreateMarketV2() {
     if (!question.trim()) return false;
     if (question.length > 200) return false;
     if (!description.trim()) return false;
-    if (description.length > 500) return false;
+    if (description.length > 1000) return false;
     if (options.length < 2) return false;
     if (options.some((opt) => !opt.name.trim())) return false;
     if (options.some((opt) => opt.name.length > 50)) return false;
-    if (options.some((opt) => opt.description.length > 100)) return false;
+    if (options.some((opt) => opt.description.length > 500)) return false;
     if (isNaN(parseFloat(duration)) || parseFloat(duration) < 1) return false;
     if (
       isNaN(parseFloat(initialLiquidity)) ||
@@ -300,10 +299,10 @@ export function CreateMarketV2() {
       });
       return false;
     }
-    if (description.length > 500) {
+    if (description.length > 1000) {
       toast({
         title: "Error",
-        description: "Description must be 500 characters or less",
+        description: "Description must be 1000 characters or less",
         variant: "destructive",
       });
       return false;
@@ -332,10 +331,10 @@ export function CreateMarketV2() {
       });
       return false;
     }
-    if (options.some((opt) => opt.description.length > 100)) {
+    if (options.some((opt) => opt.description.length > 500)) {
       toast({
         title: "Error",
-        description: "Option descriptions must be 100 characters or less",
+        description: "Option descriptions must be 500 characters or less",
         variant: "destructive",
       });
       return false;
@@ -488,10 +487,7 @@ export function CreateMarketV2() {
 
     try {
       console.log("📐 Calculating transaction parameters...");
-      const durationInSeconds = Math.floor(parseFloat(duration) * 24 * 60 * 60);
       const liquidityWei = parseEther(initialLiquidity);
-      const optionNames = options.map((opt) => opt.name);
-      const optionDescriptions = options.map((opt) => opt.description);
 
       // Calculate required approval amount based on market type
       let requiredApproval = liquidityWei;
@@ -500,7 +496,6 @@ export function CreateMarketV2() {
         console.log("🎁 Processing free market configuration...");
         if (!freeSharesPerUser.trim() || !maxFreeParticipants.trim()) {
           console.error("❌ Empty free market fields during submission");
-          setIsSubmitting(false);
           toast({
             title: "Error",
             description: "Please fill in all free market fields",
@@ -518,7 +513,6 @@ export function CreateMarketV2() {
       // Check if user has sufficient balance
       if (userBalance < requiredApproval) {
         console.error("❌ Insufficient balance");
-        setIsSubmitting(false);
         const requiredTokens = Number(requiredApproval) / 1e18;
         const currentTokens = Number(userBalance) / 1e18;
         toast({
@@ -602,6 +596,7 @@ export function CreateMarketV2() {
         }`,
         variant: "destructive",
       });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -625,11 +620,13 @@ export function CreateMarketV2() {
 
   if (!isConnected) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto text-yellow-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Connect Your Wallet</h3>
-          <p className="text-gray-600">
+          <AlertTriangle className="h-16 w-16 mx-auto text-yellow-300 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">
+            Connect Your Wallet
+          </h3>
+          <p className="text-white/80">
             Please connect your wallet to create markets.
           </p>
         </CardContent>
@@ -639,11 +636,11 @@ export function CreateMarketV2() {
 
   if (!hasCreatorAccess && !hasMarketCreationAuth) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-16 w-16 mx-auto text-red-400 mb-4" />
-          <h3 className="text-lg font-medium mb-2">Access Denied</h3>
-          <p className="text-gray-600">
+          <AlertTriangle className="h-16 w-16 mx-auto text-red-300 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">Access Denied</h3>
+          <p className="text-white/80">
             You don&apos;t have permission to create markets. You need either:
             <br />
             • The QUESTION_CREATOR_ROLE on the contract, or
@@ -666,21 +663,25 @@ export function CreateMarketV2() {
 
   if (marketCreated) {
     return (
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardContent className="p-6 text-center">
-          <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
-          <h3 className="text-lg font-medium mb-2">
+          <CheckCircle className="h-16 w-16 mx-auto text-green-300 mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-white">
             Market Created Successfully!
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-white/80 mb-4">
             Your prediction market has been created and is now live.
           </p>
-          <Button onClick={resetForm} className="mr-2">
+          <Button
+            onClick={resetForm}
+            className="mr-2 bg-white/10 hover:bg-white/20 text-white border-white/20"
+          >
             Create Another Market
           </Button>
           <Button
             variant="outline"
             onClick={() => (window.location.href = "/")}
+            className="bg-white/10 hover:bg-white/20 text-white border-white/20"
           >
             View Markets
           </Button>
@@ -691,21 +692,30 @@ export function CreateMarketV2() {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <Card>
+      <Card className="border-0 shadow-lg bg-gradient-to-br from-[#433952] to-[#544863]">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Plus className="h-5 w-5" />
             Create Market
-            <Badge variant="secondary">Admin</Badge>
+            <Badge
+              variant="secondary"
+              className="bg-white/20 text-white border-white/30"
+            >
+              Admin
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Basic Information</h3>
+            <h3 className="text-lg font-medium text-white">
+              Basic Information
+            </h3>
 
             <div className="space-y-2">
-              <Label htmlFor="question">Market Question *</Label>
+              <Label htmlFor="question" className="text-white/80">
+                Market Question *
+              </Label>
               <Input
                 id="question"
                 placeholder="e.g., Will candidate X win the 2024 election?"
@@ -713,14 +723,17 @@ export function CreateMarketV2() {
                 onChange={(e) => setQuestion(e.target.value)}
                 maxLength={200}
                 style={{ fontSize: "16px" }}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-white/60">
                 {question.length}/200 characters
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description *</Label>
+              <Label htmlFor="description" className="text-white/80">
+                Description *
+              </Label>
               <Textarea
                 id="description"
                 placeholder="Provide additional context and resolution criteria..."
@@ -729,20 +742,23 @@ export function CreateMarketV2() {
                 rows={3}
                 maxLength={1000}
                 style={{ fontSize: "16px" }}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-white/60">
                 {description.length}/1000 characters
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category" className="text-white/80">
+                  Category
+                </Label>
                 <Select
                   value={category.toString()}
                   onValueChange={(value) => setCategory(parseInt(value))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -756,12 +772,14 @@ export function CreateMarketV2() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="marketType">Market Type</Label>
+                <Label htmlFor="marketType" className="text-white/80">
+                  Market Type
+                </Label>
                 <Select
                   value={marketType.toString()}
                   onValueChange={(value) => setMarketType(parseInt(value))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/10 border-white/20 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -779,7 +797,10 @@ export function CreateMarketV2() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="duration" className="flex items-center gap-2">
+                <Label
+                  htmlFor="duration"
+                  className="flex items-center gap-2 text-white/80"
+                >
                   <Calendar className="h-4 w-4" />
                   Duration (days) *
                 </Label>
@@ -793,13 +814,14 @@ export function CreateMarketV2() {
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                   style={{ fontSize: "16px" }}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label
                   htmlFor="initialLiquidity"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-white/80"
                 >
                   <DollarSign className="h-4 w-4" />
                   Initial Liquidity (buster, min {MIN_INITIAL_LIQUIDITY}) *
@@ -813,6 +835,7 @@ export function CreateMarketV2() {
                   value={initialLiquidity}
                   onChange={(e) => setInitialLiquidity(e.target.value)}
                   style={{ fontSize: "16px" }}
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                 />
               </div>
             </div>
@@ -827,7 +850,7 @@ export function CreateMarketV2() {
               />
               <Label
                 htmlFor="earlyResolution"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white/80"
               >
                 Allow early resolution for event-based markets
               </Label>
@@ -839,9 +862,9 @@ export function CreateMarketV2() {
           {/* Market Options */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium flex items-center gap-2">
+              <h3 className="text-lg font-medium flex items-center gap-2 text-white">
                 Market Options
-                <span className="text-xs font-normal text-gray-500">
+                <span className="text-xs font-normal text-white/60">
                   ({options.length}/10, min 2, max 10)
                 </span>
               </h3>
@@ -850,6 +873,7 @@ export function CreateMarketV2() {
                 size="sm"
                 onClick={addOption}
                 disabled={options.length >= 10}
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Option
@@ -857,15 +881,15 @@ export function CreateMarketV2() {
             </div>
 
             {options.map((option, index) => (
-              <Card key={index} className="p-4">
+              <Card key={index} className="p-4 bg-white/10 border-white/20">
                 <div className="flex items-start justify-between mb-3">
-                  <h4 className="font-medium">Option {index + 1}</h4>
+                  <h4 className="font-medium text-white">Option {index + 1}</h4>
                   {options.length > 2 && (
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => removeOption(index)}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-300 hover:text-red-100 hover:bg-white/10"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -874,7 +898,10 @@ export function CreateMarketV2() {
 
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor={`option-name-${index}`}>
+                    <Label
+                      htmlFor={`option-name-${index}`}
+                      className="text-white/80"
+                    >
                       Option Name *
                     </Label>
                     <Input
@@ -886,11 +913,15 @@ export function CreateMarketV2() {
                       }
                       maxLength={100}
                       style={{ fontSize: "16px" }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor={`option-desc-${index}`}>
+                    <Label
+                      htmlFor={`option-desc-${index}`}
+                      className="text-white/80"
+                    >
                       Option Description
                     </Label>
                     <Textarea
@@ -903,6 +934,7 @@ export function CreateMarketV2() {
                       rows={2}
                       maxLength={500}
                       style={{ fontSize: "16px" }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                     />
                   </div>
                 </div>
@@ -915,7 +947,7 @@ export function CreateMarketV2() {
             <>
               <Separator />
               <div className="space-y-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
+                <h3 className="text-lg font-medium flex items-center gap-2 text-white">
                   <Info className="h-5 w-5" />
                   Free Market Settings
                 </h3>
@@ -924,7 +956,7 @@ export function CreateMarketV2() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="maxParticipants"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 text-white/80"
                     >
                       <DollarSign className="h-4 w-4" />
                       Max Free Participants
@@ -948,11 +980,14 @@ export function CreateMarketV2() {
                       }}
                       placeholder="e.g., 3"
                       style={{ fontSize: "16px" }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="freeShares">Free Tokens Per User</Label>
+                    <Label htmlFor="freeShares" className="text-white/80">
+                      Free Tokens Per User
+                    </Label>
                     <Input
                       id="freeShares"
                       type="number"
@@ -972,6 +1007,7 @@ export function CreateMarketV2() {
                       }}
                       placeholder="e.g., 100"
                       style={{ fontSize: "16px" }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/60"
                     />
                   </div>
                 </div>
@@ -979,27 +1015,27 @@ export function CreateMarketV2() {
             </>
           )}
 
-          <Separator />
+          <Separator className="bg-white/20" />
 
           {/* Cost Summary */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <h4 className="font-medium mb-2 flex items-center gap-2">
+          <div className="p-4 bg-[#544863]/30 rounded-lg border border-white/20">
+            <h4 className="font-medium mb-2 flex items-center gap-2 text-white">
               <DollarSign className="h-4 w-4" />
               Cost Summary
             </h4>
             <div className="space-y-1 text-sm">
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white/80">
                 <span>Initial Liquidity:</span>
-                <span>{initialLiquidity} BUSTER</span>
+                <span className="text-white">{initialLiquidity} BUSTER</span>
               </div>
               {marketType === MarketType.FREE_ENTRY && (
                 <>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-white/80">
                     <span>
                       Prize Pool ({maxFreeParticipants || "0"} ×{" "}
                       {freeSharesPerUser || "0"}):
                     </span>
-                    <span>
+                    <span className="text-white">
                       {(() => {
                         const participants = parseInt(
                           maxFreeParticipants || "0"
@@ -1015,7 +1051,7 @@ export function CreateMarketV2() {
                     </span>
                   </div>
                   <Separator className="my-2" />
-                  <div className="flex justify-between font-medium">
+                  <div className="flex justify-between font-medium text-white">
                     <span>Total Required:</span>
                     <span>
                       {(() => {
@@ -1040,20 +1076,20 @@ export function CreateMarketV2() {
                 </>
               )}
               {marketType === MarketType.PAID && (
-                <div className="flex justify-between font-medium">
+                <div className="flex justify-between font-medium text-white">
                   <span>Total Required:</span>
                   <span>{initialLiquidity} BUSTER</span>
                 </div>
               )}
 
               <Separator className="my-2" />
-              <div className="flex justify-between">
+              <div className="flex justify-between text-white/80">
                 <span>Your Balance:</span>
                 <span
                   className={(() => {
                     try {
                       if (!initialLiquidity || initialLiquidity.trim() === "")
-                        return "text-green-600 font-medium";
+                        return "text-green-300 font-medium";
                       const requiredAmount =
                         marketType === MarketType.FREE_ENTRY
                           ? (
@@ -1063,10 +1099,10 @@ export function CreateMarketV2() {
                             ).toString()
                           : initialLiquidity;
                       return userBalance < parseEther(requiredAmount)
-                        ? "text-red-500 font-medium"
-                        : "text-green-600 font-medium";
+                        ? "text-red-300 font-medium"
+                        : "text-green-300 font-medium";
                     } catch {
-                      return "text-green-600 font-medium";
+                      return "text-green-300 font-medium";
                     }
                   })()}
                 >
@@ -1091,9 +1127,9 @@ export function CreateMarketV2() {
                   return false;
                 }
               })() && (
-                <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded mt-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500" />
-                  <span className="text-red-700 dark:text-red-300 text-xs">
+                <div className="flex items-center gap-2 p-2 bg-red-900/30 border border-red-400/30 rounded mt-2">
+                  <AlertTriangle className="h-4 w-4 text-red-300" />
+                  <span className="text-red-200 text-xs">
                     Insufficient balance to create this market
                   </span>
                 </div>
@@ -1105,7 +1141,7 @@ export function CreateMarketV2() {
 
           {/* Submit Button */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-white/70">
               <Info className="h-4 w-4" />
               <span>
                 Market creation requires an initial liquidity deposit of at
@@ -1114,7 +1150,11 @@ export function CreateMarketV2() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={resetForm}>
+              <Button
+                variant="outline"
+                onClick={resetForm}
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+              >
                 Reset
               </Button>
               <Button
@@ -1146,7 +1186,7 @@ export function CreateMarketV2() {
                     }
                   })()
                 }
-                className="min-w-[120px]"
+                className="min-w-[120px] bg-white/20 hover:bg-white/30 text-white"
               >
                 {isSubmitting || sendCallsPending ? (
                   <>

@@ -21,16 +21,16 @@ function formatPrice(price: bigint): string {
 
 // Color palette for options (up to 10 options)
 const optionColors = [
-  "bg-blue-500",
-  "bg-green-500",
-  "bg-purple-500",
-  "bg-orange-500",
-  "bg-red-500",
-  "bg-teal-500",
-  "bg-pink-500",
-  "bg-indigo-500",
-  "bg-yellow-500",
-  "bg-gray-500",
+  "bg-blue-400",
+  "bg-green-400",
+  "bg-purple-400",
+  "bg-orange-400",
+  "bg-red-400",
+  "bg-teal-400",
+  "bg-pink-400",
+  "bg-indigo-400",
+  "bg-yellow-400",
+  "bg-gray-400",
 ];
 
 export function MultiOptionProgress({
@@ -47,7 +47,7 @@ export function MultiOptionProgress({
   return (
     <div className={cn("space-y-4", className)}>
       {/* Progress Bar - based on contract odds */}
-      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+      <div className="w-full bg-[#544863]/30 rounded-full h-3 overflow-hidden border border-[#544863]">
         <div className="h-full flex">
           {options.map((option, index) => {
             const probability = probabilities[index] || 0;
@@ -79,7 +79,7 @@ export function MultiOptionProgress({
           return (
             <div
               key={index}
-              className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-between p-2 rounded-lg bg-[#352c3f]/80 hover:bg-[#544863]/50 transition-colors border border-[#544863]"
             >
               <div className="flex items-center space-x-3">
                 <div
@@ -89,11 +89,11 @@ export function MultiOptionProgress({
                   )}
                 />
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-gray-100">
                     {option.name}
                   </p>
                   {option.description && (
-                    <p className="text-xs text-gray-500 truncate max-w-[200px]">
+                    <p className="text-xs text-gray-400 truncate max-w-[200px]">
                       {option.description}
                     </p>
                   )}
@@ -102,10 +102,10 @@ export function MultiOptionProgress({
 
               <div className="text-right">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm font-bold text-gray-900">
+                  <span className="text-sm font-bold text-gray-100">
                     {normalizedProbability.toFixed(1)}%
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-gray-400">
                     {displayOdds.toFixed(2)}x
                   </span>
                 </div>
@@ -121,7 +121,7 @@ export function MultiOptionProgress({
 
       {/* Total Volume Display */}
       {totalVolume > 0n && (
-        <div className="text-center text-sm text-gray-500 pt-2 border-t border-gray-200">
+        <div className="text-center text-sm text-gray-400 pt-2 border-t border-[#544863]">
           Total Volume: {formatPrice(totalVolume)} Buster
         </div>
       )}

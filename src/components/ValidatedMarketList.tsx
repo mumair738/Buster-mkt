@@ -121,65 +121,92 @@ export function ValidatedMarketList({
         console.log("Market counts:", counts);
 
         // For now, prioritize V2 markets and show some V1 markets
-        const marketPromises: Promise<MarketWithVersion>[] = [];
+        const allMarketData: MarketWithVersion[] = [];
 
-        // Fetch V2 markets (if any)
-        for (let i = 0; i < counts.v2Count; i++) {
-          marketPromises.push(
-            fetchMarketData(i).then(async ({ version, market }) => {
-              let validated = true; // V1 markets are always considered validated
+        // Fetch markets in batches to avoid rate limiting
+        const BATCH_SIZE = 5; // Process 5 markets at a time
+        const BATCH_DELAY = 500; // 500ms delay between batches
 
-              if (version === "v2") {
-                // Check validation status for V2 markets
-                validated = await checkMarketValidation(i);
-              }
+        // Helper function to fetch a batch with delay
+        const fetchBatch = async (
+          startIdx: number,
+          endIdx: number,
+          isV2: boolean
+        ) => {
+          const promises = [];
+          for (let i = startIdx; i < endIdx; i++) {
+            promises.push(
+              fetchMarketData(i)
+                .then(async ({ version, market }) => {
+                  let validated = true; // V1 markets are always considered validated
 
-              return {
-                id: i,
-                version,
-                validated,
-                market:
-                  version === "v2"
-                    ? (market as MarketV2)
-                    : convertV1Market(market as MarketV1Types),
-              };
-            })
-          );
+                  if (version === "v2" && isV2) {
+                    // Check validation status for V2 markets
+                    validated = await checkMarketValidation(i);
+                  }
+
+                  return {
+                    id: i,
+                    version,
+                    validated,
+                    market:
+                      version === "v2"
+                        ? (market as MarketV2)
+                        : convertV1Market(market as MarketV1Types),
+                  };
+                })
+                .catch((err) => {
+                  console.error(`Failed to fetch market ${i}:`, err);
+                  return null;
+                })
+            );
+          }
+
+          const results = await Promise.allSettled(promises);
+          return results
+            .filter(
+              (r): r is PromiseFulfilledResult<MarketWithVersion | null> =>
+                r.status === "fulfilled" && r.value !== null
+            )
+            .map((r) => r.value as MarketWithVersion);
+        };
+
+        // Fetch V2 markets in batches
+        for (let i = 0; i < counts.v2Count; i += BATCH_SIZE) {
+          const endIdx = Math.min(i + BATCH_SIZE, counts.v2Count);
+          const batchResults = await fetchBatch(i, endIdx, true);
+          allMarketData.push(...batchResults);
+
+          // Update UI progressively
+          setMarkets([...allMarketData].sort((a, b) => b.id - a.id));
+
+          // Add delay between batches (except for last batch)
+          if (endIdx < counts.v2Count) {
+            await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY));
+          }
         }
 
-        // Fetch recent V1 markets (up to 20) - these are always validated
+        // Fetch recent V1 markets (up to 20) in batches
         const v1MarketsToFetch = Math.min(counts.v1Count, 20);
-        for (
-          let i = Math.max(0, counts.v1Count - v1MarketsToFetch);
-          i < counts.v1Count;
-          i++
-        ) {
-          marketPromises.push(
-            fetchMarketData(i).then(({ version, market }) => ({
-              id: i,
-              version,
-              validated: true, // V1 markets are always validated
-              market:
-                version === "v2"
-                  ? (market as MarketV2)
-                  : convertV1Market(market as MarketV1Types),
-            }))
-          );
+        const v1StartIdx = Math.max(0, counts.v1Count - v1MarketsToFetch);
+
+        for (let i = v1StartIdx; i < counts.v1Count; i += BATCH_SIZE) {
+          const endIdx = Math.min(i + BATCH_SIZE, counts.v1Count);
+          const batchResults = await fetchBatch(i, endIdx, false);
+          allMarketData.push(...batchResults);
+
+          // Update UI progressively
+          setMarkets([...allMarketData].sort((a, b) => b.id - a.id));
+
+          // Add delay between batches (except for last batch)
+          if (endIdx < counts.v1Count) {
+            await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY));
+          }
         }
 
-        const allMarkets = await Promise.allSettled(marketPromises);
-
-        const successfulMarkets = allMarkets
-          .filter(
-            (result): result is PromiseFulfilledResult<MarketWithVersion> =>
-              result.status === "fulfilled"
-          )
-          .map((result) => result.value);
-
-        // Sort by ID descending (newest first)
-        successfulMarkets.sort((a, b) => b.id - a.id);
-
-        setMarkets(successfulMarkets);
+        // Final sort
+        allMarketData.sort((a, b) => b.id - a.id);
+        setMarkets(allMarketData);
       } catch (err) {
         console.error("Error fetching markets:", err);
         setError("Failed to load markets");

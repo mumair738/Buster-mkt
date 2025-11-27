@@ -43,7 +43,6 @@ import {
   TrendingUp,
   Award,
   Activity,
-  RefreshCw,
   Loader2,
 } from "lucide-react";
 

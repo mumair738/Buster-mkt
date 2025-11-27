@@ -118,12 +118,16 @@ function WalletProvider({ children }: { children: React.ReactNode }) {
   // Auto-connect logic
   useCoinbaseWalletAutoConnect();
 
-  // Determine primary connector
-  const primaryConnector =
-    wagmiConnectors.find((c) => c.id === "miniAppConnector") ||
-    wagmiConnectors.find((c) => c.id === "coinbaseWalletSDK") ||
-    wagmiConnectors.find((c) => c.id === "metaMask") ||
-    (wagmiConnectors.length > 0 ? wagmiConnectors[0] : undefined);
+  // Determine primary connector with better fallback logic
+  const primaryConnector = React.useMemo(() => {
+    return (
+      wagmiConnectors.find((c) => c.id === "miniAppConnector") ||
+      wagmiConnectors.find((c) => c.id.includes("coinbase")) ||
+      wagmiConnectors.find((c) => c.id === "walletConnect") ||
+      wagmiConnectors[0] ||
+      null
+    );
+  }, [wagmiConnectors]);
 
   const walletValue: WalletContextType = {
     connect: (connectorId?: string) => {

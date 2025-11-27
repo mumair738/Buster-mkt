@@ -126,16 +126,6 @@ export async function fetchV1Market(marketId: number): Promise<Market> {
 
 // Fetch V2 market data
 export async function fetchV2Market(marketId: number): Promise<MarketV2> {
-  // Use explicit getters on the V2 contract for reliable fields. Some
-  // deployments / view contracts have returned tuples with different shapes
-  // historically, so instead of relying on tuple indices from
-  // PolicastViews.getMarketInfo we call the contract helper methods that
-  // clearly define where `validated` and `invalidated` live.
-  //
-  // getMarketBasicInfo (on V2 contract) returns a stable tuple including
-  // optionCount and invalidated. getMarketExtendedMeta contains validated
-  // and other metadata. We'll merge results deterministically.
-
   // Primary: read basic info from V2 contract
   let basicInfo: any = null;
   try {
@@ -225,17 +215,44 @@ export async function fetchV2Market(marketId: number): Promise<MarketV2> {
     ? Boolean(extendedMeta[4])
     : Boolean((viewInfo && viewInfo[12]) || false);
 
-  // Fetch all options
+  // Fetch all options in parallel with batching to reduce RPC calls
   const options: MarketOption[] = [];
-  for (let i = 0; i < Number(optionCount); i++) {
-    try {
-      const optionData = await publicClient.readContract({
-        address: V2contractAddress,
-        abi: V2contractAbi,
-        functionName: "getMarketOption",
-        args: [BigInt(marketId), BigInt(i)],
-      });
+  const optionPromises = [];
 
+  for (let i = 0; i < Number(optionCount); i++) {
+    optionPromises.push(
+      publicClient
+        .readContract({
+          address: V2contractAddress,
+          abi: V2contractAbi,
+          functionName: "getMarketOption",
+          args: [BigInt(marketId), BigInt(i)],
+        })
+        .catch((error) => {
+          console.error(`Error fetching option ${i}:`, error);
+          return null; // Return null for failed fetches
+        })
+    );
+  }
+
+  // Wait for all options to resolve in parallel (much faster than sequential)
+  const optionResults = await Promise.all(optionPromises);
+
+  // Process results
+  for (let i = 0; i < optionResults.length; i++) {
+    const optionData = optionResults[i];
+
+    if (optionData === null) {
+      // Add placeholder option if fetch failed
+      options.push({
+        name: `Option ${i + 1}`,
+        description: "",
+        totalShares: 0n,
+        totalVolume: 0n,
+        currentPrice: 0n,
+        isActive: true,
+      });
+    } else {
       const [
         name,
         optionDescription,
@@ -252,17 +269,6 @@ export async function fetchV2Market(marketId: number): Promise<MarketV2> {
         totalVolume: BigInt(optionTotalVolume ?? 0n),
         currentPrice: BigInt(currentPrice ?? 0n),
         isActive: Boolean(isActive),
-      });
-    } catch (error) {
-      console.error(`Error fetching option ${i}:`, error);
-      // Add placeholder option if fetch fails
-      options.push({
-        name: `Option ${i + 1}`,
-        description: "",
-        totalShares: 0n,
-        totalVolume: 0n,
-        currentPrice: 0n,
-        isActive: true,
       });
     }
   }
